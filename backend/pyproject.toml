@@ -1,0 +1,7 @@
+[project]
+name = "Campus-Connect"
+version = "0.1.0"
+description = "Backend codes for Campus-Connect"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
