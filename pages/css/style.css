@@ -1487,7 +1487,138 @@ button, .btn {
 .podium-score { font-family: var(--font-heading); font-weight: 800; font-size: 20px; color: var(--color-ink); line-height: 1; }
 .podium-card.gold .podium-score { font-size: 24px; }
 
-/* --- 19. Progress Bar --- */
+/* --- 19. Auth Extras (divider, SSO, form logo, password eye) --- */
+
+/* Logo row inside the form panel (tighter spacing than sidebar logo-row) */
+.auth-form-logo {
+  padding-left: 0;
+  padding-bottom: 12px;
+  cursor: pointer;
+}
+
+/* 2-column grid with tighter gap for paired form fields */
+.grid-2-tight {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+/* "or continue with" divider row */
+.auth-divider-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--color-ink-light);
+  font-size: 11px;
+  margin-top: 8px;
+  margin-bottom: 16px;
+}
+
+.auth-divider-line {
+  flex: 1;
+  height: 1px;
+  background-color: rgba(58, 42, 36, 0.1);
+}
+
+/* SSO button grid */
+.auth-sso-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.btn-sso {
+  background-color: white;
+  border: var(--border-subtle);
+  border-radius: 12px;
+  padding: 10px;
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--color-ink);
+  box-shadow: var(--shadow-card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.btn-sso:hover { background-color: var(--color-surface-alt); }
+.btn-sso i, .btn-sso svg { width: 16px; height: 16px; }
+
+/* Input wrapper: left icon + text, right toggle icon */
+.input-icon-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.input-icon-left i, .input-icon-left svg { width: 16px; height: 16px; color: var(--color-ink-light); flex-shrink: 0; }
+
+.input-icon-left input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--color-ink);
+  width: 100%;
+}
+
+/* Clickable icon (e.g. password eye toggle) */
+.icon-clickable { cursor: pointer; width: 16px; height: 16px; color: var(--color-ink-light); flex-shrink: 0; }
+
+/* Sticker card inside the auth sidebar bottom */
+.auth-sidebar-sticker {
+  position: absolute;
+  left: 24px;
+  bottom: 32px;
+  background-color: white;
+  color: var(--color-ink);
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 12px;
+  padding: 10px 14px;
+  border-radius: 14px 14px 14px 4px;
+  box-shadow: var(--shadow-card);
+  z-index: 10;
+}
+
+/* Decorative sparkle SVG inside auth sidebar */
+.auth-sparkle {
+  position: absolute;
+  right: 34px;
+  top: 30px;
+  opacity: 0.7;
+  width: 24px;
+  height: 24px;
+}
+
+/* Auth sidebar logo row */
+.auth-sidebar-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  z-index: 5;
+}
+
+.auth-sidebar-logo-mark {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background-color: white;
+  color: var(--color-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.auth-sidebar-logo-mark i, .auth-sidebar-logo-mark svg { width: 18px; height: 18px; }
+
+/* --- 20. Progress Bar --- */
 .progress-bar-container { display: flex; flex-direction: column; gap: 4px; }
 .progress-bar-labels    { display: flex; justify-content: space-between; font-size: 10px; font-weight: 700; }
 
