@@ -4273,3 +4273,200 @@ button, .btn {
     box-shadow: none;
   }
 }
+
+/*  36. Members Management  */
+.member-request-card {
+  background-color: var(--color-surface);
+  border-radius: var(--radius-card);
+  border: var(--border-subtle);
+  padding: 16px 20px;
+  box-shadow: var(--shadow-card);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  transition: box-shadow 0.15s;
+}
+
+.member-request-card:hover { box-shadow: var(--shadow-card-lg); }
+.member-request-card.approved-member { background-color: var(--color-green-tint); border-color: rgba(79,157,87,0.3); }
+.member-request-card.rejected-member { background-color: var(--color-pink); border-color: rgba(194,90,114,0.2); }
+
+.member-req-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background-color: var(--color-surface-alt);
+  border: var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--color-ink-muted);
+  flex-shrink: 0;
+}
+
+.member-req-info { flex: 1; min-width: 0; }
+
+.member-req-name {
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--color-ink);
+}
+
+.member-req-sub {
+  font-size: 11px;
+  color: var(--color-ink-muted);
+  margin-top: 2px;
+}
+
+.member-req-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.member-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.member-row {
+  background-color: var(--color-surface);
+  border-radius: 12px;
+  border: var(--border-subtle);
+  padding: 13px 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  box-shadow: var(--shadow-float);
+  transition: box-shadow 0.15s, transform 0.15s;
+}
+
+.member-row:hover {
+  box-shadow: var(--shadow-card);
+  transform: translateX(2px);
+}
+
+.member-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: var(--color-orange-tint);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--color-orange-text);
+  flex-shrink: 0;
+}
+
+.member-info { flex: 1; min-width: 0; }
+
+.member-name {
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--color-ink);
+}
+
+.member-sub {
+  font-size: 11px;
+  color: var(--color-ink-muted);
+  margin-top: 2px;
+}
+
+.member-role-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  flex-shrink: 0;
+}
+
+.member-role-badge.officer {
+  background-color: var(--color-green-tint);
+  color: var(--color-green-text);
+}
+
+.member-role-badge.member {
+  background-color: var(--color-surface-alt);
+  color: var(--color-ink-muted);
+  border: var(--border-subtle);
+}
+
+.member-remove-btn {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-ink-light);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s;
+}
+
+.member-row:hover .member-remove-btn { opacity: 1; }
+.member-remove-btn:hover { color: var(--color-pink-text); }
+
+.status-pill.active { background-color: var(--color-green-tint); color: var(--color-green-text); }
+
+/*  37. Toggle Switch  */
+.toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 0 2px;
+  border-top: var(--border-divider);
+  margin-top: 8px;
+}
+
+.toggle-label-block { flex: 1; }
+
+.toggle-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.toggle-desc {
+  font-size: 11px;
+  color: var(--color-ink-muted);
+  margin-top: 2px;
+}
+
+.toggle-switch {
+  width: 40px;
+  height: 22px;
+  border-radius: 999px;
+  background-color: var(--color-surface-alt);
+  border: var(--border-subtle);
+  cursor: pointer;
+  position: relative;
+  transition: background-color 0.2s;
+  flex-shrink: 0;
+}
+
+.toggle-switch.on { background-color: var(--color-green); border-color: var(--color-green); }
+
+.toggle-switch::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background-color: white;
+  transition: transform 0.2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+}
+
+.toggle-switch.on::after { transform: translateX(18px); }
