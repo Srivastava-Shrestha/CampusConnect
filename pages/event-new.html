@@ -21,10 +21,11 @@
     </div>
     <p class="nav-label">Leader</p>
     <nav class="sidebar-menu">
-      <a href="clubs-profile.html" class="sidebar-item"><i data-lucide="layout-dashboard"></i> My Club</a>
+      <a href="leader-club.html" class="sidebar-item"><i data-lucide="layout-dashboard"></i> My Club</a>
       <a href="members.html" class="sidebar-item"><i data-lucide="users-round"></i> Members</a>
-      <a href="events.html" class="sidebar-item active leader"><i data-lucide="calendar-days"></i> Events</a>
-      <a href="post-announcement.html" class="sidebar-item"><i data-lucide="megaphone"></i> Announcements</a>
+      <a href="leader-events.html" class="sidebar-item active leader"><i data-lucide="calendar-days"></i> Events</a>
+      <a href="leader-announcements.html" class="sidebar-item"><i data-lucide="megaphone"></i> Announcements</a>
+      <a href="leader-issues.html" class="sidebar-item"><i data-lucide="triangle-alert"></i> Issues</a>
       <a href="clubs-new.html" class="sidebar-item"><i data-lucide="plus-circle"></i> Create Club</a>
     </nav>
     <div class="sidebar-spacer"></div>
@@ -40,7 +41,7 @@
   <div class="main-content">
 
     <header class="topbar">
-      <button class="btn-secondary" onclick="location.href='events.html'">
+      <button class="btn-secondary" onclick="location.href='leader-events.html'">
         <i data-lucide="arrow-left"></i> Events
       </button>
       <div class="title-block">
@@ -172,7 +173,7 @@
 
       // In production this calls POST /api/v1/events
       alert('Event published! Members can now register.');
-      window.location.href = 'events.html';
+      window.location.href = 'leader-events.html';
     }
   </script>
 
