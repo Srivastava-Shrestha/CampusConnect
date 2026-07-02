@@ -68,6 +68,84 @@ const mockAnnouncements = [
   }
 ]
 
+const mockLeaderAnnouncements = [
+  {
+    id: 1,
+    club: 'Robotics & Automation Club',
+    dot: 'banner-orange',
+    emoji: '\u{1F916}',
+    time: '2 hours ago',
+    title: 'Hackathon preparations: what to bring on the day',
+    body: 'The Automation Hackathon is on 19 July. Please arrive by 8:45 AM at Seminar Hall, Block A for check-in. Bring your student ID and your Registration ID. Teams of 2 to 4 are confirmed at the gate. Laptops with Arduino IDE pre-installed are strongly recommended.',
+    tags: ['Hackathon', 'Important'],
+    category: 'tech',
+    pinned: true,
+    unread: false
+  },
+  {
+    id: 2,
+    club: 'Robotics & Automation Club',
+    dot: 'banner-orange',
+    emoji: '\u{1F916}',
+    time: '3 days ago',
+    title: 'New equipment now available in the Main Lab',
+    body: 'We have received 4 new Raspberry Pi 4 kits and a set of servo motor modules thanks to the department grant. These are available for club project use with booking. Use the equipment register sheet kept at the lab entrance.',
+    tags: ['Lab', 'Resources'],
+    category: 'tech',
+    pinned: false,
+    unread: false
+  },
+  {
+    id: 3,
+    club: 'Robotics & Automation Club',
+    dot: 'banner-orange',
+    emoji: '\u{1F916}',
+    time: '5 days ago',
+    title: 'Registrations open for Line Follower Robot Build',
+    body: 'We are running our next hands-on workshop on 12 July in the Main Lab. All experience levels are welcome. Slots are limited to 50 participants. Register on the Events page and carry your student ID on the day. Materials will be provided.',
+    tags: ['Workshop', 'Registration'],
+    category: 'event',
+    pinned: false,
+    unread: false
+  },
+  {
+    id: 4,
+    club: 'Robotics & Automation Club',
+    dot: 'banner-orange',
+    emoji: '\u{1F916}',
+    time: '1 week ago',
+    title: 'Project submission deadline extended to 20 July',
+    body: 'Due to requests from several teams, the final project submission deadline for the semester mini-project has been extended by one week to 20 July. Please upload your project report and working demo video to the shared drive link sent to members.',
+    tags: ['Projects', 'Deadline'],
+    category: 'tech',
+    pinned: false,
+    unread: false
+  },
+  {
+    id: 5,
+    club: 'Robotics & Automation Club',
+    dot: 'banner-orange',
+    emoji: '\u{1F916}',
+    time: '2 weeks ago',
+    title: 'Club anniversary celebration recap and photo gallery link',
+    body: 'Thank you to everyone who joined our 7th anniversary celebration last week. It was a wonderful evening. Photos from the event have been compiled into a gallery linked in the club bio. Please share and tag your fellow members.',
+    tags: ['Anniversary', 'Community'],
+    category: 'culture',
+    pinned: false,
+    unread: false
+  }
+]
+
+// TODO: replace with real endpoint when backend is ready
+export async function getLeaderAnnouncements() {
+  try {
+    const response = await fetch(BASE_URL + '/announcements/mine')
+    return await response.json()
+  } catch (error) {
+    return mockLeaderAnnouncements
+  }
+}
+
 // TODO: replace with real endpoint when backend is ready
 export async function getAnnouncements() {
   try {
@@ -116,4 +194,4 @@ export async function deleteAnnouncement(announcementId) {
   }
 }
 
-export { BASE_URL, mockAnnouncements }
+export { BASE_URL, mockAnnouncements, mockLeaderAnnouncements }

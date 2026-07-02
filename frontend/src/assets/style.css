@@ -4775,3 +4775,17 @@ button, .btn {
 
   .onboard-heading { font-size: 26px; }
 }
+
+/*  39b. Mobile joined-clubs carousel visibility  */
+@media (max-width: 767px) {
+  .clubs-carousel-track {
+    padding: 12px;
+    scroll-snap-type: x mandatory;
+  }
+
+  .joined-club-card {
+    width: 78vw;
+    max-width: 320px;
+    scroll-snap-align: start;
+  }
+}

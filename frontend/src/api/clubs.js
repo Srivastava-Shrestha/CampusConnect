@@ -139,26 +139,135 @@ const mockClubs = [
 ]
 
 const mockJoinedClubs = [
-  { id: 1, name: 'Robotics & Automation', sub: '84 members · Tech', banner: 'banner-orange', emoji: '\u{1F916}', badge: '2 new events', alert: true },
-  { id: 3, name: 'Coding Society', sub: '203 members · Tech', banner: 'banner-green', emoji: '\u{1F4BB}', badge: 'Hackathon this week', alert: true },
-  { id: 2, name: 'Photography Circle', sub: '112 members · Arts', banner: 'banner-blue', emoji: '\u{1F4F7}', badge: 'Member', alert: false },
-  { id: 4, name: 'Music Collective', sub: '67 members · Music', banner: 'banner-yellow', emoji: '\u{1F3B5}', badge: 'Open mic Friday', alert: true }
+  {
+    id: 1,
+    name: 'Robotics & Automation',
+    sub: '84 members · Tech',
+    banner: 'banner-orange',
+    emoji: '\u{1F916}',
+    badge: '2 new events',
+    alert: true
+  },
+  {
+    id: 3,
+    name: 'Coding Society',
+    sub: '203 members · Tech',
+    banner: 'banner-green',
+    emoji: '\u{1F4BB}',
+    badge: 'Hackathon this week',
+    alert: true
+  },
+  {
+    id: 2,
+    name: 'Photography Circle',
+    sub: '112 members · Arts',
+    banner: 'banner-blue',
+    emoji: '\u{1F4F7}',
+    badge: 'Member',
+    alert: false
+  },
+  {
+    id: 4,
+    name: 'Music Collective',
+    sub: '67 members · Music',
+    banner: 'banner-yellow',
+    emoji: '\u{1F3B5}',
+    badge: 'Open mic Friday',
+    alert: true
+  }
 ]
 
 const mockLeaderboard = {
   podium: [
-    { rank: '2nd', tier: 'silver', name: 'Coding Society', score: '1,090', emoji: '\u{1F4BB}', category: 'tech' },
-    { rank: '1st', tier: 'gold', name: 'Robotics & Automation', score: '1,240', emoji: '\u{1F916}', category: 'tech' },
-    { rank: '3rd', tier: 'bronze', name: 'Music Collective', score: '920', emoji: '\u{1F3B5}', category: 'culture' }
+    {
+      rank: '2nd',
+      tier: 'silver',
+      name: 'Coding Society',
+      score: '1,090',
+      emoji: '\u{1F4BB}',
+      category: 'tech'
+    },
+    {
+      rank: '1st',
+      tier: 'gold',
+      name: 'Robotics & Automation',
+      score: '1,240',
+      emoji: '\u{1F916}',
+      category: 'tech'
+    },
+    {
+      rank: '3rd',
+      tier: 'bronze',
+      name: 'Music Collective',
+      score: '920',
+      emoji: '\u{1F3B5}',
+      category: 'culture'
+    }
   ],
   rows: [
-    { rank: 4, name: 'Photography Circle', cat: 'Arts · 38 members', score: 780, dot: 'banner-blue', emoji: '\u{1F4F7}', category: 'arts' },
-    { rank: 5, name: 'Entrepreneurship Cell', cat: 'Business · 54 members', score: 640, dot: 'banner-mint', emoji: '\u{1F4BC}', category: 'business' },
-    { rank: 6, name: 'Drama & Theatre Club', cat: 'Culture · 29 members', score: 520, dot: 'banner-pink', emoji: '\u{1F3AA}', category: 'culture' },
-    { rank: 7, name: 'Chess Club', cat: 'Sports · 22 members', score: 380, dot: 'banner-yellow', emoji: '\u{265E}\u{FE0F}', category: 'sports' },
-    { rank: 8, name: 'Astronomy Club', cat: 'Tech · 17 members', score: 290, dot: 'banner-orange', emoji: '\u{1F52C}', category: 'tech' },
-    { rank: 9, name: 'Fine Arts Society', cat: 'Arts · 19 members', score: 210, dot: 'banner-mint', emoji: '\u{1F3A8}', category: 'arts' },
-    { rank: 10, name: 'Literary Circle', cat: 'Culture · 14 members', score: 160, dot: 'banner-yellow', emoji: '\u{1F97A}', category: 'culture' }
+    {
+      rank: 4,
+      name: 'Photography Circle',
+      cat: 'Arts · 38 members',
+      score: 780,
+      dot: 'banner-blue',
+      emoji: '\u{1F4F7}',
+      category: 'arts'
+    },
+    {
+      rank: 5,
+      name: 'Entrepreneurship Cell',
+      cat: 'Business · 54 members',
+      score: 640,
+      dot: 'banner-mint',
+      emoji: '\u{1F4BC}',
+      category: 'business'
+    },
+    {
+      rank: 6,
+      name: 'Drama & Theatre Club',
+      cat: 'Culture · 29 members',
+      score: 520,
+      dot: 'banner-pink',
+      emoji: '\u{1F3AA}',
+      category: 'culture'
+    },
+    {
+      rank: 7,
+      name: 'Chess Club',
+      cat: 'Sports · 22 members',
+      score: 380,
+      dot: 'banner-yellow',
+      emoji: '\u{265E}\u{FE0F}',
+      category: 'sports'
+    },
+    {
+      rank: 8,
+      name: 'Astronomy Club',
+      cat: 'Tech · 17 members',
+      score: 290,
+      dot: 'banner-orange',
+      emoji: '\u{1F52C}',
+      category: 'tech'
+    },
+    {
+      rank: 9,
+      name: 'Fine Arts Society',
+      cat: 'Arts · 19 members',
+      score: 210,
+      dot: 'banner-mint',
+      emoji: '\u{1F3A8}',
+      category: 'arts'
+    },
+    {
+      rank: 10,
+      name: 'Literary Circle',
+      cat: 'Culture · 14 members',
+      score: 160,
+      dot: 'banner-yellow',
+      emoji: '\u{1F97A}',
+      category: 'culture'
+    }
   ]
 }
 

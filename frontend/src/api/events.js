@@ -87,6 +87,172 @@ const mockEvents = [
   }
 ]
 
+const mockLeaderEvents = [
+  {
+    id: 1,
+    title: 'Line Follower Robot Build',
+    type: 'Workshop',
+    day: '12',
+    month: 'Jul',
+    time: '3:00 PM',
+    venue: 'Main Lab',
+    status: 'upcoming',
+    statusLabel: 'Upcoming',
+    accent: 'banner-orange',
+    countText: '30 / 50',
+    action: 'attendance'
+  },
+  {
+    id: 2,
+    title: 'Automation Hackathon 2026',
+    type: 'Hackathon',
+    day: '19',
+    month: 'Jul',
+    time: '9:00 AM',
+    venue: 'Seminar Hall',
+    status: 'upcoming',
+    statusLabel: 'Upcoming',
+    accent: 'banner-orange',
+    countText: '45 / 80',
+    action: 'attendance'
+  },
+  {
+    id: 5,
+    title: 'Introduction to Arduino',
+    type: 'Workshop',
+    day: '28',
+    month: 'Jul',
+    time: '2:00 PM',
+    venue: 'Electronics Lab',
+    status: 'upcoming',
+    statusLabel: 'Upcoming',
+    accent: 'banner-orange',
+    countText: '12 / 40',
+    action: 'attendance'
+  },
+  {
+    id: 7,
+    title: 'IoT Project Showcase',
+    type: 'Competition',
+    day: '5',
+    month: 'Jul',
+    time: '4:00 PM',
+    venue: 'Main Lab',
+    status: 'needs-action',
+    statusLabel: 'Needs Action',
+    accent: 'banner-yellow',
+    countText: '22 attended',
+    action: 'set-results'
+  },
+  {
+    id: 8,
+    title: 'Circuit Design 101',
+    type: 'Workshop',
+    day: '28',
+    month: 'Jun',
+    time: '3:00 PM',
+    venue: 'Electronics Lab',
+    status: 'past',
+    statusLabel: 'Completed',
+    accent: 'banner-blue',
+    countText: '36 attended',
+    action: 'view-results'
+  },
+  {
+    id: 9,
+    title: 'Robotics Club Open House',
+    type: 'Meet & Greet',
+    day: '14',
+    month: 'Jun',
+    time: '11:00 AM',
+    venue: 'Seminar Hall',
+    status: 'past',
+    statusLabel: 'Completed',
+    accent: 'banner-mint',
+    countText: '58 attended',
+    action: 'view-results'
+  }
+]
+
+const mockParticipants = [
+  {
+    id: 1,
+    name: 'Shikha Singh',
+    initials: 'SK',
+    sub: 'CS · 1st Year',
+    regId: 'CC-2026-0482'
+  },
+  {
+    id: 2,
+    name: 'Rishi Agarwal',
+    initials: 'RA',
+    sub: 'ECE · 2nd Year',
+    regId: 'CC-2026-0491'
+  },
+  {
+    id: 3,
+    name: 'Neha Pandey',
+    initials: 'NP',
+    sub: 'IT · 2nd Year',
+    regId: 'CC-2026-0503'
+  },
+  {
+    id: 4,
+    name: 'Aryan Kumar',
+    initials: 'AK',
+    sub: 'ME · 3rd Year',
+    regId: 'CC-2026-0517'
+  },
+  {
+    id: 5,
+    name: 'Divya Mishra',
+    initials: 'DM',
+    sub: 'CS · 1st Year',
+    regId: 'CC-2026-0528'
+  },
+  {
+    id: 6,
+    name: 'Pratham Verma',
+    initials: 'PV',
+    sub: 'ECE · 1st Year',
+    regId: 'CC-2026-0534'
+  },
+  {
+    id: 7,
+    name: 'Simran Joshi',
+    initials: 'SJ',
+    sub: 'CS · 3rd Year',
+    regId: 'CC-2026-0541'
+  },
+  {
+    id: 8,
+    name: 'Varun Tiwari',
+    initials: 'VT',
+    sub: 'IT · 2nd Year',
+    regId: 'CC-2026-0556'
+  }
+]
+
+// TODO: replace with real endpoint when backend is ready
+export async function getLeaderEvents() {
+  try {
+    const response = await fetch(BASE_URL + '/events/managed')
+    return await response.json()
+  } catch (error) {
+    return mockLeaderEvents
+  }
+}
+
+// TODO: replace with real endpoint when backend is ready
+export async function getEventParticipants(eventId) {
+  try {
+    const response = await fetch(BASE_URL + '/events/' + eventId + '/participants')
+    return await response.json()
+  } catch (error) {
+    return mockParticipants
+  }
+}
+
 // TODO: replace with real endpoint when backend is ready
 export async function getEvents() {
   try {
@@ -164,4 +330,4 @@ export async function payForEvent(eventId, amount) {
   return { ok: true, eventId, amount, paymentStatus: 'simulated' }
 }
 
-export { BASE_URL, mockEvents }
+export { BASE_URL, mockEvents, mockLeaderEvents, mockParticipants }

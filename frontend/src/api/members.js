@@ -1,12 +1,75 @@
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1'
 
 const mockMembers = [
-  { id: 1, name: 'Priya Sharma', sub: 'ECE · 2nd Year', initials: 'PS', role: 'Officer' },
-  { id: 2, name: 'Rahul Verma', sub: 'ME · 3rd Year', initials: 'RV', role: 'Member' }
+  {
+    id: 1,
+    name: 'Shikha Singh',
+    initials: 'SK',
+    sub: 'Computer Science · 1st Year · Joined Jun 2026',
+    role: 'member',
+    roleLabel: 'Member'
+  },
+  {
+    id: 2,
+    name: 'Rishi Agarwal',
+    initials: 'RA',
+    sub: 'Electronics · 2nd Year · Joined Jan 2026',
+    role: 'officer',
+    roleLabel: 'Officer'
+  },
+  {
+    id: 3,
+    name: 'Neha Pandey',
+    initials: 'NP',
+    sub: 'Information Technology · 2nd Year · Joined Feb 2026',
+    role: 'member',
+    roleLabel: 'Member'
+  },
+  {
+    id: 4,
+    name: 'Aryan Kumar',
+    initials: 'AK',
+    sub: 'Mechanical Engg · 3rd Year · Joined Sep 2025',
+    role: 'officer',
+    roleLabel: 'Officer'
+  },
+  {
+    id: 5,
+    name: 'Divya Mishra',
+    initials: 'DM',
+    sub: 'Computer Science · 1st Year · Joined Jun 2026',
+    role: 'member',
+    roleLabel: 'Member'
+  },
+  {
+    id: 6,
+    name: 'Varun Tiwari',
+    initials: 'VT',
+    sub: 'Information Technology · 2nd Year · Joined Mar 2026',
+    role: 'member',
+    roleLabel: 'Member'
+  }
 ]
 
 const mockJoinRequests = [
-  { id: 11, name: 'Shikha Singh', sub: 'CS · 1st Year', initials: 'SK' }
+  {
+    id: 1,
+    name: 'Priya Sharma',
+    initials: 'PS',
+    sub: 'Computer Science · 2nd Year · Requested 1 day ago'
+  },
+  {
+    id: 2,
+    name: 'Rahul Gupta',
+    initials: 'RG',
+    sub: 'Electronics · 1st Year · Requested 2 days ago'
+  },
+  {
+    id: 3,
+    name: 'Ananya Das',
+    initials: 'AD',
+    sub: 'Information Technology · 3rd Year · Requested 3 days ago'
+  }
 ]
 
 // TODO: replace with real endpoint when backend is ready

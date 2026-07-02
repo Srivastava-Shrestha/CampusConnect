@@ -24,7 +24,7 @@ defineProps({
     </div>
     <div class="issue-footer">
       <span v-for="tag in issue.tags" :key="tag" class="announce-tag">{{ tag }}</span>
-      <slot name="actions"></slot>
     </div>
+    <slot name="actions"></slot>
   </div>
 </template>

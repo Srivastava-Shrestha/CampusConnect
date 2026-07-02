@@ -20,11 +20,46 @@ const profileStats = [
 ]
 
 const eventHistory = [
-  { id: 1, day: '8', month: 'Jul', title: 'Photography Walk: Old City', club: 'Photography Circle', result: 'participant' },
-  { id: 2, day: '10', month: 'Jul', title: 'Open Mic Night', club: 'Music Collective', result: 'registered' },
-  { id: 3, day: '15', month: 'Mar', title: 'Open Mic Night, Spring Edition', club: 'Music Collective', result: 'participant' },
-  { id: 4, day: '2', month: 'Feb', title: 'Robot Line Follower Workshop', club: 'Robotics & Automation Club', result: 'participant' },
-  { id: 5, day: '20', month: 'Jan', title: 'Freshers Welcome Hack', club: 'Coding Society', result: 'participant' }
+  {
+    id: 1,
+    day: '8',
+    month: 'Jul',
+    title: 'Photography Walk: Old City',
+    club: 'Photography Circle',
+    result: 'participant'
+  },
+  {
+    id: 2,
+    day: '10',
+    month: 'Jul',
+    title: 'Open Mic Night',
+    club: 'Music Collective',
+    result: 'registered'
+  },
+  {
+    id: 3,
+    day: '15',
+    month: 'Mar',
+    title: 'Open Mic Night, Spring Edition',
+    club: 'Music Collective',
+    result: 'participant'
+  },
+  {
+    id: 4,
+    day: '2',
+    month: 'Feb',
+    title: 'Robot Line Follower Workshop',
+    club: 'Robotics & Automation Club',
+    result: 'participant'
+  },
+  {
+    id: 5,
+    day: '20',
+    month: 'Jan',
+    title: 'Freshers Welcome Hack',
+    club: 'Coding Society',
+    result: 'participant'
+  }
 ]
 
 onMounted(async function loadCertificates() {
