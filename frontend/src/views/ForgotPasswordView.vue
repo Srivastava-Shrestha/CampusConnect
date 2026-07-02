@@ -1,0 +1,124 @@
+<script setup>
+import { ref } from 'vue'
+import { GraduationCap, Mail, Shield, Lock, Send, MailCheck, ArrowRight } from 'lucide-vue-next'
+import { sendResetLink } from '../api/auth'
+import { useFormValidation } from '../composables/useFormValidation'
+
+const { isValidEmail } = useFormValidation()
+
+const resetEmail = ref('')
+const sentEmail = ref('')
+const linkSent = ref(false)
+
+async function handleSendResetLink() {
+  if (!isValidEmail(resetEmail.value)) {
+    window.alert('Please enter a valid email address.')
+    return
+  }
+
+  await sendResetLink(resetEmail.value.trim())
+  sentEmail.value = resetEmail.value.trim()
+  linkSent.value = true
+}
+
+function tryAgain() {
+  linkSent.value = false
+  resetEmail.value = ''
+}
+</script>
+
+<template>
+  <div class="auth-frame">
+
+    <div class="auth-sidebar orange-auth">
+      <div class="auth-sidebar-circle-1"></div>
+      <div>
+        <div class="logo-row">
+          <div class="logo-mark"><GraduationCap /></div>
+          <span class="brand">Campus Connect</span>
+        </div>
+        <p class="auth-sidebar-title">Forgot your password?</p>
+        <p class="auth-sidebar-desc">No worries. Enter your registered email and we will send you a secure reset link within a few minutes.</p>
+      </div>
+      <div class="auth-sidebar-list">
+        <div class="auth-sidebar-list-item">
+          <Mail /> Reset link sent to your email
+        </div>
+        <div class="auth-sidebar-list-item">
+          <Shield /> Link expires in 30 minutes
+        </div>
+        <div class="auth-sidebar-list-item">
+          <Lock /> Choose a new strong password
+        </div>
+      </div>
+    </div>
+
+    <div class="auth-form-panel">
+
+      <div v-if="!linkSent">
+
+        <router-link to="/" class="auth-form-logo logo-row">
+          <div class="logo-mark"><GraduationCap /></div>
+          <span class="brand">Campus Connect</span>
+        </router-link>
+
+        <h2 class="auth-form-title">Reset your password</h2>
+        <p class="auth-form-sub">Enter the email address linked to your account.</p>
+
+        <div class="form-group">
+          <label for="reset-email">Registered Email</label>
+          <input
+            type="email"
+            id="reset-email"
+            v-model="resetEmail"
+            class="input-field"
+            placeholder="you@knit.ac.in"
+            autocomplete="email"
+            @keyup.enter="handleSendResetLink"
+          >
+        </div>
+
+        <button class="btn-auth-submit" @click="handleSendResetLink">
+          <Send /> Send Reset Link
+        </button>
+
+        <p class="auth-switch-text">
+          Remembered it?
+          <router-link to="/login" class="auth-switch-link">Back to sign in</router-link>
+        </p>
+
+      </div>
+
+      <div v-else>
+
+        <router-link to="/" class="auth-form-logo logo-row">
+          <div class="logo-mark"><GraduationCap /></div>
+          <span class="brand">Campus Connect</span>
+        </router-link>
+
+        <div class="finder-hero">
+          <MailCheck />
+        </div>
+
+        <h2 class="auth-form-title">Check your inbox</h2>
+        <p class="auth-form-sub">We sent a password reset link to <strong>{{ sentEmail }}</strong>. Open the email and click the link to choose a new password.</p>
+
+        <p class="auth-form-sub">The link expires in 30 minutes. If you do not see it, check your spam folder.</p>
+
+        <router-link to="/login" custom v-slot="{ navigate }">
+          <button class="btn-auth-submit" @click="navigate">
+            <ArrowRight /> Back to Sign In
+          </button>
+        </router-link>
+
+        <p class="auth-switch-text">
+          Wrong email?
+          <span class="auth-switch-link" @click="tryAgain">Try again</span>
+        </p>
+
+      </div>
+
+    </div>
+
+  </div>
+</template>
