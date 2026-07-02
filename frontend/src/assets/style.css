@@ -5131,3 +5131,195 @@ button, .btn {
 
 .podium-avatar svg,
 .club-profile-icon svg { color: var(--color-ink); }
+
+/*  40d. Landing density pass: hero balance, trending carousel, tighter sections  */
+
+/* Sections size to their content with a steady rhythm, no dead bands */
+.landing-sections {
+  min-height: auto;
+  padding: 64px 40px;
+}
+
+/* Stats strip anchors the bottom of the hero screen */
+.hero-stats {
+  grid-column: 1 / -1;
+  margin-bottom: 0;
+  margin-top: 10px;
+}
+
+/* Floating product cards inside the hero graphic */
+.hero-graphic { min-height: 480px; }
+
+.float-card {
+  position: absolute;
+  background-color: var(--color-surface);
+  border: var(--border-subtle);
+  border-radius: 16px;
+  box-shadow: var(--shadow-frame);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  z-index: 3;
+}
+
+.float-card.float-event { left: -6%; bottom: 4%; }
+
+.float-card.float-cert { right: 0; bottom: 22%; }
+
+.float-date-box {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background-color: var(--color-orange-tint);
+  color: var(--color-orange-text);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 14px;
+  line-height: 1.1;
+}
+
+.float-date-box span { font-size: 9px; font-weight: 700; text-transform: uppercase; }
+
+.float-card-title { font-weight: 700; font-size: 13px; color: var(--color-ink); }
+
+.float-card-sub { font-size: 11px; color: var(--color-ink-muted); margin-top: 2px; }
+
+.float-cert-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background-color: var(--color-green-tint);
+  color: var(--color-green-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.float-cert-icon svg { width: 18px; height: 18px; }
+
+/* Trending clubs auto-scroll carousel */
+.club-marquee {
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
+  mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
+}
+
+.club-marquee-track {
+  display: flex;
+  gap: 16px;
+  width: max-content;
+  animation: marquee-scroll 45s linear infinite;
+  padding: 6px 0 14px;
+}
+
+.club-marquee:hover .club-marquee-track { animation-play-state: paused; }
+
+.mini-club-card {
+  width: 250px;
+  background-color: var(--color-surface);
+  border: var(--border-subtle);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.mini-club-dot {
+  width: 44px;
+  height: 44px;
+  border-radius: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.mini-club-dot svg { width: 20px; height: 20px; color: #FFFFFF; }
+
+.mini-club-dot.banner-blue svg,
+.mini-club-dot.banner-yellow svg,
+.mini-club-dot.banner-pink svg,
+.mini-club-dot.banner-mint svg { color: var(--color-ink); }
+
+.mini-club-name {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--color-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mini-club-sub { font-size: 11px; color: var(--color-ink-muted); margin-top: 2px; }
+
+/* Three testimonials fill the row */
+.quotes-row { grid-template-columns: repeat(3, 1fr); }
+
+.quote-avatar.blue-av { background-color: var(--color-blue-tint); color: var(--color-blue-text); }
+
+/* Minimalist scrollbar for the whole app */
+html { scrollbar-width: thin; scrollbar-color: rgba(58, 42, 36, 0.25) transparent; }
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(58, 42, 36, 0.18); border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(58, 42, 36, 0.32); }
+
+@media (max-width: 767px) {
+  .hero-graphic { min-height: 340px; }
+
+  .float-card.float-event { left: 0; bottom: 0; }
+
+  .float-card.float-cert { right: 0; bottom: 40%; }
+
+  .quotes-row { grid-template-columns: 1fr; }
+
+  .landing-sections { padding: 40px 20px; }
+}
+
+/*  40e. Fit tuning so the hero screen composes into one clean viewport  */
+
+.hero-section {
+  align-content: center;
+  row-gap: 26px;
+  padding: 12px 40px 32px;
+}
+
+/* Graphic scales with viewport height instead of forcing overflow */
+.hero-graphic { min-height: clamp(320px, 44vh, 470px); }
+
+/* Slimmer stat cards inside the hero so the strip fits below the fold line */
+.hero-stats { gap: 16px; }
+
+.hero-stats .landing-stat { padding: 16px 18px; }
+
+.hero-stats .landing-stat-num { font-size: 28px; }
+
+/* Keep the floating cards inside the graphic bounds */
+.float-card.float-event { left: 2%; bottom: 0; }
+
+.float-card.float-cert { right: 2%; bottom: 24%; }
+
+/* Section headers get room to breathe before their content */
+.landing-sections .sections-header { margin-bottom: 24px; }
+
+/*  40f. Landing zoom for large screens (user-verified at 125% browser zoom)  */
+@media (min-width: 1440px) {
+  .landing-wrapper { zoom: 1.25; }
+}
+
+/* zoom multiplies vh lengths too, so divide viewport heights back down */
+@media (min-width: 1440px) {
+  .hero-section { min-height: calc((100vh - 84px) / 1.25); }
+
+  .hero-graphic { min-height: clamp(300px, 35vh, 420px); }
+}

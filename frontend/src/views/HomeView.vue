@@ -3,6 +3,7 @@ import { useRouter } from 'vue-router'
 import { GraduationCap, Compass, ArrowRight, Users, ShieldCheck, UserPlus, CalendarCheck, Award } from 'lucide-vue-next'
 import { useScrollReveal } from '../composables/useScrollReveal'
 import ClubIcon from '../components/ui/ClubIcon.vue'
+import { mockClubs } from '../api/clubs'
 
 const router = useRouter()
 const { collectReveal } = useScrollReveal()
@@ -74,8 +75,17 @@ const quotes = [
     role: 'Leader · Robotics & Automation Club',
     initials: 'AY',
     avatarClass: 'green-av'
+  },
+  {
+    text: 'Club approvals that sat in email threads for weeks now clear in days, and I can finally see every club and event on campus in one dashboard.',
+    name: 'Student Affairs',
+    role: 'Admin · KNIT Sultanpur',
+    initials: 'SA',
+    avatarClass: 'blue-av'
   }
 ]
+
+const trendingClubs = [...mockClubs, ...mockClubs]
 
 const roleCards = [
   {
@@ -206,6 +216,27 @@ function goTo(path) {
         <div class="speech-sticker">Welcome! 👋</div>
         <div class="tag-sticker">Joined Robotics 🤖</div>
 
+        <div class="float-card float-event">
+          <div class="float-date-box">
+            19
+            <span>Jul</span>
+          </div>
+          <div>
+            <p class="float-card-title">Automation Hackathon</p>
+            <p class="float-card-sub">45 / 80 registered · Seminar Hall</p>
+          </div>
+        </div>
+
+        <div class="float-card float-cert">
+          <div class="float-cert-icon">
+            <Award />
+          </div>
+          <div>
+            <p class="float-card-title">Certificate issued</p>
+            <p class="float-card-sub">CC-CERT-2026-1841 · Verified</p>
+          </div>
+        </div>
+
         <div class="char-overlay-1">
           <svg class="svg-fill" viewBox="0 0 240 240">
             <rect x="6" y="6" width="228" height="228" rx="46" fill="#F2802B" />
@@ -242,10 +273,8 @@ function goTo(path) {
           </svg>
         </div>
       </div>
-    </section>
 
-    <section class="landing-sections">
-      <div class="landing-stats-row reveal" :ref="collectReveal">
+      <div class="landing-stats-row hero-stats reveal reveal-delay-2" :ref="collectReveal">
         <div
           v-for="stat in landingStats"
           :key="stat.label"
@@ -256,7 +285,34 @@ function goTo(path) {
           <p class="landing-stat-label">{{ stat.label }}</p>
         </div>
       </div>
+    </section>
 
+    <section class="landing-sections">
+      <div class="sections-header reveal" :ref="collectReveal">
+        <h2>Trending clubs this semester</h2>
+        <span>Live from the club directory</span>
+      </div>
+
+      <div class="club-marquee reveal" :ref="collectReveal">
+        <div class="club-marquee-track">
+          <div
+            v-for="(club, index) in trendingClubs"
+            :key="index"
+            class="mini-club-card"
+          >
+            <div class="mini-club-dot" :class="club.banner">
+              <ClubIcon :name="club.icon" />
+            </div>
+            <div>
+              <p class="mini-club-name">{{ club.name }}</p>
+              <p class="mini-club-sub">{{ club.members }} members · {{ club.category }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="landing-sections">
       <div class="sections-header reveal" :ref="collectReveal">
         <h2>Built for every role</h2>
         <span>One unified system · tailored views</span>
