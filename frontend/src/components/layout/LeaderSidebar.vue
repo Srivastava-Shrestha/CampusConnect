@@ -2,6 +2,7 @@
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
 import { GraduationCap, LayoutDashboard, UsersRound, CalendarDays, Megaphone, TriangleAlert, PlusCircle } from 'lucide-vue-next'
+import MobileNav from './MobileNav.vue'
 
 const route = useRoute()
 const auth = useAuthStore()
@@ -15,6 +16,14 @@ const menuItems = [
   { label: 'Create Club', to: '/leader/clubs/new', icon: PlusCircle }
 ]
 
+const mobileItems = [
+  { label: 'Club', to: '/leader/club', icon: LayoutDashboard },
+  { label: 'Members', to: '/leader/members', icon: UsersRound },
+  { label: 'Events', to: '/leader/events', icon: CalendarDays },
+  { label: 'Posts', to: '/leader/announcements', icon: Megaphone },
+  { label: 'Issues', to: '/leader/issues', icon: TriangleAlert }
+]
+
 function isActive(itemPath) {
   return route.path === itemPath || route.path.startsWith(itemPath + '/')
 }
@@ -22,12 +31,12 @@ function isActive(itemPath) {
 
 <template>
   <aside class="sidebar">
-    <router-link to="/" class="logo-row">
+    <div class="logo-row">
       <div class="logo-mark">
         <GraduationCap />
       </div>
       <span class="brand">Campus Connect</span>
-    </router-link>
+    </div>
 
     <p class="nav-label">Leader</p>
 
@@ -53,4 +62,6 @@ function isActive(itemPath) {
       </div>
     </a>
   </aside>
+
+  <MobileNav :items="mobileItems" role-class="leader" />
 </template>

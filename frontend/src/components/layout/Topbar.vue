@@ -3,7 +3,8 @@ import { Bell } from 'lucide-vue-next'
 
 defineProps({
   title: { type: String, required: true },
-  sub: { type: String, default: '' }
+  sub: { type: String, default: '' },
+  showBell: { type: Boolean, default: true }
 })
 
 function showNotifications() {
@@ -21,7 +22,7 @@ function showNotifications() {
     <div class="topbar-spacer"></div>
 
     <slot>
-      <div class="bell-btn" @click="showNotifications">
+      <div v-if="showBell" class="bell-btn" @click="showNotifications">
         <Bell />
       </div>
     </slot>

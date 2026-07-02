@@ -81,12 +81,12 @@ onMounted(function focusFirstBox() {
 
     <aside class="auth-sidebar orange-auth">
 
-      <router-link to="/" class="auth-sidebar-logo">
+      <div class="auth-sidebar-logo" @click="router.push('/')">
         <div class="auth-sidebar-logo-mark">
           <GraduationCap />
         </div>
         <span class="brand">Campus Connect</span>
-      </router-link>
+      </div>
 
       <div>
         <h2 class="auth-sidebar-title">Almost<br>there.</h2>

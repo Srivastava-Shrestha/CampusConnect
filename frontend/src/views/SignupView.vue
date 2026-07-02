@@ -55,12 +55,12 @@ async function handleSignup() {
 
     <section class="auth-form-panel custom-scrollbar">
 
-      <router-link to="/" class="logo-row auth-form-logo">
+      <div class="logo-row auth-form-logo" @click="router.push('/')">
         <div class="logo-mark logo-mark-orange">
           <GraduationCap />
         </div>
         <span class="brand">Campus Connect</span>
-      </router-link>
+      </div>
 
       <h2>Create your account</h2>
       <p class="auth-form-subtitle">

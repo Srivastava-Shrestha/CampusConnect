@@ -2,24 +2,28 @@ const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1'
 
 const mockCertificates = [
   {
-    serial: 'CC-2026-RB-0042',
+    serial: 'CC-CERT-2026-1841',
     name: 'Shikha Singh',
-    event: 'RoboWars 2026',
-    club: 'Robotics & Automation Club',
-    result: 'Winner',
-    date: '2026-03-14',
+    event: 'Photography Walk: Old City',
+    club: 'Photography Circle',
+    result: 'participant',
+    resultLabel: 'Participant',
+    date: '8 July 2026',
+    dateShort: '8 Jul 2026',
     college: 'KNIT Sultanpur',
     leader: 'Aayansh Yadav'
   },
   {
-    serial: 'CC-2026-CS-0107',
+    serial: 'CC-CERT-2026-0293',
     name: 'Shikha Singh',
-    event: 'CodeSprint Hackathon',
-    club: 'Coding Society',
-    result: 'Participant',
-    date: '2026-02-02',
+    event: 'Open Mic Night Spring Edition',
+    club: 'Music Collective',
+    result: 'participant',
+    resultLabel: 'Participant',
+    date: '15 March 2026',
+    dateShort: '15 Mar 2026',
     college: 'KNIT Sultanpur',
-    leader: 'Pawan Kumar'
+    leader: 'Aayansh Yadav'
   }
 ]
 

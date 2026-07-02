@@ -1,19 +1,17 @@
 <script setup>
-import { watch } from 'vue'
+import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 
 const route = useRoute()
 
-// The prototype CSS keys page layout off a body class, so sync it per route
-watch(
-  () => route.meta.bodyClass,
-  function applyBodyClass(bodyClass) {
-    document.body.className = bodyClass || 'portal-body'
-  },
-  { immediate: true }
-)
+// style.css keys each page shell off a class that must wrap the page content
+const shellClass = computed(function pickShellClass() {
+  return route.meta.bodyClass || 'portal-body'
+})
 </script>
 
 <template>
-  <router-view />
+  <div :class="shellClass">
+    <router-view />
+  </div>
 </template>

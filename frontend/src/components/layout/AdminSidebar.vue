@@ -2,12 +2,19 @@
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
 import { GraduationCap, LayoutDashboard, CheckCircle2, Building2, Settings } from 'lucide-vue-next'
+import MobileNav from './MobileNav.vue'
 
 const route = useRoute()
 const auth = useAuthStore()
 
 const menuItems = [
   { label: 'Overview', to: '/admin', icon: LayoutDashboard },
+  { label: 'Approvals', to: '/admin/approvals', icon: CheckCircle2 },
+  { label: 'Colleges', to: '/admin/colleges', icon: Building2 }
+]
+
+const mobileItems = [
+  { label: 'Overview', to: '/admin', icon: LayoutDashboard, exact: true },
   { label: 'Approvals', to: '/admin/approvals', icon: CheckCircle2 },
   { label: 'Colleges', to: '/admin/colleges', icon: Building2 }
 ]
@@ -22,12 +29,12 @@ function isActive(itemPath) {
 
 <template>
   <aside class="sidebar">
-    <router-link to="/" class="logo-row">
+    <div class="logo-row">
       <div class="logo-mark">
         <GraduationCap />
       </div>
       <span class="brand">Campus Connect</span>
-    </router-link>
+    </div>
 
     <p class="nav-label">Admin</p>
 
@@ -56,4 +63,6 @@ function isActive(itemPath) {
       </div>
     </a>
   </aside>
+
+  <MobileNav :items="mobileItems" role-class="admin" />
 </template>

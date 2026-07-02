@@ -1,10 +1,16 @@
 <script setup>
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { GraduationCap, Mail, Shield, Lock, Send, MailCheck, ArrowRight } from 'lucide-vue-next'
 import { sendResetLink } from '../api/auth'
 import { useFormValidation } from '../composables/useFormValidation'
 
+const router = useRouter()
 const { isValidEmail } = useFormValidation()
+
+function goToHome() {
+  router.push('/')
+}
 
 const resetEmail = ref('')
 const sentEmail = ref('')
@@ -57,10 +63,10 @@ function tryAgain() {
 
       <div v-if="!linkSent">
 
-        <router-link to="/" class="auth-form-logo logo-row">
+        <div class="auth-form-logo logo-row" @click="goToHome">
           <div class="logo-mark"><GraduationCap /></div>
           <span class="brand">Campus Connect</span>
-        </router-link>
+        </div>
 
         <h2 class="auth-form-title">Reset your password</h2>
         <p class="auth-form-sub">Enter the email address linked to your account.</p>
@@ -91,10 +97,10 @@ function tryAgain() {
 
       <div v-else>
 
-        <router-link to="/" class="auth-form-logo logo-row">
+        <div class="auth-form-logo logo-row" @click="goToHome">
           <div class="logo-mark"><GraduationCap /></div>
           <span class="brand">Campus Connect</span>
-        </router-link>
+        </div>
 
         <div class="finder-hero">
           <MailCheck />

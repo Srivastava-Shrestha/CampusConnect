@@ -2464,7 +2464,9 @@ button, .btn {
   gap: 14px;
   overflow-x: auto;
   scroll-behavior: smooth;
-  padding-bottom: 4px;
+  padding: 14px;
+  background-color: rgba(58, 42, 36, 0.05);
+  border-radius: var(--radius-card);
 }
 
 .clubs-carousel-track::-webkit-scrollbar { display: none; }

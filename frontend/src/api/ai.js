@@ -4,17 +4,17 @@ const mockMatches = [
   {
     id: 1,
     name: 'Robotics & Automation Club',
-    reason: 'You mentioned building things and hardware. This club runs hands-on robot builds every month.'
+    reason: 'Matched because you mentioned building things with electronics and hands-on projects.'
   },
   {
     id: 2,
-    name: 'Coding Society',
-    reason: 'Your interest in problem solving fits their weekly competitive programming contests.'
+    name: 'Photography Circle',
+    reason: 'Matched because you mentioned photography on weekends.'
   },
   {
-    id: 3,
+    id: 6,
     name: 'Entrepreneurship Cell',
-    reason: 'You want to turn ideas into projects. Their startup pitch nights are a great starting point.'
+    reason: 'Matched because you mentioned wanting to meet people who care about startups.'
   }
 ]
 

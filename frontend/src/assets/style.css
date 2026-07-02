@@ -2464,7 +2464,9 @@ button, .btn {
   gap: 14px;
   overflow-x: auto;
   scroll-behavior: smooth;
-  padding-bottom: 4px;
+  padding: 14px;
+  background-color: rgba(58, 42, 36, 0.05);
+  border-radius: var(--radius-card);
 }
 
 .clubs-carousel-track::-webkit-scrollbar { display: none; }
@@ -4662,3 +4664,114 @@ button, .btn {
 
 .leader-club-meta i,
 .leader-club-meta svg { width: 13px; height: 13px; }
+
+/*  39. Mobile Bottom Nav + Responsive Layer (Vue frontend)  */
+
+.mobile-nav { display: none; }
+
+@media (max-width: 767px) {
+
+  /* Bottom icon navbar, one per role */
+  .mobile-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 60;
+    display: flex;
+    background-color: var(--color-surface);
+    border-top: var(--border-subtle);
+    box-shadow: 0 -4px 16px rgba(31, 26, 23, 0.06);
+    padding: 6px 4px;
+    padding-bottom: calc(6px + env(safe-area-inset-bottom));
+  }
+
+  .mobile-nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 6px 2px;
+    border-radius: 10px;
+    font-family: var(--font-body);
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--color-ink-muted);
+    text-decoration: none;
+  }
+
+  .mobile-nav-item i,
+  .mobile-nav-item svg { width: 20px; height: 20px; }
+
+  .mobile-nav-item.active.student { color: var(--color-orange-text); background-color: var(--color-orange-tint); }
+  .mobile-nav-item.active.leader  { color: var(--color-green-text);  background-color: var(--color-green-tint); }
+  .mobile-nav-item.active.admin   { color: var(--color-blue-text);   background-color: var(--color-blue-tint); }
+
+  /* Portal shell: hide desktop sidebar, free the full width */
+  .sidebar { display: none; }
+
+  .portal-body { height: 100dvh; }
+
+  .content-body { padding-bottom: 96px; }
+
+  .topbar {
+    padding: 14px 16px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .page-title { font-size: 18px; }
+
+  /* Cards and grids collapse to a single column */
+  .clubs-grid,
+  .events-grid,
+  .cert-grid,
+  .goal-cards-grid { grid-template-columns: 1fr; }
+
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+
+  .dept-cards-grid { grid-template-columns: repeat(3, 1fr); }
+
+  .interest-chips-grid { grid-template-columns: repeat(2, 1fr); }
+
+  /* Two-pane layouts stack vertically */
+  .issues-layout,
+  .event-detail-grid,
+  .admin-settings-grid,
+  .form-guide-grid { grid-template-columns: 1fr; }
+
+  .profile-hero {
+    flex-direction: column;
+    text-align: center;
+    padding: 22px 18px;
+  }
+
+  .profile-hero-stats { justify-content: center; }
+
+  /* Carousel: swipe instead of arrow buttons */
+  .carousel-nav-btn { display: none; }
+
+  /* Podium scales down instead of overflowing */
+  .podium-container { gap: 8px; }
+  .podium-card { padding: 14px 8px; }
+  .podium-avatar { width: 44px; height: 44px; font-size: 20px; }
+
+  /* Auth pages: single column, decorative side panel hidden */
+  .auth-frame {
+    flex-direction: column;
+    height: 100dvh;
+    overflow-y: auto;
+  }
+
+  .auth-sidebar { display: none; }
+
+  .auth-form-panel { padding: 28px 22px; }
+
+  .register-role-grid { grid-template-columns: repeat(2, 1fr); }
+
+  /* Onboarding shell breathes on small screens */
+  .onboard-card { padding: 24px 18px; }
+
+  .onboard-heading { font-size: 26px; }
+}
