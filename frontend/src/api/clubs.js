@@ -325,6 +325,97 @@ export async function createClub(clubData) {
   }
 }
 
+const mockApprovals = [
+  {
+    id: 1,
+    name: 'Astronomy Club',
+    icon: 'banner-blue',
+    emoji: '\u{2699}\u{FE0F}',
+    status: 'pending',
+    meta: 'Submitted by Dr. Priya Nair · Science · 2 days ago',
+    metaFull: 'Submitted by Dr. Priya Nair · Science · 2 days ago · 12 founding members'
+  },
+  {
+    id: 2,
+    name: 'Chess Club',
+    icon: 'banner-yellow',
+    emoji: '\u{265E}\u{FE0F}',
+    status: 'pending',
+    meta: 'Submitted by Arjun Mehra · Culture · 4 days ago',
+    metaFull: 'Submitted by Arjun Mehra · Culture · 4 days ago · 8 founding members'
+  },
+  {
+    id: 3,
+    name: 'Dance Fusion Club',
+    icon: 'banner-pink',
+    emoji: '\u{1F483}',
+    status: 'pending',
+    meta: 'Submitted by Priyanka Das · Culture · 1 day ago',
+    metaFull: 'Submitted by Priyanka Das · Culture · 1 day ago · 15 founding members'
+  },
+  {
+    id: 4,
+    name: 'Robotics & Automation Club',
+    icon: 'banner-orange',
+    emoji: '\u{1F916}',
+    status: 'approved',
+    meta: 'Submitted by Aayansh Yadav · Tech · Approved 14 Jan 2026 · 84 members',
+    metaFull: 'Submitted by Aayansh Yadav · Tech · Approved 14 Jan 2026 · 84 members'
+  },
+  {
+    id: 5,
+    name: 'Photography Circle',
+    icon: 'banner-blue',
+    emoji: '\u{1F4F7}',
+    status: 'approved',
+    meta: 'Submitted by Meera Krishnan · Arts · Approved 3 Feb 2026 · 112 members',
+    metaFull: 'Submitted by Meera Krishnan · Arts · Approved 3 Feb 2026 · 112 members'
+  },
+  {
+    id: 6,
+    name: 'Cricket Betting Analysis Club',
+    icon: 'banner-mint',
+    emoji: '\u{1F3C5}',
+    status: 'rejected',
+    meta: 'Submitted by Rahul Bose · Sports · Rejected 5 Apr 2026 · Reason: club name and stated objectives violate campus policy',
+    metaFull: 'Submitted by Rahul Bose · Sports · Rejected 5 Apr 2026 · Reason: club name and stated objectives violate campus policy'
+  }
+]
+
+// TODO: replace with real endpoint when backend is ready
+export async function getClubApprovals() {
+  try {
+    const response = await fetch(BASE_URL + '/clubs/approvals')
+    return await response.json()
+  } catch (error) {
+    return mockApprovals
+  }
+}
+
+// TODO: replace with real endpoint when backend is ready
+export async function approveClubRequest(approvalId) {
+  try {
+    const response = await fetch(BASE_URL + '/clubs/approvals/' + approvalId + '/approve', { method: 'POST' })
+    return await response.json()
+  } catch (error) {
+    return { ok: true, status: 'approved' }
+  }
+}
+
+// TODO: replace with real endpoint when backend is ready
+export async function rejectClubRequest(approvalId, reason) {
+  try {
+    const response = await fetch(BASE_URL + '/clubs/approvals/' + approvalId + '/reject', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason })
+    })
+    return await response.json()
+  } catch (error) {
+    return { ok: true, status: 'rejected', reason }
+  }
+}
+
 // TODO: replace with real endpoint when backend is ready
 export async function getLeaderboard() {
   try {
@@ -335,4 +426,4 @@ export async function getLeaderboard() {
   }
 }
 
-export { BASE_URL, mockClubs, mockJoinedClubs, mockLeaderboard }
+export { BASE_URL, mockClubs, mockJoinedClubs, mockLeaderboard, mockApprovals }

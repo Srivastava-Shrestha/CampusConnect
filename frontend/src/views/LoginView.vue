@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { GraduationCap, Mail, Lock, Eye, EyeOff, Check, ArrowRight, Globe, School } from 'lucide-vue-next'
+import { GraduationCap, Mail, Lock, Eye, EyeOff, Check, ArrowRight, Globe, School, Compass, Users, ShieldCheck } from 'lucide-vue-next'
 import { loginUser } from '../api/auth'
 import { useAuthStore } from '../stores/auth'
 import { useFormValidation } from '../composables/useFormValidation'
@@ -15,6 +15,29 @@ const password = ref('')
 const rememberChecked = ref(true)
 const passwordVisible = ref(false)
 const errorMessage = ref('')
+const selectedRole = ref('student')
+
+const roleOptions = [
+  {
+    id: 'student',
+    label: 'Student',
+    icon: Compass
+  },
+  {
+    id: 'leader',
+    label: 'Club Leader',
+    icon: Users
+  },
+  {
+    id: 'admin',
+    label: 'Admin',
+    icon: ShieldCheck
+  }
+]
+
+function selectRole(roleId) {
+  selectedRole.value = roleId
+}
 
 function toggleRemember() {
   rememberChecked.value = !rememberChecked.value
@@ -47,7 +70,8 @@ async function handleLogin() {
   if (result.token) {
     auth.setToken(result.token)
   }
-  auth.setRole(auth.role || 'student')
+
+  auth.setRole(selectedRole.value)
   router.push(auth.homeRoute)
 }
 </script>
@@ -102,6 +126,21 @@ async function handleLogin() {
       <p class="auth-form-subtitle">
         New here? <span @click="router.push('/signup')">Create an account</span>
       </p>
+
+      <div class="form-group">
+        <label>Sign in as</label>
+        <div class="register-role-grid">
+          <button
+            v-for="role in roleOptions"
+            :key="role.id"
+            class="btn-register-role"
+            :class="{ active: selectedRole === role.id }"
+            @click="selectRole(role.id)"
+          >
+            <component :is="role.icon" /> {{ role.label }}
+          </button>
+        </div>
+      </div>
 
       <div class="form-group">
         <label for="email-input">College Email Address</label>

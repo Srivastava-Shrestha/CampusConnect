@@ -27,6 +27,37 @@ const mockCertificates = [
   }
 ]
 
+const mockCertDatabase = {
+  'CC-CERT-2026-1841': {
+    name: 'Shikha Singh',
+    event: 'Photography Walk: Old City',
+    club: 'Photography Circle',
+    result: 'Participant',
+    date: '8 July 2026'
+  },
+  'CC-CERT-2026-0293': {
+    name: 'Shikha Singh',
+    event: 'Open Mic Night — Spring Edition',
+    club: 'Music Collective',
+    result: 'Participant',
+    date: '15 March 2026'
+  },
+  'CC-CERT-2026-0512': {
+    name: 'Rishi Agarwal',
+    event: 'Automation Hackathon 2026',
+    club: 'Robotics & Automation Club',
+    result: 'Winner',
+    date: '19 July 2026'
+  },
+  'CC-CERT-2026-0513': {
+    name: 'Neha Pandey',
+    event: 'Automation Hackathon 2026',
+    club: 'Robotics & Automation Club',
+    result: 'Runner-up',
+    date: '19 July 2026'
+  }
+}
+
 // TODO: replace with real endpoint when backend is ready
 export async function getMyCertificates() {
   try {
@@ -53,7 +84,13 @@ export async function verifyCertificate(serial) {
 
 function findCertificateBySerial(serial) {
   const cleaned = String(serial).trim().toUpperCase()
-  return mockCertificates.find((cert) => cert.serial === cleaned) || null
+  const found = mockCertDatabase[cleaned]
+
+  if (!found) {
+    return null
+  }
+
+  return { serial: cleaned, ...found }
 }
 
-export { BASE_URL, mockCertificates, findCertificateBySerial }
+export { BASE_URL, mockCertificates, mockCertDatabase, findCertificateBySerial }

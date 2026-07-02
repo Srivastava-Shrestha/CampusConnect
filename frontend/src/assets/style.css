@@ -4789,3 +4789,121 @@ button, .btn {
     scroll-snap-align: start;
   }
 }
+
+/*  40. Landing Motion + Full-Screen Sections + Footer (Vue frontend)  */
+
+.landing-body { scroll-behavior: smooth; }
+
+/* Each landing block fills one screen for a section-by-section scroll story */
+.hero-section {
+  min-height: calc(100vh - 84px);
+}
+
+.landing-sections {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.cta-footer-screen {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.cta-footer-screen .cta-banner { margin-bottom: 56px; }
+
+/* Scroll reveal entrance animation */
+.reveal {
+  opacity: 0;
+  transform: translateY(46px);
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+
+.reveal-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.reveal-delay-1 { transition-delay: 0.15s; }
+.reveal-delay-2 { transition-delay: 0.3s; }
+.reveal-delay-3 { transition-delay: 0.45s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+/* Landing footer */
+.landing-footer {
+  background-color: var(--color-ink);
+  color: #FBF1E3;
+  border-radius: 26px 26px 0 0;
+  padding: 48px 40px 24px;
+}
+
+.landing-footer .brand { color: #FBF1E3; }
+
+.footer-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 36px;
+}
+
+.footer-brand-desc {
+  margin-top: 14px;
+  max-width: 320px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: rgba(251, 241, 227, 0.65);
+}
+
+.footer-col-title {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 14px;
+  margin-bottom: 14px;
+  color: #FBF1E3;
+}
+
+.footer-link {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(251, 241, 227, 0.65);
+  text-decoration: none;
+  margin-bottom: 10px;
+  transition: color 0.15s ease;
+}
+
+.footer-link:hover { color: var(--color-orange); }
+
+.footer-bottom-bar {
+  border-top: 1px solid rgba(251, 241, 227, 0.15);
+  margin-top: 40px;
+  padding-top: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: rgba(251, 241, 227, 0.5);
+}
+
+@media (max-width: 767px) {
+  .hero-section { min-height: calc(100dvh - 84px); }
+
+  .landing-sections { min-height: auto; padding-top: 48px; padding-bottom: 48px; }
+
+  .cta-footer-screen { min-height: auto; }
+
+  .footer-grid { grid-template-columns: 1fr; gap: 28px; }
+
+  .footer-bottom-bar { flex-direction: column; align-items: flex-start; }
+}
