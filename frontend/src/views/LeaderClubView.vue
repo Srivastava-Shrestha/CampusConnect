@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Pencil, MapPin, Users, Calendar, CalendarPlus, Megaphone, UsersRound } from 'lucide-vue-next'
 import LeaderSidebar from '../components/layout/LeaderSidebar.vue'
+import ClubIcon from '../components/ui/ClubIcon.vue'
 import { getClubById } from '../api/clubs'
 import { getLeaderEvents } from '../api/events'
 
@@ -92,7 +93,9 @@ onMounted(async function loadDashboard() {
           <div class="club-card-circle-1"></div>
           <div class="club-card-circle-2"></div>
           <div class="club-card-circle-3"></div>
-          <div class="club-profile-icon">{{ club.emoji }}</div>
+          <div class="club-profile-icon">
+            <ClubIcon :name="club.icon" />
+          </div>
         </div>
         <div class="club-profile-meta">
           <p class="club-profile-name">{{ club.name }}</p>

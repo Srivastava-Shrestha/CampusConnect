@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, UserPlus, Clock, MapPin, Users } from 'lucide-vue-next'
 import StudentSidebar from '../components/layout/StudentSidebar.vue'
+import ClubIcon from '../components/ui/ClubIcon.vue'
 import { useClubsStore } from '../stores/clubs'
 import { useEventsStore } from '../stores/events'
 import { requestToJoinClub } from '../api/clubs'
@@ -75,7 +76,9 @@ onMounted(function loadProfile() {
           <div class="club-card-circle-1"></div>
           <div class="club-card-circle-2"></div>
           <div class="club-card-circle-3"></div>
-          <div class="club-profile-icon">{{ club.emoji }}</div>
+          <div class="club-profile-icon">
+            <ClubIcon :name="club.icon" />
+          </div>
         </div>
         <div class="club-profile-meta">
           <p class="club-profile-name">{{ club.name }}</p>

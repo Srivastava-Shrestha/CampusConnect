@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from 'vue'
-import { Users, Layers, CalendarCheck, Save, Pencil } from 'lucide-vue-next'
+import { Users, Layers, CalendarCheck, Save, Pencil, School } from 'lucide-vue-next'
 import AdminSidebar from '../components/layout/AdminSidebar.vue'
 import Topbar from '../components/layout/Topbar.vue'
 import StatCard from '../components/ui/StatCard.vue'
@@ -63,7 +63,9 @@ function showCategoryHint() {
 
         <div class="card">
           <div class="approval-card">
-            <div class="approval-club-icon banner-blue">{{ '\u{1F3EB}' }}</div>
+            <div class="approval-club-icon banner-blue">
+              <School />
+            </div>
             <div class="approval-info">
               <p class="approval-club-name">KNIT Sultanpur</p>
               <p class="approval-meta">Kamla Nehru Institute of Technology · Sultanpur, Uttar Pradesh · Active since 2024 · Domain: @knit.ac.in</p>

@@ -4907,3 +4907,227 @@ button, .btn {
 
   .footer-bottom-bar { flex-direction: column; align-items: flex-start; }
 }
+
+/*  40c. Landing filler sections: stats, marquee, how it works, quotes  */
+
+.landing-stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  margin-bottom: 44px;
+}
+
+.landing-stat {
+  background-color: var(--color-surface);
+  border: var(--border-subtle);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: 22px 24px;
+  text-align: center;
+}
+
+.landing-stat-num {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 34px;
+  line-height: 1.1;
+  color: var(--color-ink);
+}
+
+.landing-stat.accent-orange .landing-stat-num { color: var(--color-orange); }
+.landing-stat.accent-green  .landing-stat-num { color: var(--color-green-text); }
+.landing-stat.accent-blue   .landing-stat-num { color: var(--color-blue-text); }
+
+.landing-stat-label {
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-ink-muted);
+}
+
+/* Infinite scrolling strip of club categories */
+.chip-marquee {
+  overflow: hidden;
+  margin-top: 40px;
+  -webkit-mask-image: linear-gradient(to right, transparent, black 12%, black 88%, transparent);
+  mask-image: linear-gradient(to right, transparent, black 12%, black 88%, transparent);
+}
+
+.chip-marquee-track {
+  display: flex;
+  gap: 12px;
+  width: max-content;
+  animation: marquee-scroll 24s linear infinite;
+}
+
+.marquee-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: var(--color-surface);
+  border: var(--border-subtle);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-card);
+  padding: 10px 20px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-ink);
+  white-space: nowrap;
+}
+
+.marquee-chip svg { width: 16px; height: 16px; color: var(--color-orange); }
+
+@keyframes marquee-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+/* How it works step cards */
+.how-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+.how-card {
+  background-color: var(--color-surface);
+  border: var(--border-subtle);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: 26px 22px;
+  position: relative;
+}
+
+.how-step-num {
+  position: absolute;
+  top: 18px;
+  right: 20px;
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 40px;
+  line-height: 1;
+  color: rgba(58, 42, 36, 0.08);
+}
+
+.how-card-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.how-card-icon svg { width: 20px; height: 20px; }
+
+.how-card-icon.orange { background-color: var(--color-orange-tint); color: var(--color-orange-text); }
+.how-card-icon.green  { background-color: var(--color-green-tint);  color: var(--color-green-text); }
+.how-card-icon.blue   { background-color: var(--color-blue-tint);   color: var(--color-blue-text); }
+.how-card-icon.yellow { background-color: #FBF3DC; color: #9A6B15; }
+
+.how-card-title {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 17px;
+  color: var(--color-ink);
+  margin-bottom: 8px;
+}
+
+.how-card-desc {
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--color-ink-muted);
+}
+
+/* Testimonial quote cards */
+.quotes-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  margin-top: 44px;
+}
+
+.quote-card {
+  background-color: var(--color-surface);
+  border: var(--border-subtle);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: 26px 28px;
+}
+
+.quote-text {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--color-ink);
+  margin-bottom: 18px;
+}
+
+.quote-person {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.quote-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.quote-avatar.orange-av { background-color: var(--color-orange-tint); color: var(--color-orange-text); }
+.quote-avatar.green-av  { background-color: var(--color-green-tint);  color: var(--color-green-text); }
+
+.quote-name { font-weight: 700; font-size: 14px; color: var(--color-ink); }
+.quote-role { font-size: 12px; color: var(--color-ink-muted); }
+
+/* The last screen holds CTA + footer at natural height, no dead gap */
+.cta-footer-screen { min-height: auto; padding-top: 24px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .chip-marquee-track { animation: none; }
+}
+
+@media (max-width: 767px) {
+  .landing-stats-row { grid-template-columns: repeat(2, 1fr); }
+  .how-grid { grid-template-columns: 1fr; }
+  .quotes-row { grid-template-columns: 1fr; }
+}
+
+/*  41. Lucide icons inside colored club dots (replacing emojis)  */
+.joined-club-dot svg,
+.announce-dot svg { width: 22px; height: 22px; color: #FFFFFF; }
+
+.club-profile-icon svg { width: 40px; height: 40px; color: #FFFFFF; }
+
+.podium-avatar svg { width: 26px; height: 26px; color: #FFFFFF; }
+
+.lb-club-dot svg { width: 20px; height: 20px; color: #FFFFFF; }
+
+.approval-club-icon svg { width: 22px; height: 22px; color: #FFFFFF; }
+
+/* Light banner tints and white containers need dark icons for contrast */
+.joined-club-dot.banner-blue svg,
+.joined-club-dot.banner-yellow svg,
+.joined-club-dot.banner-pink svg,
+.joined-club-dot.banner-mint svg,
+.announce-dot.banner-blue svg,
+.announce-dot.banner-yellow svg,
+.announce-dot.banner-pink svg,
+.announce-dot.banner-mint svg,
+.lb-club-dot.banner-blue svg,
+.lb-club-dot.banner-yellow svg,
+.lb-club-dot.banner-pink svg,
+.lb-club-dot.banner-mint svg,
+.approval-club-icon.banner-blue svg,
+.approval-club-icon.banner-yellow svg,
+.approval-club-icon.banner-pink svg,
+.approval-club-icon.banner-mint svg { color: var(--color-ink); }
+
+.podium-avatar svg,
+.club-profile-icon svg { color: var(--color-ink); }

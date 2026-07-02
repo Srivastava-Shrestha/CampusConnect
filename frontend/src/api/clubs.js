@@ -6,7 +6,7 @@ const mockClubs = [
     name: 'Robotics & Automation Club',
     members: 84,
     banner: 'banner-orange',
-    emoji: '\u{1F916}',
+    icon: 'robot',
     description: 'Build real robots, compete in national-level challenges, and work on automation projects with peers.',
     tags: ['Robotics', 'IoT', 'Tech'],
     category: 'Tech',
@@ -21,7 +21,7 @@ const mockClubs = [
     name: 'Photography Circle',
     members: 112,
     banner: 'banner-blue',
-    emoji: '\u{1F4F7}',
+    icon: 'camera',
     description: 'Weekly photo walks, darkroom sessions, and monthly critique workshops for all skill levels.',
     tags: ['Photography', 'Arts'],
     category: 'Arts',
@@ -36,7 +36,7 @@ const mockClubs = [
     name: 'Coding Society',
     members: 203,
     banner: 'banner-green',
-    emoji: '\u{1F4BB}',
+    icon: 'laptop',
     description: 'Hackathons, competitive programming contests, and open-source contribution drives every semester.',
     tags: ['Coding', 'Open Source', 'Tech'],
     category: 'Tech',
@@ -51,7 +51,7 @@ const mockClubs = [
     name: 'Music Collective',
     members: 67,
     banner: 'banner-yellow',
-    emoji: '\u{1F3B5}',
+    icon: 'music',
     description: 'Jam sessions, open mic nights, and collaborative song writing across all genres and instruments.',
     tags: ['Music', 'Performance'],
     category: 'Music',
@@ -66,7 +66,7 @@ const mockClubs = [
     name: 'Drama Society',
     members: 45,
     banner: 'banner-pink',
-    emoji: '\u{1F3AD}',
+    icon: 'drama',
     description: 'Annual theatre productions, improv workshops, and script writing bootcamps through the year.',
     tags: ['Theatre', 'Writing'],
     category: 'Arts',
@@ -81,7 +81,7 @@ const mockClubs = [
     name: 'Entrepreneurship Cell',
     members: 91,
     banner: 'banner-mint',
-    emoji: '\u{1F4BC}',
+    icon: 'briefcase',
     description: 'Startup pitches, founder talks, and mentorship sessions with working entrepreneurs and investors.',
     tags: ['Startup', 'Business'],
     category: 'Business',
@@ -96,7 +96,7 @@ const mockClubs = [
     name: 'Astronomy Club',
     members: 38,
     banner: 'banner-blue',
-    emoji: '\u{1F52D}',
+    icon: 'telescope',
     description: 'Telescope nights, space documentaries, and participation in national Astronomy Olympiads every year.',
     tags: ['Space', 'Science'],
     category: 'Science',
@@ -111,7 +111,7 @@ const mockClubs = [
     name: 'Sports Council',
     members: 156,
     banner: 'banner-orange',
-    emoji: '\u{26BD}',
+    icon: 'sports',
     description: 'Coordinates inter-college tournaments, fitness events, and weekly sports leagues on campus.',
     tags: ['Sports', 'Fitness'],
     category: 'Sports',
@@ -126,7 +126,7 @@ const mockClubs = [
     name: 'Bharatnatyam & Folk Dance',
     members: 72,
     banner: 'banner-yellow',
-    emoji: '\u{1F483}',
+    icon: 'dance',
     description: 'Classical and folk dance training, cultural fest performances, and inter-college dance competitions.',
     tags: ['Dance', 'Culture'],
     category: 'Culture',
@@ -144,7 +144,7 @@ const mockJoinedClubs = [
     name: 'Robotics & Automation',
     sub: '84 members · Tech',
     banner: 'banner-orange',
-    emoji: '\u{1F916}',
+    icon: 'robot',
     badge: '2 new events',
     alert: true
   },
@@ -153,7 +153,7 @@ const mockJoinedClubs = [
     name: 'Coding Society',
     sub: '203 members · Tech',
     banner: 'banner-green',
-    emoji: '\u{1F4BB}',
+    icon: 'laptop',
     badge: 'Hackathon this week',
     alert: true
   },
@@ -162,7 +162,7 @@ const mockJoinedClubs = [
     name: 'Photography Circle',
     sub: '112 members · Arts',
     banner: 'banner-blue',
-    emoji: '\u{1F4F7}',
+    icon: 'camera',
     badge: 'Member',
     alert: false
   },
@@ -171,7 +171,7 @@ const mockJoinedClubs = [
     name: 'Music Collective',
     sub: '67 members · Music',
     banner: 'banner-yellow',
-    emoji: '\u{1F3B5}',
+    icon: 'music',
     badge: 'Open mic Friday',
     alert: true
   }
@@ -184,7 +184,7 @@ const mockLeaderboard = {
       tier: 'silver',
       name: 'Coding Society',
       score: '1,090',
-      emoji: '\u{1F4BB}',
+      icon: 'laptop',
       category: 'tech'
     },
     {
@@ -192,7 +192,7 @@ const mockLeaderboard = {
       tier: 'gold',
       name: 'Robotics & Automation',
       score: '1,240',
-      emoji: '\u{1F916}',
+      icon: 'robot',
       category: 'tech'
     },
     {
@@ -200,7 +200,7 @@ const mockLeaderboard = {
       tier: 'bronze',
       name: 'Music Collective',
       score: '920',
-      emoji: '\u{1F3B5}',
+      icon: 'music',
       category: 'culture'
     }
   ],
@@ -211,7 +211,7 @@ const mockLeaderboard = {
       cat: 'Arts · 38 members',
       score: 780,
       dot: 'banner-blue',
-      emoji: '\u{1F4F7}',
+      icon: 'camera',
       category: 'arts'
     },
     {
@@ -220,7 +220,7 @@ const mockLeaderboard = {
       cat: 'Business · 54 members',
       score: 640,
       dot: 'banner-mint',
-      emoji: '\u{1F4BC}',
+      icon: 'briefcase',
       category: 'business'
     },
     {
@@ -229,7 +229,7 @@ const mockLeaderboard = {
       cat: 'Culture · 29 members',
       score: 520,
       dot: 'banner-pink',
-      emoji: '\u{1F3AA}',
+      icon: 'drama',
       category: 'culture'
     },
     {
@@ -238,7 +238,7 @@ const mockLeaderboard = {
       cat: 'Sports · 22 members',
       score: 380,
       dot: 'banner-yellow',
-      emoji: '\u{265E}\u{FE0F}',
+      icon: 'chess',
       category: 'sports'
     },
     {
@@ -247,7 +247,7 @@ const mockLeaderboard = {
       cat: 'Tech · 17 members',
       score: 290,
       dot: 'banner-orange',
-      emoji: '\u{1F52C}',
+      icon: 'microscope',
       category: 'tech'
     },
     {
@@ -256,7 +256,7 @@ const mockLeaderboard = {
       cat: 'Arts · 19 members',
       score: 210,
       dot: 'banner-mint',
-      emoji: '\u{1F3A8}',
+      icon: 'palette',
       category: 'arts'
     },
     {
@@ -265,7 +265,7 @@ const mockLeaderboard = {
       cat: 'Culture · 14 members',
       score: 160,
       dot: 'banner-yellow',
-      emoji: '\u{1F97A}',
+      icon: 'book',
       category: 'culture'
     }
   ]
@@ -329,8 +329,8 @@ const mockApprovals = [
   {
     id: 1,
     name: 'Astronomy Club',
-    icon: 'banner-blue',
-    emoji: '\u{2699}\u{FE0F}',
+    banner: 'banner-blue',
+    icon: 'gear',
     status: 'pending',
     meta: 'Submitted by Dr. Priya Nair · Science · 2 days ago',
     metaFull: 'Submitted by Dr. Priya Nair · Science · 2 days ago · 12 founding members'
@@ -338,8 +338,8 @@ const mockApprovals = [
   {
     id: 2,
     name: 'Chess Club',
-    icon: 'banner-yellow',
-    emoji: '\u{265E}\u{FE0F}',
+    banner: 'banner-yellow',
+    icon: 'chess',
     status: 'pending',
     meta: 'Submitted by Arjun Mehra · Culture · 4 days ago',
     metaFull: 'Submitted by Arjun Mehra · Culture · 4 days ago · 8 founding members'
@@ -347,8 +347,8 @@ const mockApprovals = [
   {
     id: 3,
     name: 'Dance Fusion Club',
-    icon: 'banner-pink',
-    emoji: '\u{1F483}',
+    banner: 'banner-pink',
+    icon: 'dance',
     status: 'pending',
     meta: 'Submitted by Priyanka Das · Culture · 1 day ago',
     metaFull: 'Submitted by Priyanka Das · Culture · 1 day ago · 15 founding members'
@@ -356,8 +356,8 @@ const mockApprovals = [
   {
     id: 4,
     name: 'Robotics & Automation Club',
-    icon: 'banner-orange',
-    emoji: '\u{1F916}',
+    banner: 'banner-orange',
+    icon: 'robot',
     status: 'approved',
     meta: 'Submitted by Aayansh Yadav · Tech · Approved 14 Jan 2026 · 84 members',
     metaFull: 'Submitted by Aayansh Yadav · Tech · Approved 14 Jan 2026 · 84 members'
@@ -365,8 +365,8 @@ const mockApprovals = [
   {
     id: 5,
     name: 'Photography Circle',
-    icon: 'banner-blue',
-    emoji: '\u{1F4F7}',
+    banner: 'banner-blue',
+    icon: 'camera',
     status: 'approved',
     meta: 'Submitted by Meera Krishnan · Arts · Approved 3 Feb 2026 · 112 members',
     metaFull: 'Submitted by Meera Krishnan · Arts · Approved 3 Feb 2026 · 112 members'
@@ -374,8 +374,8 @@ const mockApprovals = [
   {
     id: 6,
     name: 'Cricket Betting Analysis Club',
-    icon: 'banner-mint',
-    emoji: '\u{1F3C5}',
+    banner: 'banner-mint',
+    icon: 'medal',
     status: 'rejected',
     meta: 'Submitted by Rahul Bose · Sports · Rejected 5 Apr 2026 · Reason: club name and stated objectives violate campus policy',
     metaFull: 'Submitted by Rahul Bose · Sports · Rejected 5 Apr 2026 · Reason: club name and stated objectives violate campus policy'

@@ -4,6 +4,7 @@ import { Crown, Trophy } from 'lucide-vue-next'
 import StudentSidebar from '../components/layout/StudentSidebar.vue'
 import Topbar from '../components/layout/Topbar.vue'
 import FilterChips from '../components/ui/FilterChips.vue'
+import ClubIcon from '../components/ui/ClubIcon.vue'
 import { getLeaderboard } from '../api/clubs'
 
 const podium = ref([])
@@ -64,7 +65,9 @@ onMounted(async function loadLeaderboard() {
                 <Crown />
               </div>
               <p class="podium-rank">{{ entry.rank }}</p>
-              <div class="podium-avatar">{{ entry.emoji }}</div>
+              <div class="podium-avatar">
+                <ClubIcon :name="entry.icon" />
+              </div>
               <p class="podium-name">{{ entry.name }}</p>
               <p class="podium-score">{{ entry.score }}</p>
               <p class="text-note">pts</p>
@@ -81,7 +84,9 @@ onMounted(async function loadLeaderboard() {
           <div class="lb-list">
             <div v-for="row in visibleRows" :key="row.rank" class="lb-row">
               <span class="lb-rank">{{ row.rank }}</span>
-              <div class="lb-club-dot" :class="row.dot">{{ row.emoji }}</div>
+              <div class="lb-club-dot" :class="row.dot">
+                <ClubIcon :name="row.icon" />
+              </div>
               <div class="lb-info">
                 <p class="lb-club-name">{{ row.name }}</p>
                 <p class="lb-club-cat">{{ row.cat }}</p>

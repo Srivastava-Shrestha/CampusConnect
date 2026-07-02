@@ -1,5 +1,6 @@
 <script setup>
 import { Pin } from 'lucide-vue-next'
+import ClubIcon from './ClubIcon.vue'
 
 defineProps({
   announcement: { type: Object, required: true }
@@ -10,7 +11,9 @@ defineProps({
   <div class="announce-card" :class="{ pinned: announcement.pinned }">
     <div v-if="announcement.unread" class="announce-unread-dot"></div>
     <div class="announce-club-row">
-      <div class="announce-dot" :class="announcement.dot">{{ announcement.emoji }}</div>
+      <div class="announce-dot" :class="announcement.dot">
+        <ClubIcon :name="announcement.icon" />
+      </div>
       <div class="announce-club-info">
         <p class="announce-club-name">{{ announcement.club }}</p>
         <p class="announce-time">{{ announcement.time }}</p>

@@ -1,6 +1,7 @@
 <script setup>
 import { Check, X } from 'lucide-vue-next'
 import StatusPill from './StatusPill.vue'
+import ClubIcon from './ClubIcon.vue'
 
 defineProps({
   approval: { type: Object, required: true },
@@ -29,7 +30,9 @@ function rejectClub() {
     class="approval-card"
     :class="{ approved: approval.status === 'approved', rejected: approval.status === 'rejected' }"
   >
-    <div class="approval-club-icon" :class="approval.icon">{{ approval.emoji }}</div>
+    <div class="approval-club-icon" :class="approval.banner">
+      <ClubIcon :name="approval.icon" />
+    </div>
     <div class="approval-info">
       <p class="approval-club-name">{{ approval.name }}</p>
       <p class="approval-meta">{{ approval[metaField] }}</p>

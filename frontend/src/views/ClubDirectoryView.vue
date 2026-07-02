@@ -6,6 +6,7 @@ import StudentSidebar from '../components/layout/StudentSidebar.vue'
 import Topbar from '../components/layout/Topbar.vue'
 import ClubCard from '../components/ui/ClubCard.vue'
 import FilterChips from '../components/ui/FilterChips.vue'
+import ClubIcon from '../components/ui/ClubIcon.vue'
 import { useClubsStore } from '../stores/clubs'
 
 const router = useRouter()
@@ -91,7 +92,9 @@ onMounted(function loadDirectory() {
               class="joined-club-card"
               @click="openClub(joined.id)"
             >
-              <div class="joined-club-dot" :class="joined.banner">{{ joined.emoji }}</div>
+              <div class="joined-club-dot" :class="joined.banner">
+                <ClubIcon :name="joined.icon" />
+              </div>
               <div class="joined-club-info">
                 <p class="joined-club-name">{{ joined.name }}</p>
                 <p class="joined-club-sub">{{ joined.sub }}</p>
