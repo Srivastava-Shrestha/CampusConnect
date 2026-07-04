@@ -1,6 +1,8 @@
+from fastapi import FastAPI
+
+
+app = FastAPI()
+
+@app.get("/example")
 def main():
-    print("Hello from Campus Connect!")
-
-
-if __name__ == "__main__":
-    main()
+    return "Hello from Campus Connect!"
