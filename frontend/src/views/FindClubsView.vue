@@ -14,12 +14,25 @@ const interestsText = ref('')
 const isSearching = ref(false)
 const showResults = ref(false)
 const resultsDesc = ref('Based on your interests')
+const submittedQuery = ref('')
 const matches = ref([])
 const resultsSection = ref(null)
+
+const suggestions = [
+  'I love building robots and electronics',
+  'Photography and film on weekends',
+  'Debating, writing, and public speaking',
+  'Startups, coding, and product design'
+]
 
 function buildResultsDescription(input) {
   const firstWords = input.split(' ').slice(0, 4).join(' ')
   return 'Based on: "' + firstWords + '..."'
+}
+
+function useSuggestion(text) {
+  interestsText.value = text
+  findClubs()
 }
 
 function attachClubDetails(matchList) {
@@ -37,6 +50,7 @@ async function findClubs() {
     return
   }
 
+  submittedQuery.value = input
   isSearching.value = true
   const matchList = await findMatchingClubs(input)
   isSearching.value = false
@@ -44,6 +58,7 @@ async function findClubs() {
   matches.value = attachClubDetails(matchList)
   resultsDesc.value = buildResultsDescription(input)
   showResults.value = true
+  interestsText.value = ''
 
   if (resultsSection.value) {
     resultsSection.value.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -62,49 +77,88 @@ function openClub(clubId) {
 
     <Topbar title="AI Club Finder" sub="Describe your interests and find clubs that match" :show-bell="false" />
 
-    <main class="content-body custom-scrollbar">
+    <main class="content-body finder-chat">
 
-      <div class="finder-hero">
-        <div class="finder-hero-icon">
-          <Sparkles />
-        </div>
+      <div class="finder-chat-scroll custom-scrollbar">
 
-        <p class="finder-hero-title">What are you into?</p>
-        <p class="finder-hero-desc">
-          Describe your interests in plain language. The AI will match you with clubs at your college,
-          including niche ones that have no social media presence.
-        </p>
+        <!-- Empty state: centered intro + quick prompts -->
+        <div v-if="!showResults" class="finder-empty">
+          <div class="finder-hero-icon">
+            <Sparkles />
+          </div>
+          <p class="finder-hero-title">What are you into?</p>
+          <p class="finder-hero-desc">
+            Describe your interests in plain language. The AI will match you with clubs
+            at your college, including niche ones with no social media presence.
+          </p>
 
-        <textarea
-          v-model="interestsText"
-          class="finder-textarea"
-          placeholder="e.g. I love building things with electronics, enjoy photography on weekends, and want to meet people who care about startups..."
-        ></textarea>
-
-        <button class="btn-primary" :disabled="isSearching" @click="findClubs">
-          <template v-if="isSearching">Finding clubs...</template>
-          <template v-else><Sparkles /> Find Clubs</template>
-        </button>
-      </div>
-
-      <div class="finder-results" :class="{ visible: showResults }" ref="resultsSection">
-
-        <div class="clubs-section-header">
-          <h2 class="clubs-section-title">Clubs matched for you</h2>
-          <span class="clubs-count-text">{{ resultsDesc }}</span>
-        </div>
-
-        <div class="clubs-grid">
-          <div v-for="(match, index) in matches" :key="match.id">
-            <ClubCard
-              :club="match"
-              :badge="index === 0 ? 'Top Match' : ''"
-              @open="openClub(match.id)"
-            />
-            <p class="finder-match-note">{{ match.reason }}</p>
+          <div class="finder-suggestions">
+            <button
+              v-for="prompt in suggestions"
+              :key="prompt"
+              class="finder-suggestion-chip"
+              @click="useSuggestion(prompt)"
+            >
+              <Sparkles /> {{ prompt }}
+            </button>
           </div>
         </div>
 
+        <!-- Conversation: user prompt + AI matches -->
+        <div v-else class="finder-thread" ref="resultsSection">
+
+          <div class="finder-user-msg">{{ submittedQuery }}</div>
+
+          <div class="finder-assistant">
+            <div class="finder-assistant-avatar">
+              <Sparkles />
+            </div>
+            <div class="finder-assistant-body">
+              <p class="finder-assistant-intro">
+                Here are the clubs that best match your interests
+                <span class="finder-assistant-meta">{{ resultsDesc }}</span>
+              </p>
+
+              <div class="clubs-grid">
+                <div v-for="(match, index) in matches" :key="match.id">
+                  <ClubCard
+                    :club="match"
+                    :badge="index === 0 ? 'Top Match' : ''"
+                    @open="openClub(match.id)"
+                  />
+                  <p class="finder-match-note">{{ match.reason }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- Composer pinned to the bottom, chat style -->
+      <div class="finder-composer">
+        <div class="finder-composer-inner">
+          <textarea
+            v-model="interestsText"
+            class="finder-composer-input"
+            rows="1"
+            placeholder="Describe your interests, e.g. electronics, photography, startups..."
+            @keydown.enter.exact.prevent="findClubs"
+          ></textarea>
+          <button
+            class="finder-send-btn"
+            :disabled="isSearching"
+            :aria-label="isSearching ? 'Finding clubs' : 'Find clubs'"
+            @click="findClubs"
+          >
+            <Sparkles />
+            <span>{{ isSearching ? 'Finding...' : 'Find' }}</span>
+          </button>
+        </div>
+        <p class="finder-composer-hint">
+          AI matches you with clubs at your college — press Enter to search.
+        </p>
       </div>
 
     </main>
