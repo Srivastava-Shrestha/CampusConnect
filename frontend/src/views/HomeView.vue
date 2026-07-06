@@ -87,6 +87,20 @@ const quotes = [
 
 const trendingClubs = [...mockClubs, ...mockClubs]
 
+const showcaseRowOne = [
+  { img: 'https://picsum.photos/seed/cc-discover/400/260', label: 'Discover clubs' },
+  { img: 'https://picsum.photos/seed/cc-join/400/260', label: 'Join in one tap' },
+  { img: 'https://picsum.photos/seed/cc-events/400/260', label: 'Register for events' },
+  { img: 'https://picsum.photos/seed/cc-attend/400/260', label: 'Live attendance' }
+]
+
+const showcaseRowTwo = [
+  { img: 'https://picsum.photos/seed/cc-cert/400/260', label: 'Verified certificates' },
+  { img: 'https://picsum.photos/seed/cc-board/400/260', label: 'Campus leaderboard' },
+  { img: 'https://picsum.photos/seed/cc-announce/400/260', label: 'Club announcements' },
+  { img: 'https://picsum.photos/seed/cc-admin/400/260', label: 'Admin oversight' }
+]
+
 const roleCards = [
   {
     title: 'Students',
@@ -201,76 +215,32 @@ function goTo(path) {
       </div>
 
       <div class="hero-graphic reveal reveal-delay-1" :ref="collectReveal">
-        <div class="graphic-bg-circle blue"></div>
-        <div class="graphic-bg-circle yellow"></div>
-        <div class="graphic-bg-circle green"></div>
-
-        <div class="sound-wave-sticker">
-          <span class="sound-bar bar-xs"></span>
-          <span class="sound-bar bar-lg"></span>
-          <span class="sound-bar bar-sm"></span>
-          <span class="sound-bar bar-xl"></span>
-          <span class="sound-bar bar-xs"></span>
-        </div>
-
-        <div class="speech-sticker">Welcome! 👋</div>
-        <div class="tag-sticker">Joined Robotics 🤖</div>
-
-        <div class="float-card float-event">
-          <div class="float-date-box">
-            19
-            <span>Jul</span>
+        <div class="hero-showcase">
+          <div class="showcase-row showcase-row-ltr">
+            <div class="showcase-track">
+              <div
+                v-for="(shot, index) in [...showcaseRowOne, ...showcaseRowOne]"
+                :key="'row1-' + index"
+                class="showcase-card"
+              >
+                <img :src="shot.img" :alt="shot.label" width="210" height="138" loading="eager" decoding="async">
+                <span class="showcase-label">{{ shot.label }}</span>
+              </div>
+            </div>
           </div>
-          <div>
-            <p class="float-card-title">Automation Hackathon</p>
-            <p class="float-card-sub">45 / 80 registered · Seminar Hall</p>
-          </div>
-        </div>
 
-        <div class="float-card float-cert">
-          <div class="float-cert-icon">
-            <Award />
+          <div class="showcase-row showcase-row-rtl">
+            <div class="showcase-track">
+              <div
+                v-for="(shot, index) in [...showcaseRowTwo, ...showcaseRowTwo]"
+                :key="'row2-' + index"
+                class="showcase-card"
+              >
+                <img :src="shot.img" :alt="shot.label" width="210" height="138" loading="eager" decoding="async">
+                <span class="showcase-label">{{ shot.label }}</span>
+              </div>
+            </div>
           </div>
-          <div>
-            <p class="float-card-title">Certificate issued</p>
-            <p class="float-card-sub">CC-CERT-2026-1841 · Verified</p>
-          </div>
-        </div>
-
-        <div class="char-overlay-1">
-          <svg class="svg-fill" viewBox="0 0 240 240">
-            <rect x="6" y="6" width="228" height="228" rx="46" fill="#F2802B" />
-            <path d="M58 234 Q58 176 120 176 Q182 176 182 234 Z" fill="#EFE7DA" />
-            <rect x="104" y="148" width="32" height="42" rx="14" fill="#B5764A" />
-            <ellipse cx="120" cy="110" rx="50" ry="54" fill="#B5764A" />
-            <path d="M70 110 Q68 50 120 50 Q172 50 170 110 Q150 80 120 80 Q90 80 70 110 Z" fill="#241712" />
-            <path d="M64 112 Q62 44 120 44 Q178 44 176 112" fill="none" stroke="#F5C13D" stroke-width="13" stroke-linecap="round" />
-            <rect x="50" y="98" width="22" height="46" rx="11" fill="#F5C13D" />
-            <rect x="168" y="98" width="22" height="46" rx="11" fill="#F5C13D" />
-            <circle cx="104" cy="113" r="5" fill="#2E1D16" />
-            <circle cx="136" cy="113" r="5" fill="#2E1D16" />
-            <circle cx="95" cy="129" r="7" fill="#C9603A" opacity=".55" />
-            <circle cx="145" cy="129" r="7" fill="#C9603A" opacity=".55" />
-            <path d="M104 134 Q120 151 136 134" fill="none" stroke="#2E1D16" stroke-width="5" stroke-linecap="round" />
-          </svg>
-        </div>
-
-        <div class="char-overlay-2">
-          <svg class="svg-fill" viewBox="0 0 240 240">
-            <rect x="6" y="6" width="228" height="228" rx="46" fill="#4F9D57" />
-            <path d="M58 234 Q58 176 120 176 Q182 176 182 234 Z" fill="#F2802B" />
-            <rect x="104" y="148" width="32" height="42" rx="14" fill="#D49A68" />
-            <ellipse cx="120" cy="110" rx="50" ry="54" fill="#D49A68" />
-            <path d="M70 110 Q68 50 120 50 Q172 50 170 110 Q150 80 120 80 Q90 80 70 110 Z" fill="#34241A" />
-            <path d="M64 112 Q62 44 120 44 Q178 44 176 112" fill="none" stroke="#88C3E8" stroke-width="13" stroke-linecap="round" />
-            <rect x="50" y="98" width="22" height="46" rx="11" fill="#88C3E8" />
-            <rect x="168" y="98" width="22" height="46" rx="11" fill="#88C3E8" />
-            <circle cx="104" cy="113" r="5" fill="#2E1D16" />
-            <circle cx="136" cy="113" r="5" fill="#2E1D16" />
-            <circle cx="95" cy="129" r="7" fill="#B5604A" opacity=".55" />
-            <circle cx="145" cy="129" r="7" fill="#B5604A" opacity=".55" />
-            <path d="M104 134 Q120 151 136 134" fill="none" stroke="#2E1D16" stroke-width="5" stroke-linecap="round" />
-          </svg>
         </div>
       </div>
 

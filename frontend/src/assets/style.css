@@ -113,7 +113,6 @@ html {
 .landing-body {
   background-color: var(--color-canvas);
   min-height: 100vh;
-  overflow-y: auto;
 }
 
 .auth-body {
@@ -186,6 +185,7 @@ html {
   font-weight: 800;
   font-size: 19px;
   color: #1F1A17;
+  white-space: nowrap;
 }
 
 .nav-label {
@@ -860,6 +860,7 @@ button, .btn {
   font-weight: 700;
   color: var(--color-ink);
   box-shadow: var(--shadow-card);
+  white-space: nowrap;
 }
 
 .btn-pill-white:hover { transform: scale(1.01); }
@@ -871,6 +872,7 @@ button, .btn {
   font-size: 12px;
   font-weight: 700;
   color: #FBF1E3;
+  white-space: nowrap;
 }
 
 .btn-pill-dark:hover { transform: scale(1.01); }
@@ -939,7 +941,9 @@ button, .btn {
   box-shadow: var(--shadow-btn);
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
+  white-space: nowrap;
 }
 
 .btn-hero-primary:hover { transform: scale(1.02); }
@@ -953,6 +957,7 @@ button, .btn {
   font-size: 14px;
   color: var(--color-ink);
   padding: 10px;
+  white-space: nowrap;
 }
 
 .btn-tour-icon {
@@ -5261,6 +5266,90 @@ button, .btn {
 
 .mini-club-sub { font-size: 11px; color: var(--color-ink-muted); margin-top: 2px; }
 
+/*  42. Hero App-Usage Showcase Carousels (replaces static hero graphic)  */
+.hero-showcase {
+  width: 100%;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 20px;
+}
+
+.showcase-row {
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+  mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+}
+
+.showcase-track {
+  display: flex;
+  gap: 16px;
+  width: max-content;
+}
+
+.showcase-row-ltr .showcase-track { animation: showcase-scroll-ltr 30s linear infinite; }
+.showcase-row-rtl .showcase-track { animation: showcase-scroll-rtl 34s linear infinite; }
+.showcase-row:hover .showcase-track { animation-play-state: paused; }
+
+@keyframes showcase-scroll-rtl {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+@keyframes showcase-scroll-ltr {
+  from { transform: translateX(-50%); }
+  to   { transform: translateX(0); }
+}
+
+.showcase-card {
+  position: relative;
+  flex-shrink: 0;
+  width: 210px;
+  height: 138px;
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  background-color: var(--color-surface);
+  border: var(--border-subtle);
+  box-shadow: var(--shadow-card-lg);
+}
+
+.showcase-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Faint inner accent ring ties each row back to a brand color */
+.showcase-row-ltr .showcase-card { box-shadow: var(--shadow-card-lg), inset 0 0 0 2px rgba(239, 123, 69, 0.22); }
+.showcase-row-rtl .showcase-card { box-shadow: var(--shadow-card-lg), inset 0 0 0 2px rgba(79, 157, 87, 0.22); }
+
+.showcase-label {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  background-color: var(--color-surface);
+  color: var(--color-ink);
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 11px;
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-float);
+  white-space: nowrap;
+}
+
+@media (max-width: 767px) {
+  .showcase-card { width: 168px; height: 112px; }
+  .showcase-track { gap: 12px; }
+  .hero-showcase { gap: 14px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .showcase-track { animation: none; }
+}
+
 /* Three testimonials fill the row */
 .quotes-row { grid-template-columns: repeat(3, 1fr); }
 
@@ -5322,4 +5411,49 @@ html { scrollbar-width: thin; scrollbar-color: rgba(58, 42, 36, 0.25) transparen
   .hero-section { min-height: calc((100vh - 84px) / 1.25); }
 
   .hero-graphic { min-height: clamp(300px, 35vh, 420px); }
+}
+
+/*  40g. Mobile polish: nav, hero CTAs, and role cards on small screens  */
+@media (max-width: 767px) {
+  /* Tighter nav so the brand + auth buttons share one comfortable row */
+  .landing-nav {
+    padding: 14px 18px;
+    gap: 10px;
+  }
+
+  .landing-nav-btn-group { gap: 6px; }
+
+  .btn-pill-white,
+  .btn-pill-dark { padding: 8px 14px; }
+
+  /* Slightly smaller brand wordmark so it never crowds the buttons */
+  .brand { font-size: 17px; }
+
+  /* Hero buttons wrap onto their own rows instead of squishing */
+  .hero-actions {
+    flex-wrap: wrap;
+    gap: 10px;
+    width: 100%;
+  }
+
+  .btn-hero-primary { flex: 1 1 auto; }
+
+  /* Role cards stack full-width so headings and tags stop clipping */
+  .roles-grid { grid-template-columns: 1fr; gap: 16px; }
+
+  .identity-card { min-height: 0; padding: 24px; }
+
+  .identity-card p { font-size: 13px; line-height: 1.5; }
+
+  .identity-tag { font-size: 12px; padding: 3px 10px; }
+}
+
+/* Extra-small phones: give the auth buttons room by dropping to icon-tight nav */
+@media (max-width: 400px) {
+  .landing-nav { padding: 12px 14px; }
+
+  .btn-pill-white,
+  .btn-pill-dark { padding: 7px 12px; font-size: 11px; }
+
+  .brand { font-size: 16px; }
 }
