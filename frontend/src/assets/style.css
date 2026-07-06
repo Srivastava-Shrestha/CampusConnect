@@ -1233,7 +1233,7 @@ button, .btn {
 .auth-sidebar.orange-auth .auth-sidebar-char { right: 24px; bottom: 24px; width: 144px; height: 144px; border-radius: 28px; }
 .auth-sidebar.green-auth  .auth-sidebar-char { left: 24px;  bottom: 24px; width: 128px; height: 128px; border-radius: 24px; }
 
-.auth-sidebar-list { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; z-index: 5; }
+.auth-sidebar-list { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; position: relative; z-index: 5; }
 
 .auth-sidebar-list-item { display: flex; align-items: center; gap: 10px; color: white; font-size: 12px; font-weight: 700; }
 .auth-sidebar-list-item i, .auth-sidebar-list-item svg { width: 18px; height: 18px; color: #FBF1E3; }
@@ -1314,7 +1314,7 @@ button, .btn {
 
 .password-strength-bar.active { background-color: #4F9D57; }
 
-.auth-checkbox-row { display: flex; align-items: center; justify-content: space-between; margin: 20px 0; }
+.auth-checkbox-row { display: flex; align-items: center; justify-content: space-between; margin: 20px auto; }
 
 .auth-checkbox { display: flex; align-items: center; gap: 6px; color: var(--color-ink-muted); }
 

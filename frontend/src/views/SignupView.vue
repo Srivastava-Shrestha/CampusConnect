@@ -136,20 +136,20 @@ async function handleSignup() {
           Discover clubs, attend events, earn certificates,
           and build a verifiable record of your campus life.
         </p>
-      </div>
 
-      <div class="auth-sidebar-list">
-        <div class="auth-sidebar-list-item">
-          <CheckCircle2 />
-          <span>Browse all active clubs at your college</span>
-        </div>
-        <div class="auth-sidebar-list-item">
-          <CheckCircle2 />
-          <span>Get verified participation certificates</span>
-        </div>
-        <div class="auth-sidebar-list-item">
-          <CheckCircle2 />
-          <span>Free platform, forever</span>
+        <div class="auth-sidebar-list">
+          <div class="auth-sidebar-list-item">
+            <CheckCircle2 />
+            <span>Browse all active clubs at your college</span>
+          </div>
+          <div class="auth-sidebar-list-item">
+            <CheckCircle2 />
+            <span>Get verified participation certificates</span>
+          </div>
+          <div class="auth-sidebar-list-item">
+            <CheckCircle2 />
+            <span>Free platform, forever</span>
+          </div>
         </div>
       </div>
 
