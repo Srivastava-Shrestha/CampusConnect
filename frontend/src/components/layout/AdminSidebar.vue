@@ -1,7 +1,7 @@
 <script setup>
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
-import { GraduationCap, LayoutDashboard, CheckCircle2, Building2, Settings } from 'lucide-vue-next'
+import { GraduationCap, LayoutDashboard, CheckCircle2, Building2 } from 'lucide-vue-next'
 import MobileNav from './MobileNav.vue'
 
 const route = useRoute()
@@ -48,9 +48,6 @@ function isActive(itemPath) {
       >
         <component :is="item.icon" /> {{ item.label }}
       </router-link>
-      <a href="#" class="sidebar-item">
-        <Settings /> Settings
-      </a>
     </nav>
 
     <div class="sidebar-spacer"></div>

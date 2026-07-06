@@ -424,6 +424,24 @@ html {
 
 .stat-title { font-size: 11px; font-weight: 700; color: var(--color-ink-muted); }
 
+/* Wide screens: number sits on the top row beside the icon (KPI style),
+   label drops to a full-width row underneath. Shared by admin + leader stats. */
+@media (min-width: 1024px) {
+  .stat-card {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    column-gap: 12px;
+    row-gap: 6px;
+  }
+
+  .stat-card .stat-header { grid-column: 1; grid-row: 1; }
+
+  .stat-card .stat-num { grid-column: 2; grid-row: 1; margin: 0; }
+
+  .stat-card .stat-label { grid-column: 1 / -1; grid-row: 2; }
+}
+
 /* Identity Card — ONLY for landing, auth sidebars, event cards, leaderboard */
 .identity-card {
   border-radius: 26px;
@@ -4713,6 +4731,8 @@ button, .btn {
     box-shadow: 0 -4px 16px rgba(31, 26, 23, 0.06);
     padding: 6px 4px;
     padding-bottom: calc(6px + env(safe-area-inset-bottom));
+    border-radius: 2rem;
+    margin: 0 12px 12px;
   }
 
   .mobile-nav-item {
