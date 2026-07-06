@@ -5494,3 +5494,33 @@ html { scrollbar-width: thin; scrollbar-color: rgba(58, 42, 36, 0.25) transparen
 
   .brand { font-size: 16px; }
 }
+
+/*  43. Mobile polish: club-leader & institute-admin pages  */
+@media (max-width: 767px) {
+  /* Approval / join-request rows (leader Members, admin Approvals & Overview,
+     college card) are rigid horizontal flex rows whose action buttons overflow
+     and clip. Let the row wrap so the icon + info sit on top and the actions
+     drop to a full-width row underneath. */
+  .member-request-card,
+  .approval-card { flex-wrap: wrap; }
+
+  .member-req-actions,
+  .approval-actions { width: 100%; }
+
+  /* Approve / Reject share the width evenly; the status pill keeps its size */
+  .member-req-actions .btn-success,
+  .member-req-actions .btn-danger,
+  .approval-actions .btn-success,
+  .approval-actions .btn-danger { flex: 1; }
+
+  /* Give the squished name/meta column room to breathe once it has a full line */
+  .member-req-sub,
+  .approval-meta { white-space: normal; }
+
+  /* Leader "My Club": quick actions stack, stats go 2-up, meta chips wrap */
+  .quick-actions-grid { grid-template-columns: 1fr; }
+
+  .club-stats-row { grid-template-columns: repeat(2, 1fr); }
+
+  .club-profile-sub { flex-wrap: wrap; row-gap: 4px; }
+}
