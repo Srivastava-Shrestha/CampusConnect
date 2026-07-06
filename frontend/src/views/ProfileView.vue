@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import { ExternalLink, Award } from 'lucide-vue-next'
+import { Award } from 'lucide-vue-next'
 import StudentSidebar from '../components/layout/StudentSidebar.vue'
 import Topbar from '../components/layout/Topbar.vue'
 import CertCard from '../components/ui/CertCard.vue'
@@ -96,7 +96,7 @@ onMounted(async function loadCertificates() {
         <div class="clubs-section-header">
           <h2 class="clubs-section-title">Certificates Earned</h2>
           <router-link to="/verify/lookup" class="clubs-section-link">
-            <ExternalLink /> Verify a certificate
+            Verify a certificate
           </router-link>
         </div>
 

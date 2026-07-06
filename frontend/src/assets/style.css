@@ -160,6 +160,8 @@ html {
 .logo-mark {
   width: 34px;
   height: 34px;
+  flex-shrink: 0;
+  aspect-ratio: 1 / 1;
   border-radius: 10px;
   background-color: var(--color-green);
   color: #10301A;
@@ -1316,7 +1318,7 @@ button, .btn {
 
 .auth-checkbox-row { display: flex; align-items: center; justify-content: space-between; margin: 20px auto; }
 
-.auth-checkbox { display: flex; align-items: center; gap: 6px; color: var(--color-ink-muted); }
+.auth-checkbox { display: flex; align-items: center; gap: 6px; color: var(--color-ink-muted); padding-left: 3px; }
 
 .auth-checkbox-box {
   width: 18px; height: 18px;
@@ -1456,7 +1458,7 @@ button, .btn {
 /*  18. Leaderboard / Podium  */
 .podium-container { display: flex; gap: 16px; align-items: flex-end; margin-top: 16px; text-align: center; }
 
-.podium-card { flex: 1; border: var(--border-subtle); border-radius: 20px; padding: 16px; box-shadow: var(--shadow-card); }
+.podium-card { flex: 1; min-width: 0; border: var(--border-subtle); border-radius: 20px; padding: 16px; box-shadow: var(--shadow-card); }
 
 .podium-card.gold {
   flex: 1.15;
@@ -2966,6 +2968,9 @@ button, .btn {
   display: flex;
   flex-direction: column;
   gap: 14px;
+  position: sticky;
+  top: 20px;
+  align-self: start;
 }
 
 .reg-panel-title {
@@ -2982,6 +2987,9 @@ button, .btn {
   font-size: 12px;
   color: var(--color-ink-muted);
 }
+
+/* A little extra breathing room above the Register CTA */
+.reg-panel .btn-auth-submit { margin-top: 10px; }
 
 .reg-capacity-num {
   font-family: var(--font-heading);
@@ -3029,6 +3037,22 @@ button, .btn {
 .result-badge.winner     { background-color: var(--color-sat-yellow); color: var(--color-ink); }
 .result-badge.runner-up  { background-color: var(--color-surface-alt); color: var(--color-ink); border: var(--border-subtle); }
 .result-badge.participant { background-color: var(--color-green-tint); color: var(--color-green-text); }
+
+/* Event detail: mobile layout so the register CTA and meta read naturally */
+@media (max-width: 767px) {
+  .event-hero-banner { height: 128px; padding: 16px 18px; }
+  .event-hero-title { font-size: 19px; }
+
+  .club-profile-meta { padding: 28px 18px 18px; }
+
+  /* Grid already stacks to 1fr; drop sticky so the panel flows inline */
+  .reg-panel { position: static; top: auto; }
+
+  /* Register CTA comes first so it is reachable without scrolling the meta */
+  .event-detail-grid .reg-panel { order: -1; }
+
+  .event-meta-item { font-size: 13px; }
+}
 
 /* Attendance and results list */
 .participant-list { display: flex; flex-direction: column; gap: 10px; }
@@ -4754,13 +4778,19 @@ button, .btn {
 
   .profile-hero-stats { justify-content: center; }
 
+  .profile-tags { justify-content: center; }
+
   /* Carousel: swipe instead of arrow buttons */
   .carousel-nav-btn { display: none; }
 
   /* Podium scales down instead of overflowing */
   .podium-container { gap: 8px; }
   .podium-card { padding: 14px 8px; }
-  .podium-avatar { width: 44px; height: 44px; font-size: 20px; }
+  .podium-card.gold { padding: 16px 10px; }
+  .podium-avatar { width: 44px; height: 44px; font-size: 16px; }
+  .podium-card.gold .podium-avatar { width: 52px; height: 52px; }
+  .podium-score { font-size: 17px; }
+  .podium-card.gold .podium-score { font-size: 20px; }
 
   /* Auth pages: single column, decorative side panel hidden */
   .auth-frame {
@@ -4783,6 +4813,13 @@ button, .btn {
 
 /*  39b. Mobile joined-clubs carousel visibility  */
 @media (max-width: 767px) {
+  /* Nav arrows are hidden on mobile, so drop the 44px side padding
+     that reserved room for them and let the carousel use full width */
+  .clubs-carousel-wrapper { padding: 0; }
+
+  /* Header wraps instead of crowding the title against the link */
+  .clubs-section-header { flex-wrap: wrap; gap: 6px 12px; }
+
   .clubs-carousel-track {
     padding: 12px;
     scroll-snap-type: x mandatory;
