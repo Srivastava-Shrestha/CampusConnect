@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { GraduationCap, Compass, Users, Sparkles, CheckCircle2 } from 'lucide-vue-next'
+import { GraduationCap, Compass, ShieldCheck, Sparkles, CheckCircle2 } from 'lucide-vue-next'
 import { signupUser } from '../api/auth'
 import { usePasswordStrength } from '../composables/usePasswordStrength'
 import { useFormValidation } from '../composables/useFormValidation'
@@ -75,14 +75,14 @@ async function handleSignup() {
             :class="{ active: selectedRole === 'student' }"
             @click="selectRole('student')"
           >
-            <Compass /> Student
+            <Compass /> Member
           </button>
           <button
             class="btn-register-role"
-            :class="{ active: selectedRole === 'leader' }"
-            @click="selectRole('leader')"
+            :class="{ active: selectedRole === 'admin' }"
+            @click="selectRole('admin')"
           >
-            <Users /> Club Leader
+            <ShieldCheck /> Institute Admin
           </button>
         </div>
       </div>

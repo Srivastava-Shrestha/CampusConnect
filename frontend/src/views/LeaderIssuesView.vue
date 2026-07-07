@@ -1,7 +1,8 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { CircleDot, Loader, CheckCircle2, MessageSquare, Check, Send, Inbox } from 'lucide-vue-next'
-import LeaderSidebar from '../components/layout/LeaderSidebar.vue'
+import StudentSidebar from '../components/layout/StudentSidebar.vue'
+import LeaderTopNav from '../components/layout/LeaderTopNav.vue'
 import Topbar from '../components/layout/Topbar.vue'
 import StatCard from '../components/ui/StatCard.vue'
 import FilterChips from '../components/ui/FilterChips.vue'
@@ -90,9 +91,10 @@ onMounted(async function loadLeaderIssues() {
 </script>
 
 <template>
-  <LeaderSidebar />
+  <StudentSidebar />
 
   <div class="main-content">
+    <LeaderTopNav />
 
     <Topbar title="Issues" sub="Member concerns raised to Robotics & Automation Club" :show-bell="false" />
 

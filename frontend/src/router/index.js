@@ -299,6 +299,15 @@ function resolveGuardTarget(routeMeta, auth) {
     return '/login'
   }
 
+  // Club-leader pages are reachable by a member who leads a club, since
+  // leadership is no longer a separate login role.
+  if (routeMeta.role === 'leader') {
+    if (auth.canManageClubs) {
+      return null
+    }
+    return auth.homeRoute
+  }
+
   if (auth.role !== routeMeta.role) {
     return auth.homeRoute
   }

@@ -2,7 +2,8 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ArrowLeft, Send } from 'lucide-vue-next'
-import LeaderSidebar from '../components/layout/LeaderSidebar.vue'
+import StudentSidebar from '../components/layout/StudentSidebar.vue'
+import LeaderTopNav from '../components/layout/LeaderTopNav.vue'
 import { postAnnouncement } from '../api/announcements'
 import { useFormValidation } from '../composables/useFormValidation'
 
@@ -90,9 +91,10 @@ async function handlePostAnnouncement() {
 </script>
 
 <template>
-  <LeaderSidebar />
+  <StudentSidebar />
 
   <div class="main-content">
+    <LeaderTopNav />
 
     <header class="topbar">
       <button class="btn-secondary" @click="goBackToFeed">

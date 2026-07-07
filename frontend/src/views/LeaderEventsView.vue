@@ -2,7 +2,8 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Plus, Clock, MapPin, Users, CalendarX, ClipboardCheck, Trophy, Medal } from 'lucide-vue-next'
-import LeaderSidebar from '../components/layout/LeaderSidebar.vue'
+import StudentSidebar from '../components/layout/StudentSidebar.vue'
+import LeaderTopNav from '../components/layout/LeaderTopNav.vue'
 import Topbar from '../components/layout/Topbar.vue'
 import FilterChips from '../components/ui/FilterChips.vue'
 import { getLeaderEvents } from '../api/events'
@@ -56,9 +57,10 @@ onMounted(async function loadLeaderEvents() {
 </script>
 
 <template>
-  <LeaderSidebar />
+  <StudentSidebar />
 
   <div class="main-content">
+    <LeaderTopNav />
 
     <Topbar title="Events" sub="Robotics & Automation Club">
       <button class="btn-primary" @click="goToCreateEvent">

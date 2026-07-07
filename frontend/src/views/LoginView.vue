@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { GraduationCap, Mail, Lock, Eye, EyeOff, Check, ArrowRight, Globe, School, Compass, Users, ShieldCheck } from 'lucide-vue-next'
+import { GraduationCap, Mail, Lock, Eye, EyeOff, Check, ArrowRight, Globe, School, Compass, ShieldCheck } from 'lucide-vue-next'
 import { loginUser } from '../api/auth'
 import { useAuthStore } from '../stores/auth'
 import { useFormValidation } from '../composables/useFormValidation'
@@ -20,17 +20,12 @@ const selectedRole = ref('student')
 const roleOptions = [
   {
     id: 'student',
-    label: 'Student',
+    label: 'Member',
     icon: Compass
   },
   {
-    id: 'leader',
-    label: 'Club Leader',
-    icon: Users
-  },
-  {
     id: 'admin',
-    label: 'Admin',
+    label: 'Institute Admin',
     icon: ShieldCheck
   }
 ]

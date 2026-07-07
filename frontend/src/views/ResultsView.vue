@@ -2,7 +2,8 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, Award } from 'lucide-vue-next'
-import LeaderSidebar from '../components/layout/LeaderSidebar.vue'
+import StudentSidebar from '../components/layout/StudentSidebar.vue'
+import LeaderTopNav from '../components/layout/LeaderTopNav.vue'
 import { getEventParticipants, getEventById, saveResults } from '../api/events'
 
 const route = useRoute()
@@ -57,9 +58,10 @@ onMounted(async function loadResultsPage() {
 </script>
 
 <template>
-  <LeaderSidebar />
+  <StudentSidebar />
 
   <div class="main-content">
+    <LeaderTopNav />
 
     <header class="topbar">
       <button class="btn-secondary" @click="goBackToAttendance">
