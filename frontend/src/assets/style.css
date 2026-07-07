@@ -1,9 +1,11 @@
-/* ==========================================================================
-   Campus Connect — Design System & Central Stylesheet
-   Team NexMind · Team-003 · IITM BS May 2026
-   ========================================================================== */
+/* 
+   Campus Connect Design System & Central Stylesheet
+   Team NexMind  Team-003  IITM BS May 2026
+
+ */
 
 /*  1. Design Tokens & CSS Variables  */
+
 :root {
   /* Core Color System */
   --color-canvas: #FCFBFA;
