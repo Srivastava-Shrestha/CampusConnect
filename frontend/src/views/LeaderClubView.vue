@@ -2,8 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Pencil, MapPin, Users, Calendar, CalendarPlus, Megaphone, UsersRound } from 'lucide-vue-next'
-import StudentSidebar from '../components/layout/StudentSidebar.vue'
-import LeaderTopNav from '../components/layout/LeaderTopNav.vue'
+import LeaderSidebar from '../components/layout/LeaderSidebar.vue'
 import ClubIcon from '../components/ui/ClubIcon.vue'
 import { getClubById } from '../api/clubs'
 import { getLeaderEvents } from '../api/events'
@@ -73,10 +72,9 @@ onMounted(async function loadDashboard() {
 </script>
 
 <template>
-  <StudentSidebar />
+  <LeaderSidebar />
 
   <div class="main-content" v-if="club">
-    <LeaderTopNav />
 
     <header class="topbar">
       <div class="title-block">

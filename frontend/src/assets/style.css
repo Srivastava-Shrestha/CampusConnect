@@ -7633,3 +7633,137 @@ html {
     flex-wrap: wrap;
   }
 }
+
+/*  48. Post-login workspace chooser (member vs club leader)  */
+.workspace-choose {
+  width: 100%;
+  max-width: 760px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.workspace-head {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.workspace-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.workspace-title {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 30px;
+  color: var(--color-ink);
+}
+
+.workspace-sub {
+  font-size: 14px;
+  color: var(--color-ink-muted);
+}
+
+.workspace-cards {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.workspace-card {
+  text-align: left;
+  background-color: var(--color-surface);
+  border: var(--border-subtle);
+  border-radius: var(--radius-card2);
+  box-shadow: var(--shadow-card);
+  padding: 28px 26px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.workspace-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-card-lg);
+}
+
+.workspace-card-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 6px;
+}
+
+.workspace-card-icon svg {
+  width: 26px;
+  height: 26px;
+}
+
+.member-choice .workspace-card-icon {
+  background-color: var(--color-orange-tint);
+  color: var(--color-orange-text);
+}
+
+.member-choice:hover {
+  border-color: rgba(239, 123, 69, 0.4);
+}
+
+.leader-choice .workspace-card-icon {
+  background-color: var(--color-green-tint);
+  color: var(--color-green-text);
+}
+
+.leader-choice:hover {
+  border-color: rgba(91, 168, 105, 0.4);
+}
+
+.workspace-card-title {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 18px;
+  color: var(--color-ink);
+}
+
+.workspace-card-desc {
+  font-size: 13px;
+  color: var(--color-ink-muted);
+  line-height: 1.5;
+  flex: 1;
+}
+
+.workspace-card-go {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--color-ink);
+  margin-top: 6px;
+}
+
+.workspace-card-go svg {
+  width: 16px;
+  height: 16px;
+}
+
+@media (max-width: 640px) {
+  .workspace-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .workspace-title {
+    font-size: 24px;
+  }
+}

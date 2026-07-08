@@ -2,8 +2,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ArrowLeft, Send, FileText } from 'lucide-vue-next'
-import StudentSidebar from '../components/layout/StudentSidebar.vue'
-import LeaderTopNav from '../components/layout/LeaderTopNav.vue'
+import LeaderSidebar from '../components/layout/LeaderSidebar.vue'
 import { createClub } from '../api/clubs'
 import { toast } from '../composables/useToast'
 import { useFormValidation } from '../composables/useFormValidation'
@@ -103,10 +102,9 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <StudentSidebar />
+  <LeaderSidebar />
 
   <div class="main-content">
-    <LeaderTopNav />
 
     <header class="topbar">
       <button class="btn-secondary" @click="goBack">

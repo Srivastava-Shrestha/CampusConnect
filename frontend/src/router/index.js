@@ -79,6 +79,15 @@ const studentRoutes = [
     }
   },
   {
+    path: '/workspace',
+    name: 'workspace',
+    component: () => import('../views/WorkspaceView.vue'),
+    meta: {
+      role: 'student',
+      bodyClass: 'auth-body'
+    }
+  },
+  {
     path: '/clubs',
     name: 'clubs',
     component: () => import('../views/ClubDirectoryView.vue'),

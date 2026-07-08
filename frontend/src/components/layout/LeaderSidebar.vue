@@ -1,7 +1,7 @@
 <script setup>
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
-import { GraduationCap, LayoutDashboard, UsersRound, CalendarDays, Megaphone, TriangleAlert, PlusCircle } from 'lucide-vue-next'
+import { GraduationCap, LayoutDashboard, UsersRound, CalendarDays, Megaphone, TriangleAlert, PlusCircle, Compass } from 'lucide-vue-next'
 import MobileNav from './MobileNav.vue'
 
 const route = useRoute()
@@ -13,7 +13,8 @@ const menuItems = [
   { label: 'Events', to: '/leader/events', icon: CalendarDays },
   { label: 'Announcements', to: '/leader/announcements', icon: Megaphone },
   { label: 'Issues', to: '/leader/issues', icon: TriangleAlert },
-  { label: 'Create Club', to: '/leader/clubs/new', icon: PlusCircle }
+  { label: 'Create Club', to: '/leader/clubs/new', icon: PlusCircle },
+  { label: 'Member Area', to: '/clubs', icon: Compass }
 ]
 
 const mobileItems = [
@@ -21,7 +22,8 @@ const mobileItems = [
   { label: 'Members', to: '/leader/members', icon: UsersRound },
   { label: 'Events', to: '/leader/events', icon: CalendarDays },
   { label: 'Posts', to: '/leader/announcements', icon: Megaphone },
-  { label: 'Issues', to: '/leader/issues', icon: TriangleAlert }
+  { label: 'Issues', to: '/leader/issues', icon: TriangleAlert },
+  { label: 'Member', to: '/clubs', icon: Compass }
 ]
 
 function isActive(itemPath) {

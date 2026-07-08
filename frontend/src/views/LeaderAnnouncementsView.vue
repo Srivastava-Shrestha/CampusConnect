@@ -2,8 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Plus, Pin, PinOff, Trash2, Megaphone } from 'lucide-vue-next'
-import StudentSidebar from '../components/layout/StudentSidebar.vue'
-import LeaderTopNav from '../components/layout/LeaderTopNav.vue'
+import LeaderSidebar from '../components/layout/LeaderSidebar.vue'
 import Topbar from '../components/layout/Topbar.vue'
 import AnnounceCard from '../components/ui/AnnounceCard.vue'
 import FilterChips from '../components/ui/FilterChips.vue'
@@ -65,10 +64,9 @@ onMounted(async function loadPosts() {
 </script>
 
 <template>
-  <StudentSidebar />
+  <LeaderSidebar />
 
   <div class="main-content">
-    <LeaderTopNav />
 
     <Topbar title="Announcements" sub="Posted by Robotics & Automation Club">
       <button class="btn-primary" @click="goToPostAnnouncement">

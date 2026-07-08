@@ -47,6 +47,7 @@ async function handleSignup() {
 
   await signupUser(fullName.value.trim(), email.value.trim(), password.value, selectedRole.value)
   sessionStorage.setItem('signupEmail', email.value.trim())
+  sessionStorage.setItem('signupRole', selectedRole.value)
   router.push('/verify-email')
 }
 </script>

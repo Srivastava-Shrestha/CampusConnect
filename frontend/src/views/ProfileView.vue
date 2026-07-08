@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import { Award } from 'lucide-vue-next'
+import { useRouter } from 'vue-router'
+import { Award, LogOut } from 'lucide-vue-next'
 import StudentSidebar from '../components/layout/StudentSidebar.vue'
 import Topbar from '../components/layout/Topbar.vue'
 import CertCard from '../components/ui/CertCard.vue'
@@ -8,6 +9,12 @@ import { useAuthStore } from '../stores/auth'
 import { getMyCertificates } from '../api/certificates'
 
 const auth = useAuthStore()
+const router = useRouter()
+
+function handleLogout() {
+  auth.logout()
+  router.push('/login')
+}
 
 const certificates = ref([])
 
@@ -90,6 +97,9 @@ onMounted(async function loadCertificates() {
             <p class="profile-stat-label">{{ stat.label }}</p>
           </div>
         </div>
+        <button class="btn-secondary-sm profile-logout-btn" @click="handleLogout">
+          <LogOut /> Log out
+        </button>
       </div>
 
       <div>
@@ -137,3 +147,16 @@ onMounted(async function loadCertificates() {
 
   </div>
 </template>
+
+<style scoped>
+.profile-logout-btn {
+  gap: 6px;
+  color: var(--color-pink-text, #ab3a50);
+  align-self: center;
+}
+
+.profile-logout-btn svg {
+  width: 18px;
+  height: 18px;
+}
+</style>

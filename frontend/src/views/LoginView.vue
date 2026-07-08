@@ -68,7 +68,14 @@ async function handleLogin() {
   }
 
   auth.setRole(selectedRole.value)
-  router.push(auth.homeRoute)
+
+  // A member who also leads a club picks their workspace first; everyone else
+  // goes straight to their home area.
+  if (auth.canManageClubs) {
+    router.push('/workspace')
+  } else {
+    router.push(auth.homeRoute)
+  }
 }
 </script>
 

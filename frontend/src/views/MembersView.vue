@@ -1,8 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { Users, Clock, ShieldCheck, Check, X } from 'lucide-vue-next'
-import StudentSidebar from '../components/layout/StudentSidebar.vue'
-import LeaderTopNav from '../components/layout/LeaderTopNav.vue'
+import LeaderSidebar from '../components/layout/LeaderSidebar.vue'
 import Topbar from '../components/layout/Topbar.vue'
 import StatCard from '../components/ui/StatCard.vue'
 import StatusPill from '../components/ui/StatusPill.vue'
@@ -49,10 +48,9 @@ onMounted(async function loadMembersPage() {
 </script>
 
 <template>
-  <StudentSidebar />
+  <LeaderSidebar />
 
   <div class="main-content">
-    <LeaderTopNav />
 
     <Topbar title="Members" sub="Robotics & Automation Club" :show-bell="false" />
 
