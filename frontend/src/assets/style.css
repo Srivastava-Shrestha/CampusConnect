@@ -7299,3 +7299,147 @@ html {
     display: none;
   }
 }
+
+/*  46. Route Loading Bar + Toast Notifications  */
+
+/* Thin progress bar pinned to the very top during route navigation */
+.route-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  z-index: 200;
+  pointer-events: none;
+}
+
+.route-progress-bar {
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, var(--color-orange), var(--color-sat-yellow));
+  box-shadow: 0 0 10px rgba(239, 123, 69, 0.55);
+  border-radius: 0 3px 3px 0;
+  transition: width 0.24s ease;
+}
+
+/* Toast stack, top-right */
+.toast-stack {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 300;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 360px;
+  max-width: calc(100vw - 40px);
+  pointer-events: none;
+}
+
+.toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background-color: var(--color-surface);
+  border: var(--border-subtle);
+  border-left: 4px solid var(--color-ink-light);
+  border-radius: 14px;
+  box-shadow: var(--shadow-card-lg);
+  padding: 13px 14px;
+}
+
+.toast-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.toast-msg {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-ink);
+  line-height: 1.45;
+}
+
+.toast-close {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: var(--color-ink-light);
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+}
+
+.toast-close svg {
+  width: 15px;
+  height: 15px;
+}
+
+.toast-close:hover {
+  color: var(--color-ink);
+}
+
+/* Per-type accent (left border + icon) */
+.toast-success {
+  border-left-color: var(--color-green);
+}
+
+.toast-success .toast-icon {
+  color: var(--color-green-text);
+}
+
+.toast-error {
+  border-left-color: var(--color-pink-text);
+}
+
+.toast-error .toast-icon {
+  color: var(--color-pink-text);
+}
+
+.toast-info {
+  border-left-color: var(--color-orange);
+}
+
+.toast-info .toast-icon {
+  color: var(--color-orange);
+}
+
+/* Slide-in / slide-out transitions */
+.toast-enter-from {
+  opacity: 0;
+  transform: translateX(24px);
+}
+
+.toast-enter-active {
+  transition: opacity 0.28s ease, transform 0.28s ease;
+}
+
+.toast-leave-to {
+  opacity: 0;
+  transform: translateX(24px);
+}
+
+.toast-leave-active {
+  transition: opacity 0.28s ease, transform 0.28s ease;
+  position: absolute;
+  right: 0;
+  width: 100%;
+}
+
+.toast-move {
+  transition: transform 0.28s ease;
+}
+
+@media (max-width: 767px) {
+  .toast-stack {
+    top: 12px;
+    right: 12px;
+    left: 12px;
+    width: auto;
+    max-width: none;
+  }
+}

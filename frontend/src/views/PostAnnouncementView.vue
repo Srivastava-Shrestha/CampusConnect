@@ -5,6 +5,7 @@ import { ArrowLeft, Send } from 'lucide-vue-next'
 import StudentSidebar from '../components/layout/StudentSidebar.vue'
 import LeaderTopNav from '../components/layout/LeaderTopNav.vue'
 import { postAnnouncement } from '../api/announcements'
+import { toast } from '../composables/useToast'
 import { useFormValidation } from '../composables/useFormValidation'
 
 const router = useRouter()
@@ -69,7 +70,7 @@ async function handlePostAnnouncement() {
   }
 
   if (!allFieldsFilled(fields)) {
-    window.alert('Please fill in all fields before posting.')
+    toast.error('Please fill in all fields before posting.')
     return
   }
 
@@ -85,7 +86,7 @@ async function handlePostAnnouncement() {
     message += ' It is pinned at the top of the feed.'
   }
 
-  window.alert(message)
+  toast.success(message)
   router.push('/leader/announcements')
 }
 </script>

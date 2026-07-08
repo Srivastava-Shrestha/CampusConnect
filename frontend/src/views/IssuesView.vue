@@ -7,6 +7,7 @@ import IssueCard from '../components/ui/IssueCard.vue'
 import StatusPill from '../components/ui/StatusPill.vue'
 import { getIssues, raiseIssue } from '../api/issues'
 import { useFormValidation } from '../composables/useFormValidation'
+import { toast } from '../composables/useToast'
 
 const { allFieldsFilled } = useFormValidation()
 
@@ -52,12 +53,12 @@ async function submitIssue() {
   }
 
   if (!allFieldsFilled(fields)) {
-    window.alert('Please fill in all fields before submitting.')
+    toast.error('Please fill in all fields before submitting.')
     return
   }
 
   await raiseIssue(fields)
-  window.alert('Issue submitted. The club leader has been notified and will respond within 48 hours.')
+  toast.success('Issue submitted. The club leader has been notified and will respond within 48 hours.')
   clearForm()
 }
 

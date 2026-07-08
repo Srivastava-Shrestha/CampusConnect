@@ -7,6 +7,7 @@ import StatCard from '../components/ui/StatCard.vue'
 import StatusPill from '../components/ui/StatusPill.vue'
 import ApprovalCard from '../components/ui/ApprovalCard.vue'
 import { getClubApprovals, approveClubRequest, rejectClubRequest } from '../api/clubs'
+import { toast } from '../composables/useToast'
 
 const pendingList = ref([])
 
@@ -40,7 +41,7 @@ async function handleReject(approval) {
 }
 
 function saveSettings() {
-  window.alert('College settings saved successfully.')
+  toast.success('College settings saved successfully.')
 }
 
 onMounted(async function loadOverview() {

@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { GraduationCap, Mail, Shield, Lock, Send, MailCheck, ArrowRight } from 'lucide-vue-next'
 import { sendResetLink } from '../api/auth'
 import { useFormValidation } from '../composables/useFormValidation'
+import { toast } from '../composables/useToast'
 
 const router = useRouter()
 const { isValidEmail } = useFormValidation()
@@ -18,7 +19,7 @@ const linkSent = ref(false)
 
 async function handleSendResetLink() {
   if (!isValidEmail(resetEmail.value)) {
-    window.alert('Please enter a valid email address.')
+    toast.error('Please enter a valid email address.')
     return
   }
 

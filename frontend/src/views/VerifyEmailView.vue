@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { GraduationCap, CheckCircle2 } from 'lucide-vue-next'
 import { verifyEmailOtp, resendOtp } from '../api/auth'
+import { toast } from '../composables/useToast'
 
 const router = useRouter()
 
@@ -50,7 +51,7 @@ async function handleVerify() {
   const otp = getOtpValue()
 
   if (otp.length < 6) {
-    window.alert('Please enter all 6 digits of the OTP.')
+    toast.error('Please enter all 6 digits of the OTP.')
     return
   }
 

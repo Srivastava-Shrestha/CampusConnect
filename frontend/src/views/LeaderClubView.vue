@@ -7,6 +7,7 @@ import LeaderTopNav from '../components/layout/LeaderTopNav.vue'
 import ClubIcon from '../components/ui/ClubIcon.vue'
 import { getClubById } from '../api/clubs'
 import { getLeaderEvents } from '../api/events'
+import { toast } from '../composables/useToast'
 
 const router = useRouter()
 
@@ -57,7 +58,7 @@ function manageEvent(event) {
 }
 
 function showEditHint() {
-  window.alert('Club info editing will be available after the backend is connected.')
+  toast.info('Club info editing will be available after the backend is connected.')
 }
 
 onMounted(async function loadDashboard() {

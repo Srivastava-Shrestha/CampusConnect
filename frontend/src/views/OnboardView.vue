@@ -8,6 +8,7 @@ import {
   FlaskConical, Gamepad2, Camera, HeartHandshake, Search, CalendarCheck, Users, Award
 } from 'lucide-vue-next'
 import { saveOnboarding } from '../api/auth'
+import { toast } from '../composables/useToast'
 
 const router = useRouter()
 
@@ -120,15 +121,15 @@ function selectGoal(goalId) {
 
 function validateStepOne() {
   if (!selectedDept.value) {
-    window.alert('Please pick your department before continuing.')
+    toast.error('Please pick your department before continuing.')
     return false
   }
   if (selectedDept.value === 'other' && !otherDeptName.value.trim()) {
-    window.alert('Please type your department name.')
+    toast.error('Please type your department name.')
     return false
   }
   if (!selectedYear.value) {
-    window.alert('Please pick your current year before continuing.')
+    toast.error('Please pick your current year before continuing.')
     return false
   }
   return true

@@ -5,6 +5,7 @@ import { GraduationCap, Mail, Lock, Eye, EyeOff, Check, ArrowRight, Globe, Schoo
 import { loginUser } from '../api/auth'
 import { useAuthStore } from '../stores/auth'
 import { useFormValidation } from '../composables/useFormValidation'
+import { toast } from '../composables/useToast'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -57,7 +58,7 @@ function validateLoginForm() {
 
 async function handleLogin() {
   if (!validateLoginForm()) {
-    window.alert(errorMessage.value)
+    toast.error(errorMessage.value)
     return
   }
 

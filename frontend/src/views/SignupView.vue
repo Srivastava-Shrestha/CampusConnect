@@ -5,6 +5,7 @@ import { GraduationCap, Compass, ShieldCheck, Sparkles, CheckCircle2 } from 'luc
 import { signupUser } from '../api/auth'
 import { usePasswordStrength } from '../composables/usePasswordStrength'
 import { useFormValidation } from '../composables/useFormValidation'
+import { toast } from '../composables/useToast'
 
 const router = useRouter()
 const { strength, updateStrength } = usePasswordStrength()
@@ -27,15 +28,15 @@ function validateSignupForm() {
   const fields = { name: fullName.value, email: email.value, password: password.value }
 
   if (!allFieldsFilled(fields)) {
-    window.alert('Please fill in all fields before continuing.')
+    toast.error('Please fill in all fields before continuing.')
     return false
   }
   if (!isValidEmail(email.value)) {
-    window.alert('Please enter a valid college email address.')
+    toast.error('Please enter a valid college email address.')
     return false
   }
   if (!isStrongEnough(password.value)) {
-    window.alert('Password must be at least 6 characters.')
+    toast.error('Password must be at least 6 characters.')
     return false
   }
   return true

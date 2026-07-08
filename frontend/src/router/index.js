@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { startLoading, finishLoading } from '../composables/useLoadingBar'
 
 const publicRoutes = [
   {
@@ -321,6 +322,8 @@ const router = createRouter({
 })
 
 router.beforeEach(function guardByRole(to) {
+  startLoading()
+
   const auth = useAuthStore()
   const target = resolveGuardTarget(to.meta, auth)
 
@@ -329,6 +332,14 @@ router.beforeEach(function guardByRole(to) {
   }
 
   return true
+})
+
+router.afterEach(function stopProgress() {
+  finishLoading()
+})
+
+router.onError(function stopProgressOnError() {
+  finishLoading()
 })
 
 export default router

@@ -7,6 +7,7 @@ import Topbar from '../components/layout/Topbar.vue'
 import ClubCard from '../components/ui/ClubCard.vue'
 import { findMatchingClubs } from '../api/ai'
 import { mockClubs } from '../api/clubs'
+import { toast } from '../composables/useToast'
 
 const router = useRouter()
 
@@ -46,7 +47,7 @@ async function findClubs() {
   const input = interestsText.value.trim()
 
   if (!input) {
-    window.alert('Please describe your interests before searching.')
+    toast.error('Please describe your interests before searching.')
     return
   }
 

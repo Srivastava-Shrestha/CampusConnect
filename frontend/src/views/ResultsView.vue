@@ -5,6 +5,7 @@ import { ArrowLeft, Award } from 'lucide-vue-next'
 import StudentSidebar from '../components/layout/StudentSidebar.vue'
 import LeaderTopNav from '../components/layout/LeaderTopNav.vue'
 import { getEventParticipants, getEventById, saveResults } from '../api/events'
+import { toast } from '../composables/useToast'
 
 const route = useRoute()
 const router = useRouter()
@@ -25,11 +26,11 @@ function countResult(value) {
 
 function validateResults() {
   if (countResult('winner') > 1) {
-    window.alert('Only one participant can be marked as Winner.')
+    toast.error('Only one participant can be marked as Winner.')
     return false
   }
   if (countResult('runner-up') > 2) {
-    window.alert('At most two participants can be marked as Runner-up.')
+    toast.error('At most two participants can be marked as Runner-up.')
     return false
   }
   return true
@@ -39,7 +40,7 @@ async function publishResults() {
   if (!validateResults()) return
 
   await saveResults(route.params.id, results.value)
-  window.alert('Results published! Certificates have been generated and are visible on each student profile.')
+  toast.success('Results published! Certificates have been generated and are visible on each student profile.')
   router.push('/leader/events')
 }
 

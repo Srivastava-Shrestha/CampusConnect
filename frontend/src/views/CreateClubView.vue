@@ -5,6 +5,7 @@ import { ArrowLeft, Send } from 'lucide-vue-next'
 import StudentSidebar from '../components/layout/StudentSidebar.vue'
 import LeaderTopNav from '../components/layout/LeaderTopNav.vue'
 import { createClub } from '../api/clubs'
+import { toast } from '../composables/useToast'
 import { useFormValidation } from '../composables/useFormValidation'
 
 const router = useRouter()
@@ -65,12 +66,12 @@ async function handleSubmit() {
   }
 
   if (!allFieldsFilled(fields)) {
-    window.alert('Please fill in all fields before submitting.')
+    toast.error('Please fill in all fields before submitting.')
     return
   }
 
   if (!isValidEmail(clubEmail.value)) {
-    window.alert('Please enter a valid email address.')
+    toast.error('Please enter a valid email address.')
     return
   }
 
@@ -82,7 +83,7 @@ async function handleSubmit() {
     email: clubEmail.value.trim()
   })
 
-  window.alert('Your club request has been submitted! The admin will review it within 2 to 3 working days.')
+  toast.success('Your club request has been submitted! The admin will review it within 2 to 3 working days.')
   router.push('/leader/club')
 }
 </script>

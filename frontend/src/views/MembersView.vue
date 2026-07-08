@@ -8,6 +8,7 @@ import StatCard from '../components/ui/StatCard.vue'
 import StatusPill from '../components/ui/StatusPill.vue'
 import MemberRow from '../components/ui/MemberRow.vue'
 import { getMembers, getJoinRequests, approveJoinRequest, rejectJoinRequest, removeMember } from '../api/members'
+import { toast } from '../composables/useToast'
 
 const clubId = 1
 const totalMembers = ref(84)
@@ -38,7 +39,7 @@ async function handleRemoveMember(member) {
   if (!confirmed) return
 
   await removeMember(clubId, member.id)
-  window.alert(member.name + ' has been removed from the club.')
+  toast.success(member.name + ' has been removed from the club.')
 }
 
 onMounted(async function loadMembersPage() {

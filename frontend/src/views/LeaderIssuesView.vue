@@ -8,6 +8,7 @@ import StatCard from '../components/ui/StatCard.vue'
 import FilterChips from '../components/ui/FilterChips.vue'
 import { getLeaderIssues, replyToIssue, resolveIssue } from '../api/issues'
 import { useAuthStore } from '../stores/auth'
+import { toast } from '../composables/useToast'
 
 const auth = useAuthStore()
 
@@ -59,7 +60,7 @@ async function submitReply(issue) {
   const text = replyText.value.trim()
 
   if (!text) {
-    window.alert('Please type a reply before sending.')
+    toast.error('Please type a reply before sending.')
     return
   }
 

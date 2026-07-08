@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { GraduationCap, Search, ShieldCheck, XCircle } from 'lucide-vue-next'
 import { verifyCertificate } from '../api/certificates'
+import { toast } from '../composables/useToast'
 
 const route = useRoute()
 
@@ -19,7 +20,7 @@ async function verifyCert() {
   const cleaned = serialInput.value.trim().toUpperCase()
 
   if (!cleaned) {
-    window.alert('Please enter a serial number.')
+    toast.error('Please enter a serial number.')
     return
   }
 

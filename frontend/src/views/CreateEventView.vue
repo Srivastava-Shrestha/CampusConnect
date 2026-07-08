@@ -5,6 +5,7 @@ import { ArrowLeft, Send } from 'lucide-vue-next'
 import StudentSidebar from '../components/layout/StudentSidebar.vue'
 import LeaderTopNav from '../components/layout/LeaderTopNav.vue'
 import { createEvent } from '../api/events'
+import { toast } from '../composables/useToast'
 import { useFormValidation } from '../composables/useFormValidation'
 
 const router = useRouter()
@@ -64,7 +65,7 @@ async function publishEvent() {
   }
 
   if (!allFieldsFilled(requiredFields)) {
-    window.alert('Please fill in all required fields before publishing.')
+    toast.error('Please fill in all required fields before publishing.')
     return
   }
 
@@ -79,7 +80,7 @@ async function publishEvent() {
     venue: eventVenue.value.trim()
   })
 
-  window.alert('Event published! Members can now register.')
+  toast.success('Event published! Members can now register.')
   router.push('/leader/events')
 }
 </script>
