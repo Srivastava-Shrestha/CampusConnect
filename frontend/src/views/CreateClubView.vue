@@ -1,21 +1,24 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { ArrowLeft, Send } from 'lucide-vue-next'
+import { ArrowLeft, Send, FileText } from 'lucide-vue-next'
 import StudentSidebar from '../components/layout/StudentSidebar.vue'
 import LeaderTopNav from '../components/layout/LeaderTopNav.vue'
 import { createClub } from '../api/clubs'
 import { toast } from '../composables/useToast'
 import { useFormValidation } from '../composables/useFormValidation'
+import { useGuidelinesStore } from '../stores/guidelines'
 
 const router = useRouter()
 const { allFieldsFilled, isValidEmail } = useFormValidation()
+const guidelines = useGuidelinesStore()
 
 const clubName = ref('')
 const clubCategory = ref('')
 const clubTagline = ref('')
 const clubAbout = ref('')
 const clubEmail = ref('')
+const applicationLink = ref('')
 
 const categoryOptions = [
   'Tech',
@@ -56,13 +59,18 @@ function goBack() {
   router.back()
 }
 
+function openTemplate() {
+  window.open(guidelines.templateLink, '_blank', 'noopener')
+}
+
 async function handleSubmit() {
   const fields = {
     name: clubName.value,
     category: clubCategory.value,
     tagline: clubTagline.value,
     about: clubAbout.value,
-    email: clubEmail.value
+    email: clubEmail.value,
+    applicationLink: applicationLink.value
   }
 
   if (!allFieldsFilled(fields)) {
@@ -75,12 +83,18 @@ async function handleSubmit() {
     return
   }
 
+  if (!/^https?:\/\//i.test(applicationLink.value.trim())) {
+    toast.error('Please paste a valid application document link (it should start with http).')
+    return
+  }
+
   await createClub({
     name: clubName.value.trim(),
     category: clubCategory.value,
     tagline: clubTagline.value.trim(),
     about: clubAbout.value.trim(),
-    email: clubEmail.value.trim()
+    email: clubEmail.value.trim(),
+    applicationLink: applicationLink.value.trim()
   })
 
   toast.success('Your club request has been submitted! The admin will review it within 2 to 3 working days.')
@@ -140,6 +154,15 @@ async function handleSubmit() {
             <input type="email" id="club-email" v-model="clubEmail" class="input-field" placeholder="aayansh@knit.ac.in">
           </div>
 
+          <div class="form-group">
+            <label for="club-app-link">Application Document Link</label>
+            <input type="url" id="club-app-link" v-model="applicationLink" class="input-field" placeholder="https://drive.google.com/file/d/.../view">
+            <p class="text-note">
+              Copy the Google Docs template, fill it in, then paste the shareable
+              Google Drive link of your completed application here.
+            </p>
+          </div>
+
           <button class="btn-primary" @click="handleSubmit">
             <Send /> Submit for Approval
           </button>
@@ -150,6 +173,29 @@ async function handleSubmit() {
           <div v-for="step in guideSteps" :key="step.text" class="guide-step">
             <span class="guide-step-num" :class="{ 'guide-step-warn': step.warn }">{{ step.num }}</span>
             <span>{{ step.text }}</span>
+          </div>
+
+          <button class="btn-secondary guide-template-btn" @click="openTemplate">
+            <FileText /> Open application template
+          </button>
+
+          <div class="guide-glines">
+            <p class="guide-card-title">Campus club guidelines</p>
+            <div
+              v-for="section in guidelines.sectionsList"
+              :key="section"
+              class="guide-glines-section"
+            >
+              <p class="guide-glines-heading">{{ section }}</p>
+              <div
+                v-for="item in guidelines.itemsBySection(section)"
+                :key="item.id"
+                class="guide-gline-item"
+              >
+                <span class="guide-gline-dot"></span>
+                <span>{{ item.text }}</span>
+              </div>
+            </div>
           </div>
         </div>
 

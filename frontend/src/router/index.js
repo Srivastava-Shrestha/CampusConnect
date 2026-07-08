@@ -281,6 +281,15 @@ const adminRoutes = [
       role: 'admin',
       bodyClass: 'portal-body'
     }
+  },
+  {
+    path: '/admin/guidelines',
+    name: 'admin-guidelines',
+    component: () => import('../views/AdminGuidelinesView.vue'),
+    meta: {
+      role: 'admin',
+      bodyClass: 'portal-body'
+    }
   }
 ]
 

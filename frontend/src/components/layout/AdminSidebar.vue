@@ -1,7 +1,7 @@
 <script setup>
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
-import { GraduationCap, LayoutDashboard, CheckCircle2, Building2 } from 'lucide-vue-next'
+import { GraduationCap, LayoutDashboard, CheckCircle2, Building2, ScrollText } from 'lucide-vue-next'
 import MobileNav from './MobileNav.vue'
 
 const route = useRoute()
@@ -10,13 +10,15 @@ const auth = useAuthStore()
 const menuItems = [
   { label: 'Overview', to: '/admin', icon: LayoutDashboard },
   { label: 'Approvals', to: '/admin/approvals', icon: CheckCircle2 },
-  { label: 'Colleges', to: '/admin/colleges', icon: Building2 }
+  { label: 'Colleges', to: '/admin/colleges', icon: Building2 },
+  { label: 'Guidelines', to: '/admin/guidelines', icon: ScrollText }
 ]
 
 const mobileItems = [
   { label: 'Overview', to: '/admin', icon: LayoutDashboard, exact: true },
   { label: 'Approvals', to: '/admin/approvals', icon: CheckCircle2 },
-  { label: 'Colleges', to: '/admin/colleges', icon: Building2 }
+  { label: 'Colleges', to: '/admin/colleges', icon: Building2 },
+  { label: 'Rules', to: '/admin/guidelines', icon: ScrollText }
 ]
 
 function isActive(itemPath) {

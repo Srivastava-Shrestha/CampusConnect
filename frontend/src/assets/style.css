@@ -7443,3 +7443,193 @@ html {
     max-width: none;
   }
 }
+
+/*  47. Club Guidelines CRUD + application links  */
+
+/* Admin guidelines editor */
+.guideline-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.guideline-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: var(--border-subtle);
+}
+
+.guideline-bullet {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: var(--color-orange);
+  flex-shrink: 0;
+}
+
+.guideline-text {
+  flex: 1;
+  font-size: 13px;
+  color: var(--color-ink);
+  line-height: 1.5;
+}
+
+.guideline-edit-input {
+  flex: 1;
+}
+
+.guideline-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.guideline-icon-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  border: var(--border-subtle);
+  background-color: var(--color-surface);
+  color: var(--color-ink-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.guideline-icon-btn svg {
+  width: 15px;
+  height: 15px;
+}
+
+.guideline-icon-btn:hover {
+  background-color: var(--color-surface-alt);
+  color: var(--color-ink);
+}
+
+.guideline-icon-btn.danger:hover {
+  background-color: var(--color-pink);
+  color: var(--color-pink-text);
+}
+
+.guideline-empty {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--color-ink-light);
+  padding: 12px 0;
+}
+
+.guideline-empty svg {
+  width: 16px;
+  height: 16px;
+}
+
+.guideline-add-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.guideline-add-row .input-field {
+  flex: 1;
+}
+
+.guideline-add-row .btn-secondary {
+  flex-shrink: 0;
+}
+
+.guideline-template-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 4px;
+}
+
+/* View-application pill on approval cards */
+.approval-app-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 8px 14px;
+  border-radius: 11px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-blue-text);
+  background-color: var(--color-blue-tint);
+  border: var(--border-subtle);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color 0.15s ease;
+}
+
+.approval-app-link svg {
+  width: 15px;
+  height: 15px;
+}
+
+.approval-app-link:hover {
+  background-color: #DCEAF5;
+}
+
+/* Guidelines panel inside the create-club form */
+.guide-template-btn {
+  display: flex;
+  width: 100%;
+  justify-content: center;
+  margin-top: 16px;
+}
+
+.guide-glines {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: var(--border-subtle);
+}
+
+.guide-glines-section {
+  margin-top: 12px;
+}
+
+.guide-glines-heading {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--color-ink);
+  margin-bottom: 6px;
+}
+
+.guide-gline-item {
+  display: flex;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--color-ink-muted);
+  line-height: 1.5;
+  margin-bottom: 6px;
+}
+
+.guide-gline-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background-color: var(--color-orange);
+  flex-shrink: 0;
+  margin-top: 6px;
+}
+
+/* Stack the add-row controls on small screens */
+@media (max-width: 767px) {
+  .guideline-add-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .guideline-row {
+    flex-wrap: wrap;
+  }
+}
