@@ -219,6 +219,19 @@ def scrub_emails(text: str) -> str:
     return _EMAIL_RE.sub("[hidden]", text)
 
 
+_LISTING_LINE_RE = re.compile(r"^\s*(?:[A-Z ]+:|-\s)")
+
+
+def strip_echoed_listing(text: str) -> str:
+    """Defense-in-depth for build_conversational_message_prompt: even with an
+    explicit "don't repeat the list" instruction, a model can still echo the
+    CANDIDATES/MATCHED CLUBS block back verbatim. Drop any line that looks
+    like a heading (ALL CAPS:) or a "- Name (category)" bullet, since the
+    cards already render that information - the reply should be prose only."""
+    lines = [line for line in text.splitlines() if not _LISTING_LINE_RE.match(line)]
+    return "\n".join(lines).strip()
+
+
 # ---------------------------------------------------------------------------
 # prompt builders (pure)
 # ---------------------------------------------------------------------------
@@ -249,7 +262,8 @@ CHAT_SYSTEM_PROMPT = (
 )
 
 
-def build_conversational_message_prompt(interest_text: str, kind: str, items: list[dict]) -> str:
+def build_conversational_message_prompt(interest_text: str, kind: str, items: list[dict],
+                                        remaining: int = 0) -> str:
     """Prompt for the top-level assistant reply shown above the result cards.
 
     Strictly grounded: the model is only ever given the names of items the
@@ -260,8 +274,27 @@ def build_conversational_message_prompt(interest_text: str, kind: str, items: li
         "You are Campus Connect's club assistant, replying to a student who just "
         "described their interests. Sound like a helpful, honest person - not a "
         "template. Reference specific things they said. Never invent a club or "
-        "event name beyond the list given below. Plain text, 1-3 sentences, under "
-        "60 words, no code fences.\n"
+        "event name beyond the list given below.\n"
+    )
+
+    if remaining > 0:
+        follow_up = (
+            f"End with a short, natural follow-up question - there are {remaining} more "
+            "matches you could show, so offer to bring them up (e.g. ask if they'd like "
+            "to see a few more, or want events too)."
+        )
+    else:
+        follow_up = (
+            "End with a short, natural follow-up question to keep the conversation going "
+            "- for example ask if they'd like related events, or to refine what they're after."
+        )
+
+    output_format = (
+        "\nOutput as GitHub-flavoured Markdown: you may use **bold** for club or event "
+        "names and keep it to 2-3 short sentences, under 60 words. " + follow_up +
+        " Do not repeat, quote, or bullet-list the items above - the app already shows "
+        "them as cards below your message. No headings, no code fences, no labels like "
+        "'Reply:' - just your message."
     )
 
     if kind == "clubs":
@@ -270,8 +303,9 @@ def build_conversational_message_prompt(interest_text: str, kind: str, items: li
             rules
             + f'The student described their interests as: "{interest_text}"\n'
             + "These clubs matched - write a short, warm intro line to precede the "
-              "list below (do not restate their interests verbatim, paraphrase them):\n"
+              "list (do not restate their interests verbatim, paraphrase them):\n"
             + f"MATCHED CLUBS:\n{listing}\n"
+            + output_format
         )
 
     if kind == "event_fallback":
@@ -284,6 +318,7 @@ def build_conversational_message_prompt(interest_text: str, kind: str, items: li
             + "No club matched closely, but these public events did. Write an honest "
               "reply that says so, then introduces the event(s) as a next-best option:\n"
             + f"MATCHED EVENTS:\n{listing}\n"
+            + output_format
         )
 
     listing = "\n".join(f'- {c["name"]} ({c.get("category", "")})' for c in items[:5])
@@ -294,6 +329,7 @@ def build_conversational_message_prompt(interest_text: str, kind: str, items: li
           "discouraging, then gently mention a couple of these active clubs as "
           "options worth exploring anyway:\n"
         + f"CAMPUS CLUBS:\n{listing}\n"
+        + output_format
     )
 
 

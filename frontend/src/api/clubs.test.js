@@ -8,7 +8,7 @@ describe('clubs api', () => {
 
   test('getClubs returns the server response when fetch works', async () => {
     const serverClubs = [{ id: 99, name: 'Server Club' }]
-    global.fetch = vi.fn().mockResolvedValue({ json: () => Promise.resolve(serverClubs) })
+    global.fetch = vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve(serverClubs) })
 
     const result = await getClubs()
 

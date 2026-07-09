@@ -237,6 +237,9 @@ const mockParticipants = [
 export async function getLeaderEvents() {
   try {
     const response = await fetch(BASE_URL + '/events/managed')
+    if (!response.ok) {
+      throw new Error('Request failed: ' + response.status)
+    }
     return await response.json()
   } catch (error) {
     return mockLeaderEvents
@@ -247,6 +250,9 @@ export async function getLeaderEvents() {
 export async function getEventParticipants(eventId) {
   try {
     const response = await fetch(BASE_URL + '/events/' + eventId + '/participants')
+    if (!response.ok) {
+      throw new Error('Request failed: ' + response.status)
+    }
     return await response.json()
   } catch (error) {
     return mockParticipants
@@ -257,6 +263,9 @@ export async function getEventParticipants(eventId) {
 export async function getEvents() {
   try {
     const response = await fetch(BASE_URL + '/events')
+    if (!response.ok) {
+      throw new Error('Request failed: ' + response.status)
+    }
     return await response.json()
   } catch (error) {
     return mockEvents
@@ -267,6 +276,9 @@ export async function getEvents() {
 export async function getEventById(eventId) {
   try {
     const response = await fetch(BASE_URL + '/events/' + eventId)
+    if (!response.ok) {
+      throw new Error('Request failed: ' + response.status)
+    }
     return await response.json()
   } catch (error) {
     return mockEvents.find((event) => event.id === Number(eventId)) || mockEvents[1]
@@ -277,6 +289,9 @@ export async function getEventById(eventId) {
 export async function registerForEvent(eventId) {
   try {
     const response = await fetch(BASE_URL + '/events/' + eventId + '/register', { method: 'POST' })
+    if (!response.ok) {
+      throw new Error('Request failed: ' + response.status)
+    }
     return await response.json()
   } catch (error) {
     return { ok: true, registrationId: 'CC-2026-0482' }
@@ -291,6 +306,9 @@ export async function createEvent(eventData) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(eventData)
     })
+    if (!response.ok) {
+      throw new Error('Request failed: ' + response.status)
+    }
     return await response.json()
   } catch (error) {
     return { ok: true, event: eventData }
@@ -305,6 +323,9 @@ export async function saveAttendance(eventId, presentIds) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ presentIds })
     })
+    if (!response.ok) {
+      throw new Error('Request failed: ' + response.status)
+    }
     return await response.json()
   } catch (error) {
     return { ok: true, marked: presentIds.length }
@@ -319,6 +340,9 @@ export async function saveResults(eventId, results) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ results })
     })
+    if (!response.ok) {
+      throw new Error('Request failed: ' + response.status)
+    }
     return await response.json()
   } catch (error) {
     return { ok: true, published: true }

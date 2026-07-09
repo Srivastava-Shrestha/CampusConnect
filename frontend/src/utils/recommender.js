@@ -15,7 +15,7 @@ const STOP_WORDS = new Set([
 const DEFAULT_CONFIG = {
   clubThreshold: 0.3,
   eventThreshold: 0.2,
-  topK: 10
+  topK: 3
 }
 
 export function normalizeTokens(text) {
@@ -98,7 +98,11 @@ export function selectRecommendations(interestText, clubs, events, cfg = DEFAULT
     const topClubs = matchedClubs.slice(0, cfg.topK).map(function attachReason(club) {
       return { ...club, reason: explainClubMatch(interestTokens, club) }
     })
-    return { kind: 'clubs', items: topClubs }
+    return {
+      kind: 'clubs',
+      items: topClubs,
+      message: 'Here are the clubs that best match what you described.'
+    }
   }
 
   const upcomingEvents = events.filter(function notPast(event) {

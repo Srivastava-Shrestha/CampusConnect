@@ -8,6 +8,10 @@ from app.services.llm_client import call_chat, call_finder, call_message
 
 router = APIRouter(prefix="/api/v1/ai", tags=["ai"])
 
+# Show a small, focused set per turn - the assistant offers to fetch more in
+# its follow-up question rather than dumping the whole ranked list at once.
+MAX_RESULTS = 3
+
 
 def _user_profile_dict(user: dict) -> dict:
     return {
@@ -36,8 +40,12 @@ def club_finder(body: ClubFinderRequest, user: dict = Depends(get_current_user))
     if not interest_text:
         return result   # nothing typed yet - deterministic order, no LLM call
 
+    # How many matches exist in total, before we trim to MAX_RESULTS - lets
+    # the assistant offer the rest naturally ("want to see a few more?").
+    remaining = max(len(result["items"]) - MAX_RESULTS, 0)
+
     if result["kind"] == "clubs":
-        top = result["items"][:R.DEFAULT_CFG.top_k]
+        top = result["items"][:MAX_RESULTS]
         allowed = {c["id"] for c in top}
         prompt = R.build_finder_prompt(profile, top)
         try:
@@ -48,13 +56,17 @@ def club_finder(body: ClubFinderRequest, user: dict = Depends(get_current_user))
         for c in top:
             c["reason"] = reasons.get(c["id"], "Matches your interests.")
         result = {"kind": "clubs", "items": top}
+    else:
+        result["items"] = result["items"][:MAX_RESULTS]
 
     # The top-level reply is always LLM-phrased when the student typed
     # something - the deterministic string from select_recommendations is
     # only a silent safety net if this call fails.
-    message_prompt = R.build_conversational_message_prompt(interest_text, result["kind"], result["items"])
+    message_prompt = R.build_conversational_message_prompt(
+        interest_text, result["kind"], result["items"], remaining
+    )
     try:
-        result["message"] = call_message(message_prompt)
+        result["message"] = R.strip_echoed_listing(call_message(message_prompt))
     except Exception:
         result.setdefault("message", "Here are a few clubs that fit what you described.")
 

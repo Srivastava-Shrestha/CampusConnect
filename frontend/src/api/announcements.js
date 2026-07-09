@@ -140,6 +140,9 @@ const mockLeaderAnnouncements = [
 export async function getLeaderAnnouncements() {
   try {
     const response = await fetch(BASE_URL + '/announcements/mine')
+    if (!response.ok) {
+      throw new Error('Request failed: ' + response.status)
+    }
     return await response.json()
   } catch (error) {
     return mockLeaderAnnouncements
@@ -150,6 +153,9 @@ export async function getLeaderAnnouncements() {
 export async function getAnnouncements() {
   try {
     const response = await fetch(BASE_URL + '/announcements')
+    if (!response.ok) {
+      throw new Error('Request failed: ' + response.status)
+    }
     return await response.json()
   } catch (error) {
     return mockAnnouncements
@@ -164,6 +170,9 @@ export async function postAnnouncement(announcement) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(announcement)
     })
+    if (!response.ok) {
+      throw new Error('Request failed: ' + response.status)
+    }
     return await response.json()
   } catch (error) {
     return { ok: true, announcement }
@@ -178,6 +187,9 @@ export async function togglePin(announcementId, pinned) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ pinned })
     })
+    if (!response.ok) {
+      throw new Error('Request failed: ' + response.status)
+    }
     return await response.json()
   } catch (error) {
     return { ok: true, pinned }
@@ -188,6 +200,9 @@ export async function togglePin(announcementId, pinned) {
 export async function deleteAnnouncement(announcementId) {
   try {
     const response = await fetch(BASE_URL + '/announcements/' + announcementId, { method: 'DELETE' })
+    if (!response.ok) {
+      throw new Error('Request failed: ' + response.status)
+    }
     return await response.json()
   } catch (error) {
     return { ok: true, deleted: announcementId }

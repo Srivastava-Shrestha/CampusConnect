@@ -275,6 +275,9 @@ const mockLeaderboard = {
 export async function getClubs() {
   try {
     const response = await fetch(BASE_URL + '/clubs')
+    if (!response.ok) {
+      throw new Error('Request failed: ' + response.status)
+    }
     return await response.json()
   } catch (error) {
     return mockClubs
@@ -285,6 +288,9 @@ export async function getClubs() {
 export async function getJoinedClubs() {
   try {
     const response = await fetch(BASE_URL + '/clubs/joined')
+    if (!response.ok) {
+      throw new Error('Request failed: ' + response.status)
+    }
     return await response.json()
   } catch (error) {
     return mockJoinedClubs
@@ -295,6 +301,9 @@ export async function getJoinedClubs() {
 export async function getClubById(clubId) {
   try {
     const response = await fetch(BASE_URL + '/clubs/' + clubId)
+    if (!response.ok) {
+      throw new Error('Request failed: ' + response.status)
+    }
     return await response.json()
   } catch (error) {
     return mockClubs.find((club) => club.id === Number(clubId)) || mockClubs[0]
@@ -305,6 +314,9 @@ export async function getClubById(clubId) {
 export async function requestToJoinClub(clubId) {
   try {
     const response = await fetch(BASE_URL + '/clubs/' + clubId + '/join', { method: 'POST' })
+    if (!response.ok) {
+      throw new Error('Request failed: ' + response.status)
+    }
     return await response.json()
   } catch (error) {
     return { ok: true, status: 'pending' }
@@ -319,6 +331,9 @@ export async function createClub(clubData) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(clubData)
     })
+    if (!response.ok) {
+      throw new Error('Request failed: ' + response.status)
+    }
     return await response.json()
   } catch (error) {
     return { ok: true, status: 'pending_approval', club: clubData }
@@ -392,6 +407,9 @@ const mockApprovals = [
 export async function getClubApprovals() {
   try {
     const response = await fetch(BASE_URL + '/clubs/approvals')
+    if (!response.ok) {
+      throw new Error('Request failed: ' + response.status)
+    }
     return await response.json()
   } catch (error) {
     return mockApprovals
@@ -402,6 +420,9 @@ export async function getClubApprovals() {
 export async function approveClubRequest(approvalId) {
   try {
     const response = await fetch(BASE_URL + '/clubs/approvals/' + approvalId + '/approve', { method: 'POST' })
+    if (!response.ok) {
+      throw new Error('Request failed: ' + response.status)
+    }
     return await response.json()
   } catch (error) {
     return { ok: true, status: 'approved' }
@@ -416,6 +437,9 @@ export async function rejectClubRequest(approvalId, reason) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ reason })
     })
+    if (!response.ok) {
+      throw new Error('Request failed: ' + response.status)
+    }
     return await response.json()
   } catch (error) {
     return { ok: true, status: 'rejected', reason }
@@ -426,6 +450,9 @@ export async function rejectClubRequest(approvalId, reason) {
 export async function getLeaderboard() {
   try {
     const response = await fetch(BASE_URL + '/clubs/leaderboard')
+    if (!response.ok) {
+      throw new Error('Request failed: ' + response.status)
+    }
     return await response.json()
   } catch (error) {
     return mockLeaderboard
