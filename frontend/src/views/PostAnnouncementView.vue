@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ArrowLeft, Send } from 'lucide-vue-next'
 import LeaderSidebar from '../components/layout/LeaderSidebar.vue'
+import CustomSelect from '../components/ui/CustomSelect.vue'
 import { postAnnouncement } from '../api/announcements'
 import { toast } from '../composables/useToast'
 import { useFormValidation } from '../composables/useFormValidation'
@@ -125,10 +126,7 @@ async function handlePostAnnouncement() {
 
           <div class="form-group">
             <label for="ann-category">Category</label>
-            <select id="ann-category" v-model="announcementCategory" class="select-field">
-              <option value="">Select category</option>
-              <option v-for="option in categoryOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
-            </select>
+            <CustomSelect v-model="announcementCategory" :options="categoryOptions" placeholder="Select category" />
           </div>
 
           <div class="form-group">

@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, Award } from 'lucide-vue-next'
 import LeaderSidebar from '../components/layout/LeaderSidebar.vue'
+import CustomSelect from '../components/ui/CustomSelect.vue'
 import { getEventParticipants, getEventById, saveResults } from '../api/events'
 import { toast } from '../composables/useToast'
 
@@ -87,9 +88,7 @@ onMounted(async function loadResultsPage() {
             <p class="participant-name">{{ attendee.name }}</p>
             <p class="participant-sub">{{ attendee.sub }}</p>
           </div>
-          <select class="result-select-field" v-model="results[attendee.id]">
-            <option v-for="option in resultOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
-          </select>
+          <CustomSelect v-model="results[attendee.id]" :options="resultOptions" placeholder="Set result" class="result-select-wrap" />
         </div>
       </div>
 

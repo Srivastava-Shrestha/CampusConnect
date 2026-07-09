@@ -2,14 +2,22 @@
 import { Pin } from 'lucide-vue-next'
 import ClubIcon from './ClubIcon.vue'
 
-defineProps({
+const props = defineProps({
   announcement: { type: Object, required: true }
 })
+
+// Opening an announcement clears its unread marker.
+function markRead() {
+  props.announcement.unread = false
+}
 </script>
 
 <template>
-  <div class="announce-card" :class="{ pinned: announcement.pinned }">
-    <div v-if="announcement.unread" class="announce-unread-dot"></div>
+  <div class="announce-card" :class="{ pinned: announcement.pinned }" @click="markRead">
+    <span v-if="announcement.pinned" class="announce-pin-mark">
+      <Pin />
+    </span>
+    <div v-else-if="announcement.unread" class="announce-unread-dot"></div>
     <div class="announce-club-row">
       <div class="announce-dot" :class="announcement.dot">
         <ClubIcon :name="announcement.icon" />
@@ -18,9 +26,6 @@ defineProps({
         <p class="announce-club-name">{{ announcement.club }}</p>
         <p class="announce-time">{{ announcement.time }}</p>
       </div>
-      <span v-if="announcement.pinned" class="announce-pin-badge">
-        <Pin /> Pinned
-      </span>
     </div>
     <p class="announce-title">{{ announcement.title }}</p>
     <p class="announce-body">{{ announcement.body }}</p>

@@ -42,8 +42,9 @@ const mobileItems = computed(function buildMobileMenu() {
 
 function isActive(itemPath) {
   // The Manage Clubs entry stays highlighted across every leader page.
+  // Require the trailing slash so /leaderboard does not match /leader.
   if (itemPath === '/leader/club') {
-    return route.path.startsWith('/leader')
+    return route.path.startsWith('/leader/')
   }
   return route.path === itemPath || route.path.startsWith(itemPath + '/')
 }

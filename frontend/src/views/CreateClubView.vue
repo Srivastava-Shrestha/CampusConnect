@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ArrowLeft, Send, FileText } from 'lucide-vue-next'
 import LeaderSidebar from '../components/layout/LeaderSidebar.vue'
+import CustomSelect from '../components/ui/CustomSelect.vue'
 import { createClub } from '../api/clubs'
 import { toast } from '../composables/useToast'
 import { useFormValidation } from '../composables/useFormValidation'
@@ -131,10 +132,7 @@ async function handleSubmit() {
 
           <div class="form-group">
             <label for="club-category">Category</label>
-            <select id="club-category" v-model="clubCategory" class="select-field">
-              <option value="">Select a category</option>
-              <option v-for="option in categoryOptions" :key="option" :value="option">{{ option }}</option>
-            </select>
+            <CustomSelect v-model="clubCategory" :options="categoryOptions" placeholder="Select a category" />
           </div>
 
           <div class="form-group">
