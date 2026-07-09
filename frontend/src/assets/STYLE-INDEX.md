@@ -110,6 +110,8 @@ by label rather than trusting the number order.
 | 50      | Unified button hover colours                                     |
 | 51      | Global entrance animation + route buffer                        |
 | 52      | Custom select (replaces native dropdowns)                       |
+| 53      | Mobile fixes for auth/verify pages                               |
+| 54      | AI Club Finder response variants (event fallback + popularity)  |
 
 ## Conventions
 

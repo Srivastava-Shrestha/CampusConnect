@@ -3759,6 +3759,11 @@ button, .btn {
   line-height: 1.5;
   padding: 8px 0;
   max-height: 120px;
+  overflow-y: hidden;
+}
+
+.finder-composer-input.is-maxed {
+  overflow-y: auto;
 }
 
 .finder-send-btn {
@@ -8181,4 +8186,66 @@ html {
     width: 100%;
     justify-content: center;
   }
+}
+
+/*  54. AI Club Finder response variants (event fallback + popularity picks)
+       The finder's assistant reply looks different depending on what the
+       deterministic core returned: a direct club match, a public event
+       fallback, or a popularity fallback when nothing matched at all. */
+.finder-fallback-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background-color: var(--color-orange-tint);
+  border: 1px solid rgba(239, 123, 69, 0.24);
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+
+.finder-fallback-banner svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--color-orange);
+}
+
+.finder-fallback-banner p {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.6;
+  color: var(--color-ink);
+}
+
+.finder-fallback-banner-popular {
+  background-color: rgba(136, 195, 232, 0.14);
+  border-color: rgba(136, 195, 232, 0.3);
+}
+
+.finder-fallback-banner-popular svg {
+  color: #4a90c4;
+}
+
+.finder-fallback-events {
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 640px) {
+  .finder-fallback-events {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Grid items pair a card with a reason note underneath. Grid rows stretch
+   items to match the tallest neighbour by default, which forces the fixed
+   height:100% club/event card to fill the whole row and pushes the note
+   below it, overlapping the next row. align-self: start lets each item
+   keep its own natural height (card + note) instead. */
+.finder-result-grid {
+  row-gap: 36px;
+}
+
+.finder-result-item {
+  align-self: start;
 }
