@@ -56,6 +56,23 @@ stylesheet as you save.
 | `npm run test`       | Run the unit test suite once                      |
 | `npm run test:watch` | Run the tests in watch mode while developing      |
 
+## Capturing screenshots
+
+`scripts/capture-screens.mjs` walks every screen for all three roles and saves
+desktop and mobile screenshots under `screenshots/`. It uses Playwright and
+signs in by setting the role in local storage, so no manual clicking is needed.
+
+```bash
+# 1. Start the dev server in one terminal
+npm run dev
+
+# 2. Install the browser once
+npx playwright install chromium
+
+# 3. Run the capture in another terminal
+node scripts/capture-screens.mjs
+```
+
 ## Project structure
 
 ```

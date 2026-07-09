@@ -102,6 +102,14 @@ by label rather than trusting the number order.
 | 40g     | Mobile polish (nav, hero CTAs, role cards)                       |
 | 43      | Mobile polish for club-leader and institute-admin pages          |
 | 44      | Dashboard card tints for club-leader and institute-admin         |
+| 45      | Leader top nav (legacy, component now unused)                     |
+| 46      | Route loading bar + toast notifications                          |
+| 47      | Club guidelines CRUD + application links                         |
+| 48      | Post-login workspace chooser (member vs club leader)             |
+| 49      | Unified card hover (gradient accent + lift)                      |
+| 50      | Unified button hover colours                                     |
+| 51      | Global entrance animation + route buffer                        |
+| 52      | Custom select (replaces native dropdowns)                       |
 
 ## Conventions
 
