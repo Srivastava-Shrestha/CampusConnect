@@ -3,10 +3,12 @@ import { ref, computed, onMounted } from 'vue'
 import { MessageSquareWarning, Send } from 'lucide-vue-next'
 import StudentSidebar from '../components/layout/StudentSidebar.vue'
 import Topbar from '../components/layout/Topbar.vue'
+import CustomSelect from '../components/ui/CustomSelect.vue'
 import IssueCard from '../components/ui/IssueCard.vue'
 import StatusPill from '../components/ui/StatusPill.vue'
 import { getIssues, raiseIssue } from '../api/issues'
 import { useFormValidation } from '../composables/useFormValidation'
+import { toast } from '../composables/useToast'
 
 const { allFieldsFilled } = useFormValidation()
 
@@ -52,12 +54,12 @@ async function submitIssue() {
   }
 
   if (!allFieldsFilled(fields)) {
-    window.alert('Please fill in all fields before submitting.')
+    toast.error('Please fill in all fields before submitting.')
     return
   }
 
   await raiseIssue(fields)
-  window.alert('Issue submitted. The club leader has been notified and will respond within 48 hours.')
+  toast.success('Issue submitted. The club leader has been notified and will respond within 48 hours.')
   clearForm()
 }
 
@@ -90,18 +92,12 @@ onMounted(async function loadIssues() {
 
           <div class="form-group">
             <label for="issue-category">Category</label>
-            <select id="issue-category" v-model="issueCategory" class="select-field">
-              <option value="">Select category</option>
-              <option v-for="option in categoryOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
-            </select>
+            <CustomSelect v-model="issueCategory" :options="categoryOptions" placeholder="Select category" />
           </div>
 
           <div class="form-group">
             <label for="issue-club">Related Club</label>
-            <select id="issue-club" v-model="issueClub" class="select-field">
-              <option value="">Select club</option>
-              <option v-for="option in clubOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
-            </select>
+            <CustomSelect v-model="issueClub" :options="clubOptions" placeholder="Select club" />
           </div>
 
           <div class="form-group">

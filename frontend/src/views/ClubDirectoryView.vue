@@ -15,6 +15,7 @@ const clubsStore = useClubsStore()
 const searchText = ref('')
 const activeCategory = ref('all')
 const carouselTrack = ref(null)
+const showMyClubs = ref(false)
 
 const categoryChips = [
   { id: 'all', label: 'All' },
@@ -37,12 +38,21 @@ const visibleClubs = computed(function filterClubs() {
   })
 })
 
+const myClubs = computed(function buildMyClubs() {
+  const joinedIds = clubsStore.joinedClubs.map((joined) => joined.id)
+  return clubsStore.clubs.filter((club) => joinedIds.includes(club.id))
+})
+
 function openClub(clubId) {
   router.push('/clubs/' + clubId)
 }
 
 function scrollCarousel(direction) {
   carouselTrack.value.scrollLeft += direction * 248
+}
+
+function toggleMyClubs() {
+  showMyClubs.value = !showMyClubs.value
 }
 
 onMounted(function loadDirectory() {
@@ -77,7 +87,9 @@ onMounted(function loadDirectory() {
       <div>
         <div class="clubs-section-header">
           <h2 class="clubs-section-title">Active in These Clubs</h2>
-          <span class="clubs-section-link">View all joined clubs</span>
+          <span class="clubs-section-link" @click="toggleMyClubs">
+            {{ showMyClubs ? 'Hide my clubs' : 'View all joined clubs' }}
+          </span>
         </div>
         <div class="clubs-carousel-wrapper">
 
@@ -107,6 +119,21 @@ onMounted(function loadDirectory() {
             <ChevronRight />
           </button>
 
+        </div>
+      </div>
+
+      <div v-if="showMyClubs">
+        <div class="clubs-section-header">
+          <h2 class="clubs-section-title">My Clubs</h2>
+          <span class="clubs-count-text">{{ myClubs.length }} joined</span>
+        </div>
+        <div class="clubs-grid">
+          <ClubCard
+            v-for="club in myClubs"
+            :key="club.id"
+            :club="club"
+            @open="openClub(club.id)"
+          />
         </div>
       </div>
 

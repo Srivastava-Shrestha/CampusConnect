@@ -3,7 +3,9 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, Award } from 'lucide-vue-next'
 import LeaderSidebar from '../components/layout/LeaderSidebar.vue'
+import CustomSelect from '../components/ui/CustomSelect.vue'
 import { getEventParticipants, getEventById, saveResults } from '../api/events'
+import { toast } from '../composables/useToast'
 
 const route = useRoute()
 const router = useRouter()
@@ -24,11 +26,11 @@ function countResult(value) {
 
 function validateResults() {
   if (countResult('winner') > 1) {
-    window.alert('Only one participant can be marked as Winner.')
+    toast.error('Only one participant can be marked as Winner.')
     return false
   }
   if (countResult('runner-up') > 2) {
-    window.alert('At most two participants can be marked as Runner-up.')
+    toast.error('At most two participants can be marked as Runner-up.')
     return false
   }
   return true
@@ -38,7 +40,7 @@ async function publishResults() {
   if (!validateResults()) return
 
   await saveResults(route.params.id, results.value)
-  window.alert('Results published! Certificates have been generated and are visible on each student profile.')
+  toast.success('Results published! Certificates have been generated and are visible on each student profile.')
   router.push('/leader/events')
 }
 
@@ -86,9 +88,7 @@ onMounted(async function loadResultsPage() {
             <p class="participant-name">{{ attendee.name }}</p>
             <p class="participant-sub">{{ attendee.sub }}</p>
           </div>
-          <select class="result-select-field" v-model="results[attendee.id]">
-            <option v-for="option in resultOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
-          </select>
+          <CustomSelect v-model="results[attendee.id]" :options="resultOptions" placeholder="Set result" class="result-select-wrap" />
         </div>
       </div>
 

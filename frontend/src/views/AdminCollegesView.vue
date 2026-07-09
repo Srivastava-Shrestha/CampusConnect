@@ -5,6 +5,7 @@ import AdminSidebar from '../components/layout/AdminSidebar.vue'
 import Topbar from '../components/layout/Topbar.vue'
 import StatCard from '../components/ui/StatCard.vue'
 import StatusPill from '../components/ui/StatusPill.vue'
+import { toast } from '../composables/useToast'
 
 const collegeName = ref('KNIT Sultanpur')
 const fullName = ref('Kamla Nehru Institute of Technology')
@@ -28,15 +29,15 @@ const allowedCategories = [
 
 function saveSettings() {
   if (!collegeName.value.trim() || !emailDomain.value.trim()) {
-    window.alert('College name and email domain are required.')
+    toast.error('College name and email domain are required.')
     return
   }
 
-  window.alert('College settings saved successfully.')
+  toast.success('College settings saved successfully.')
 }
 
 function showCategoryHint() {
-  window.alert('Category management will be available after the backend is connected.')
+  toast.info('Category management will be available after the backend is connected.')
 }
 </script>
 

@@ -1,10 +1,11 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { GraduationCap, Mail, Lock, Eye, EyeOff, Check, ArrowRight, Globe, School, Compass, Users, ShieldCheck } from 'lucide-vue-next'
+import { GraduationCap, Mail, Lock, Eye, EyeOff, Check, ArrowRight, Globe, School, Compass, ShieldCheck } from 'lucide-vue-next'
 import { loginUser } from '../api/auth'
 import { useAuthStore } from '../stores/auth'
 import { useFormValidation } from '../composables/useFormValidation'
+import { toast } from '../composables/useToast'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -20,17 +21,12 @@ const selectedRole = ref('student')
 const roleOptions = [
   {
     id: 'student',
-    label: 'Student',
+    label: 'Member',
     icon: Compass
   },
   {
-    id: 'leader',
-    label: 'Club Leader',
-    icon: Users
-  },
-  {
     id: 'admin',
-    label: 'Admin',
+    label: 'Institute Admin',
     icon: ShieldCheck
   }
 ]
@@ -62,7 +58,7 @@ function validateLoginForm() {
 
 async function handleLogin() {
   if (!validateLoginForm()) {
-    window.alert(errorMessage.value)
+    toast.error(errorMessage.value)
     return
   }
 
@@ -72,7 +68,14 @@ async function handleLogin() {
   }
 
   auth.setRole(selectedRole.value)
-  router.push(auth.homeRoute)
+
+  // A member who also leads a club picks their workspace first; everyone else
+  // goes straight to their home area.
+  if (auth.canManageClubs) {
+    router.push('/workspace')
+  } else {
+    router.push(auth.homeRoute)
+  }
 }
 </script>
 

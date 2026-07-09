@@ -3,8 +3,11 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { GraduationCap, CheckCircle2 } from 'lucide-vue-next'
 import { verifyEmailOtp, resendOtp } from '../api/auth'
+import { toast } from '../composables/useToast'
+import { useAuthStore } from '../stores/auth'
 
 const router = useRouter()
+const auth = useAuthStore()
 
 const otpDigits = ref(['', '', '', '', '', ''])
 const otpInputs = ref([])
@@ -50,12 +53,22 @@ async function handleVerify() {
   const otp = getOtpValue()
 
   if (otp.length < 6) {
-    window.alert('Please enter all 6 digits of the OTP.')
+    toast.error('Please enter all 6 digits of the OTP.')
     return
   }
 
   await verifyEmailOtp(emailHint.value, otp)
-  router.push('/onboard')
+
+  // A verified email means the account is active, so log the user in and send
+  // them to the right first screen. Admins skip the student onboarding.
+  const signupRole = sessionStorage.getItem('signupRole') || 'student'
+  auth.setRole(signupRole)
+
+  if (signupRole === 'admin') {
+    router.push('/admin')
+  } else {
+    router.push('/onboard')
+  }
 }
 
 async function handleResend() {
@@ -79,23 +92,25 @@ onMounted(function focusFirstBox() {
 <template>
   <div class="auth-frame">
 
-    <aside class="auth-sidebar orange-auth">
+    <aside class="auth-sidebar orange-auth verify-email-sidebar">
 
-      <div class="auth-sidebar-logo" @click="router.push('/')">
-        <div class="auth-sidebar-logo-mark">
-          <GraduationCap />
+      <div class="verify-email-top">
+        <div class="auth-sidebar-logo" @click="router.push('/')">
+          <div class="auth-sidebar-logo-mark">
+            <GraduationCap />
+          </div>
+          <span class="brand">Campus Connect</span>
         </div>
-        <span class="brand">Campus Connect</span>
-      </div>
 
-      <div>
-        <h2 class="auth-sidebar-title">Almost<br>there.</h2>
-        <p class="auth-sidebar-desc">
-          One quick step to confirm you are a verified student of your institution.
-        </p>
-      </div>
+        <div>
+          <h2 class="auth-sidebar-title">Almost<br>there.</h2>
+          <p class="auth-sidebar-desc">
+            One quick step to confirm you are a verified student of your institution.
+          </p>
+        </div>
 
-      <div class="auth-sidebar-circle-1"></div>
+        <div class="auth-sidebar-circle-1"></div>
+      </div>
 
       <div class="auth-sidebar-char">
         <svg class="svg-fill" viewBox="0 0 240 240">
@@ -164,3 +179,22 @@ onMounted(function focusFirstBox() {
 
   </div>
 </template>
+
+<style scoped>
+.verify-email-sidebar.auth-sidebar {
+  justify-content: flex-start;
+}
+
+.verify-email-top {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.auth-sidebar.orange-auth .verify-email-top .auth-sidebar-circle-1 {
+  position: static;
+  width: 80px;
+  height: 80px;
+  margin-top: 8px;
+}
+</style>

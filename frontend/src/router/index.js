@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { startLoading, finishLoading } from '../composables/useLoadingBar'
 
 const publicRoutes = [
   {
@@ -75,6 +76,15 @@ const studentRoutes = [
     meta: {
       role: 'student',
       bodyClass: 'onboard-body'
+    }
+  },
+  {
+    path: '/workspace',
+    name: 'workspace',
+    component: () => import('../views/WorkspaceView.vue'),
+    meta: {
+      role: 'student',
+      bodyClass: 'auth-body'
     }
   },
   {
@@ -280,6 +290,15 @@ const adminRoutes = [
       role: 'admin',
       bodyClass: 'portal-body'
     }
+  },
+  {
+    path: '/admin/guidelines',
+    name: 'admin-guidelines',
+    component: () => import('../views/AdminGuidelinesView.vue'),
+    meta: {
+      role: 'admin',
+      bodyClass: 'portal-body'
+    }
   }
 ]
 
@@ -299,6 +318,15 @@ function resolveGuardTarget(routeMeta, auth) {
     return '/login'
   }
 
+  // Club-leader pages are reachable by a member who leads a club, since
+  // leadership is no longer a separate login role.
+  if (routeMeta.role === 'leader') {
+    if (auth.canManageClubs) {
+      return null
+    }
+    return auth.homeRoute
+  }
+
   if (auth.role !== routeMeta.role) {
     return auth.homeRoute
   }
@@ -312,6 +340,8 @@ const router = createRouter({
 })
 
 router.beforeEach(function guardByRole(to) {
+  startLoading()
+
   const auth = useAuthStore()
   const target = resolveGuardTarget(to.meta, auth)
 
@@ -320,6 +350,14 @@ router.beforeEach(function guardByRole(to) {
   }
 
   return true
+})
+
+router.afterEach(function stopProgress() {
+  finishLoading()
+})
+
+router.onError(function stopProgressOnError() {
+  finishLoading()
 })
 
 export default router

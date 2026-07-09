@@ -3,7 +3,9 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ArrowLeft, Send } from 'lucide-vue-next'
 import LeaderSidebar from '../components/layout/LeaderSidebar.vue'
+import CustomSelect from '../components/ui/CustomSelect.vue'
 import { createEvent } from '../api/events'
+import { toast } from '../composables/useToast'
 import { useFormValidation } from '../composables/useFormValidation'
 
 const router = useRouter()
@@ -63,7 +65,7 @@ async function publishEvent() {
   }
 
   if (!allFieldsFilled(requiredFields)) {
-    window.alert('Please fill in all required fields before publishing.')
+    toast.error('Please fill in all required fields before publishing.')
     return
   }
 
@@ -78,7 +80,7 @@ async function publishEvent() {
     venue: eventVenue.value.trim()
   })
 
-  window.alert('Event published! Members can now register.')
+  toast.success('Event published! Members can now register.')
   router.push('/leader/events')
 }
 </script>
@@ -113,10 +115,7 @@ async function publishEvent() {
 
           <div class="form-group">
             <label for="event-type">Event Type</label>
-            <select id="event-type" v-model="eventType" class="select-field">
-              <option value="">Select type</option>
-              <option v-for="option in typeOptions" :key="option" :value="option">{{ option }}</option>
-            </select>
+            <CustomSelect v-model="eventType" :options="typeOptions" placeholder="Select type" />
           </div>
 
           <div class="form-group">

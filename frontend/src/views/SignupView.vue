@@ -1,10 +1,11 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { GraduationCap, Compass, Users, Sparkles, CheckCircle2 } from 'lucide-vue-next'
+import { GraduationCap, Compass, ShieldCheck, Sparkles, CheckCircle2 } from 'lucide-vue-next'
 import { signupUser } from '../api/auth'
 import { usePasswordStrength } from '../composables/usePasswordStrength'
 import { useFormValidation } from '../composables/useFormValidation'
+import { toast } from '../composables/useToast'
 
 const router = useRouter()
 const { strength, updateStrength } = usePasswordStrength()
@@ -27,15 +28,15 @@ function validateSignupForm() {
   const fields = { name: fullName.value, email: email.value, password: password.value }
 
   if (!allFieldsFilled(fields)) {
-    window.alert('Please fill in all fields before continuing.')
+    toast.error('Please fill in all fields before continuing.')
     return false
   }
   if (!isValidEmail(email.value)) {
-    window.alert('Please enter a valid college email address.')
+    toast.error('Please enter a valid college email address.')
     return false
   }
   if (!isStrongEnough(password.value)) {
-    window.alert('Password must be at least 6 characters.')
+    toast.error('Password must be at least 6 characters.')
     return false
   }
   return true
@@ -46,6 +47,7 @@ async function handleSignup() {
 
   await signupUser(fullName.value.trim(), email.value.trim(), password.value, selectedRole.value)
   sessionStorage.setItem('signupEmail', email.value.trim())
+  sessionStorage.setItem('signupRole', selectedRole.value)
   router.push('/verify-email')
 }
 </script>
@@ -75,14 +77,14 @@ async function handleSignup() {
             :class="{ active: selectedRole === 'student' }"
             @click="selectRole('student')"
           >
-            <Compass /> Student
+            <Compass /> Member
           </button>
           <button
             class="btn-register-role"
-            :class="{ active: selectedRole === 'leader' }"
-            @click="selectRole('leader')"
+            :class="{ active: selectedRole === 'admin' }"
+            @click="selectRole('admin')"
           >
-            <Users /> Club Leader
+            <ShieldCheck /> Institute Admin
           </button>
         </div>
       </div>

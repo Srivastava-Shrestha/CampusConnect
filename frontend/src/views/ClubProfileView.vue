@@ -7,6 +7,7 @@ import ClubIcon from '../components/ui/ClubIcon.vue'
 import { useClubsStore } from '../stores/clubs'
 import { useEventsStore } from '../stores/events'
 import { requestToJoinClub } from '../api/clubs'
+import { toast } from '../composables/useToast'
 
 const route = useRoute()
 const router = useRouter()
@@ -36,7 +37,7 @@ function goBackToClubs() {
 }
 
 function showRegisterHint() {
-  window.alert('Register for this event from the Events page.')
+  toast.info('Register for this event from the Events page.')
 }
 
 onMounted(function loadProfile() {

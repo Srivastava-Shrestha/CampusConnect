@@ -1,6 +1,8 @@
 <script setup>
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
+import LoadingBar from './components/ui/LoadingBar.vue'
+import ToastContainer from './components/ui/ToastContainer.vue'
 
 const route = useRoute()
 
@@ -11,6 +13,8 @@ const shellClass = computed(function pickShellClass() {
 </script>
 
 <template>
+  <LoadingBar />
+  <ToastContainer />
   <div :class="shellClass">
     <router-view />
   </div>

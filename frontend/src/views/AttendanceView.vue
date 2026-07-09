@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, CheckCheck, Save } from 'lucide-vue-next'
 import LeaderSidebar from '../components/layout/LeaderSidebar.vue'
 import { getEventParticipants, getEventById, saveAttendance } from '../api/events'
+import { toast } from '../composables/useToast'
 
 const route = useRoute()
 const router = useRouter()
@@ -28,12 +29,12 @@ function markAllPresent() {
 
 async function submitAttendance() {
   if (presentCount.value === 0) {
-    window.alert('Please mark at least one participant as present.')
+    toast.error('Please mark at least one participant as present.')
     return
   }
 
   await saveAttendance(route.params.id, presentIds.value)
-  window.alert('Attendance saved for ' + presentCount.value + ' participants. Now set results on the Results page.')
+  toast.success('Attendance saved for ' + presentCount.value + ' participants. Now set results on the Results page.')
   router.push('/leader/events/' + route.params.id + '/results')
 }
 

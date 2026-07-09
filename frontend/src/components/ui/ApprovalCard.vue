@@ -1,5 +1,5 @@
 <script setup>
-import { Check, X } from 'lucide-vue-next'
+import { Check, X, FileText } from 'lucide-vue-next'
 import StatusPill from './StatusPill.vue'
 import ClubIcon from './ClubIcon.vue'
 
@@ -38,6 +38,15 @@ function rejectClub() {
       <p class="approval-meta">{{ approval[metaField] }}</p>
     </div>
     <div class="approval-actions">
+      <a
+        v-if="approval.applicationLink"
+        :href="approval.applicationLink"
+        target="_blank"
+        rel="noopener"
+        class="approval-app-link"
+      >
+        <FileText /> View Application
+      </a>
       <template v-if="approval.status === 'pending'">
         <StatusPill status="pending" label="Pending" />
         <button class="btn-success" @click="approveClub">

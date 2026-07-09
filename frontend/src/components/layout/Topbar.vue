@@ -1,5 +1,6 @@
 <script setup>
 import { Bell } from 'lucide-vue-next'
+import { toast } from '../../composables/useToast'
 
 defineProps({
   title: { type: String, required: true },
@@ -8,7 +9,7 @@ defineProps({
 })
 
 function showNotifications() {
-  window.alert('No new notifications.')
+  toast.info('No new notifications.')
 }
 </script>
 

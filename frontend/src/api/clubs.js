@@ -333,7 +333,8 @@ const mockApprovals = [
     icon: 'gear',
     status: 'pending',
     meta: 'Submitted by Dr. Priya Nair · Science · 2 days ago',
-    metaFull: 'Submitted by Dr. Priya Nair · Science · 2 days ago · 12 founding members'
+    metaFull: 'Submitted by Dr. Priya Nair · Science · 2 days ago · 12 founding members',
+    applicationLink: 'https://drive.google.com/file/d/astronomy-club-application/view'
   },
   {
     id: 2,
@@ -342,7 +343,8 @@ const mockApprovals = [
     icon: 'chess',
     status: 'pending',
     meta: 'Submitted by Arjun Mehra · Culture · 4 days ago',
-    metaFull: 'Submitted by Arjun Mehra · Culture · 4 days ago · 8 founding members'
+    metaFull: 'Submitted by Arjun Mehra · Culture · 4 days ago · 8 founding members',
+    applicationLink: 'https://drive.google.com/file/d/chess-club-application/view'
   },
   {
     id: 3,
@@ -351,7 +353,8 @@ const mockApprovals = [
     icon: 'dance',
     status: 'pending',
     meta: 'Submitted by Priyanka Das · Culture · 1 day ago',
-    metaFull: 'Submitted by Priyanka Das · Culture · 1 day ago · 15 founding members'
+    metaFull: 'Submitted by Priyanka Das · Culture · 1 day ago · 15 founding members',
+    applicationLink: 'https://drive.google.com/file/d/dance-fusion-application/view'
   },
   {
     id: 4,
@@ -360,7 +363,8 @@ const mockApprovals = [
     icon: 'robot',
     status: 'approved',
     meta: 'Submitted by Aayansh Yadav · Tech · Approved 14 Jan 2026 · 84 members',
-    metaFull: 'Submitted by Aayansh Yadav · Tech · Approved 14 Jan 2026 · 84 members'
+    metaFull: 'Submitted by Aayansh Yadav · Tech · Approved 14 Jan 2026 · 84 members',
+    applicationLink: 'https://drive.google.com/file/d/robotics-club-application/view'
   },
   {
     id: 5,
@@ -369,7 +373,8 @@ const mockApprovals = [
     icon: 'camera',
     status: 'approved',
     meta: 'Submitted by Meera Krishnan · Arts · Approved 3 Feb 2026 · 112 members',
-    metaFull: 'Submitted by Meera Krishnan · Arts · Approved 3 Feb 2026 · 112 members'
+    metaFull: 'Submitted by Meera Krishnan · Arts · Approved 3 Feb 2026 · 112 members',
+    applicationLink: 'https://drive.google.com/file/d/photography-circle-application/view'
   },
   {
     id: 6,
@@ -378,7 +383,8 @@ const mockApprovals = [
     icon: 'medal',
     status: 'rejected',
     meta: 'Submitted by Rahul Bose · Sports · Rejected 5 Apr 2026 · Reason: club name and stated objectives violate campus policy',
-    metaFull: 'Submitted by Rahul Bose · Sports · Rejected 5 Apr 2026 · Reason: club name and stated objectives violate campus policy'
+    metaFull: 'Submitted by Rahul Bose · Sports · Rejected 5 Apr 2026 · Reason: club name and stated objectives violate campus policy',
+    applicationLink: 'https://drive.google.com/file/d/cricket-analysis-application/view'
   }
 ]
 
