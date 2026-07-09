@@ -5645,6 +5645,26 @@ button, .btn {
   }
 }
 
+/* The certificate is a fixed 960px landscape design. `zoom` scales both its
+   visuals and its layout box, so it shrinks to fit narrow screens without
+   overflowing or clipping. Tiered so each range fits its lower bound. */
+@media (max-width: 1007px) {
+  .cert-page { zoom: 0.75; }
+}
+@media (max-width: 767px) {
+  .cert-page { zoom: 0.6; }
+  .cert-viewer-body { padding: 16px 12px 28px; }
+}
+@media (max-width: 599px) {
+  .cert-page { zoom: 0.48; }
+}
+@media (max-width: 479px) {
+  .cert-page { zoom: 0.37; }
+}
+@media (max-width: 359px) {
+  .cert-page { zoom: 0.32; }
+}
+
 /*  36. Members Management  */
 .member-request-card {
   background-color: var(--color-surface);
@@ -7208,6 +7228,14 @@ html {
   .member-req-actions,
   .approval-actions {
     width: 100%;
+    flex-wrap: wrap;
+  }
+
+  /* The "View Application" link takes its own full-width row so the
+     Approve / Reject buttons below it are never pushed off screen */
+  .approval-app-link {
+    flex: 1 1 100%;
+    justify-content: center;
   }
 
   /* Approve / Reject share the width evenly; the status pill keeps its size */
@@ -8125,4 +8153,32 @@ html {
 .cc-select.result-select-wrap {
   width: 168px;
   flex-shrink: 0;
+}
+
+/*  53. Mobile fixes for auth/verify pages  */
+@media (max-width: 767px) {
+  /* OTP boxes become fluid so all six fit any phone width */
+  .otp-row {
+    gap: 8px;
+  }
+
+  .otp-box {
+    width: auto;
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* Certificate-verify: stack the input above a full-width Verify button */
+  .verify-card {
+    padding: 28px 22px;
+  }
+
+  .verify-serial-row {
+    flex-direction: column;
+  }
+
+  .verify-serial-row .btn-primary {
+    width: 100%;
+    justify-content: center;
+  }
 }
