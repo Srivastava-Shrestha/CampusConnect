@@ -21,6 +21,17 @@ def test_discovery_context_only_has_the_documented_club_fields():
     assert set(club.keys()) == {"id", "name", "category", "description", "activity_score", "leader_name", "tags"}
 
 
+def test_discovery_context_event_matches_schema_shape():
+    response = client.get("/api/v1/discovery/context")
+    event = response.json()["events"][0]
+
+    # Schema-shaped fields only, and no public/private visibility flag.
+    assert set(event.keys()) == {
+        "id", "club_id", "title", "description", "venue", "starts_at", "club_name", "leader_name"
+    }
+    assert "visibility" not in event
+
+
 def test_discovery_context_never_includes_an_email_field():
     response = client.get("/api/v1/discovery/context")
 

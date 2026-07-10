@@ -21,9 +21,11 @@ def club(id, name, category, desc, score=0, leader="Lead", tags=None):
             "activity_score": score, "leader_name": leader, "tags": tags or []}
 
 
-def event(id, title, desc, vis="public", club_name="Some Club", leader="Lead"):
-    return {"id": id, "title": title, "description": desc, "visibility": vis,
-            "club_name": club_name, "leader_name": leader}
+def event(id, title, desc, club_name="Some Club", leader="Lead"):
+    # Shaped to the schema's events table (no visibility flag - the discovery
+    # layer already scopes to discoverable, upcoming events).
+    return {"id": id, "title": title, "description": desc,
+            "club_id": 1, "venue": "", "club_name": club_name, "leader_name": leader}
 
 
 def prof(interests=None, hobbies=None, reason="", branch="cse", year=2):
@@ -92,8 +94,10 @@ class TestSelect:
         out = select_recommendations(prof(interests=["astronomy", "stars"]), [POET], [e])
         assert "@" not in out["message"]
 
-    def test_private_event_ignored(self):
-        e = event(6, "Members Meet", "astronomy stars", vis="members")
+    def test_irrelevant_event_not_surfaced(self):
+        # An event that shares nothing with the student's interests is not
+        # promoted; with no club match either, we fall back to popularity.
+        e = event(6, "Chess Meetup", "board games and chess strategy")
         out = select_recommendations(prof(interests=["astronomy", "stars"]), [POET], [e])
         assert out["kind"] == "popularity"
 

@@ -1,19 +1,30 @@
 """
-Temporary stand-in for the discovery context (approved clubs + published
-public events, scoped per college) described in the design doc.
+Temporary stand-in for the discovery context, shaped to the real schema
+(campus_connect_schema.md): APPROVED clubs + upcoming events for a college.
 
-There is no Club or Event table in the schema yet (see app/models - only
-College, User, Student, CampusAdmin exist). Once those land, replace
-get_discovery_context() with a real query - approved clubs + published
-events for the given college_id, cached server-side per college with
-invalidation on club-approval / event-publish - and delete this file. Every
-caller in routers/ai.py and routers/discovery.py only depends on the
-(clubs, events) dict shape below, so that swap does not touch anything else.
-
-No email fields anywhere in this data, on purpose - see schemas/discovery.py.
+Once the Club / Event / Membership tables are populated, replace
+get_discovery_context() with a real query and delete this file. The real
+query should return, scoped to college_id:
+  - clubs WHERE status = 'APPROVED' AND college_id = :cid
+  - events of those clubs WHERE starts_at >= now()  (upcoming only)
+and compute the two DERIVED fields the recommender/DTOs expect:
+  - activity_score  = count of APPROVED memberships for the club
+  - leader_name     = users.full_name of the club's LEADER membership
+                      (fallback: created_by student's full_name)
+  - club_name       = clubs.name for the event's club_id
+There is deliberately no email field and no public/private event flag -
+the schema has neither. Every caller depends only on the dict shape below.
 """
 from __future__ import annotations
 
+from datetime import datetime, timedelta
+
+_NOW = datetime(2026, 7, 10, 12, 0, 0)
+
+
+# activity_score / leader_name / club_name below are DERIVED values (see the
+# module docstring), inlined here as plausible fixtures - they are not stored
+# columns on the clubs/events tables.
 _MOCK_CLUBS = [
     {
         "id": 1,
@@ -101,38 +112,35 @@ _MOCK_EVENTS = [
     {
         "id": 1,
         "college_id": 1,
+        "club_id": 1,
         "title": "Automation Hackathon 2026",
         "description": "Build an automation solution in 8 hours. Teams of 2 to 4 students, all experience levels welcome.",
+        "venue": "Seminar Hall, Block A",
+        "starts_at": _NOW + timedelta(days=9),
         "club_name": "Robotics & Automation Club",
         "leader_name": "Aayansh Yadav",
-        "visibility": "public",
     },
     {
         "id": 2,
         "college_id": 1,
+        "club_id": 6,
         "title": "Stargazing Night",
         "description": "An evening of telescope viewing and a short talk on the summer sky.",
+        "venue": "Rooftop, Science Block",
+        "starts_at": _NOW + timedelta(days=4),
         "club_name": "Astronomy Club",
         "leader_name": "Pratham Verma",
-        "visibility": "public",
     },
     {
         "id": 3,
         "college_id": 1,
-        "title": "Internal Robotics Build Session",
-        "description": "Members-only working session on the line-follower robot build.",
-        "club_name": "Robotics & Automation Club",
-        "leader_name": "Aayansh Yadav",
-        "visibility": "members",
-    },
-    {
-        "id": 4,
-        "college_id": 1,
+        "club_id": 4,
         "title": "Open Mic Night",
         "description": "An open stage for music, poetry, and stand-up across every genre.",
+        "venue": "Amphitheatre",
+        "starts_at": _NOW + timedelta(days=2),
         "club_name": "Music Collective",
         "leader_name": "Divya Mishra",
-        "visibility": "public",
     },
 ]
 

@@ -39,6 +39,26 @@ def test_club_finder_falls_back_to_popularity_for_an_unmatched_interest():
     assert response.json()["kind"] == "popularity"
 
 
+def test_club_finder_event_fallback_surfaces_event_with_derived_fields():
+    # No club matches "trivia", but an event does - proves the full endpoint
+    # path for events, including the derived club_name / leader_name fields.
+    clubs = [{"id": 1, "name": "Chess Club", "category": "sports",
+              "description": "board games", "activity_score": 5, "leader_name": "Lead", "tags": []}]
+    events = [{"id": 9, "club_id": 1, "title": "Campus Trivia Night",
+               "description": "a fun trivia quiz evening", "venue": "Hall",
+               "starts_at": None, "club_name": "Quiz Club", "leader_name": "Meera"}]
+
+    with patch("app.routers.ai.get_discovery_context", return_value=(clubs, events)):
+        response = client.post("/api/v1/ai/club-finder", json={"interest_text": "trivia quiz"})
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["kind"] == "event_fallback"
+    assert data["items"][0]["club_name"] == "Quiz Club"
+    assert data["items"][0]["leader_name"] == "Meera"
+    assert "@" not in response.text
+
+
 def test_club_finder_payload_never_includes_an_email():
     response = client.post("/api/v1/ai/club-finder", json={"interest_text": "robotics"})
 

@@ -1,20 +1,20 @@
 """
 Temporary auth stand-in until a real login/JWT flow exists.
 
-get_current_user() returns a fixed mock student profile shaped like the
-eventual student profile fields from the design doc (year, branch,
-interests, hobbies, reason - see the plan's "Required schema additions"
-section). year/branch already exist on the Student model; interests/hobbies/
-reason do not yet, so this fills them in until that migration lands.
-
-interests/hobbies/reason are left empty on purpose: this stub has no real
-student behind it, so any placeholder values here would silently bias every
-club-finder request toward the same clubs regardless of what a caller types.
-The one live signal (branch) stays, since it is a real Student column.
+get_current_user() returns a fixed mock student shaped to the REAL schema
+(campus_connect_schema.md): users has college_id + full_name; students has
+bio, branch, year. There are deliberately NO interests / hobbies / reason
+columns - the earlier plan proposed them but the final schema does not have
+them, so the recommender's interest signal comes from:
+  - what the student types into the finder (interest_text, added per request
+    in routers/ai.py), and
+  - the student's free-text bio (mapped onto the profile's "reason" slot,
+    which profile_tokens() already tokenises).
+branch and year are real student columns and are passed through as-is.
 
 Replace this with a real dependency that decodes a session/JWT and loads the
-Student row (plus the new profile columns) once auth and the schema
-migration exist. Every caller only depends on the dict shape below.
+User + Student rows once auth exists. Every caller depends only on the dict
+shape below.
 """
 from __future__ import annotations
 
@@ -24,9 +24,7 @@ def get_current_user() -> dict:
         "id": 1,
         "college_id": 1,
         "full_name": "Test Student",
+        "bio": "",
         "branch": "cse",
         "year": 2,
-        "interests": [],
-        "hobbies": [],
-        "reason": "",
     }

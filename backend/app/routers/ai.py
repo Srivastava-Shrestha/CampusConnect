@@ -14,10 +14,14 @@ MAX_RESULTS = 3
 
 
 def _user_profile_dict(user: dict) -> dict:
+    # The schema's students table has no interests/hobbies columns, so the
+    # stored signal is just the free-text bio (fed into the profile's "reason"
+    # slot, which profile_tokens() tokenises) plus branch/year. The typed
+    # interest_text is layered on top per request in club_finder().
     return {
-        "interests": user.get("interests", []),
-        "hobbies": user.get("hobbies", []),
-        "reason": user.get("reason", ""),
+        "interests": [],
+        "hobbies": [],
+        "reason": user.get("bio", "") or "",
         "branch": user.get("branch", ""),
         "year": user.get("year"),
     }
@@ -83,7 +87,6 @@ def chat(body: ChatRequest, user: dict = Depends(get_current_user)):
     raw = call_chat(system, history)
 
     allowed_map = {("club", c["id"]): c["name"] for c in clubs}
-    allowed_map.update({("event", e["id"]): e["title"]
-                        for e in events if e.get("visibility") == "public"})
+    allowed_map.update({("event", e["id"]): e["title"] for e in events})
     clean, _unknown = R.resolve_entities(raw, allowed_map)
     return {"reply": R.scrub_emails(clean)}

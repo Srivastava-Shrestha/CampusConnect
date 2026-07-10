@@ -4,13 +4,14 @@ import { selectRecommendations } from '../utils/recommender'
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1'
 
-// The backend's discovery DTOs (see backend/app/schemas/discovery.py) only
-// carry the fields the design doc documents - id, name, category,
-// description, activity_score, leader_name, tags for clubs; no banner
-// colour or member count, since those are presentational, not data. Fill
-// them in here so ClubCard/EventCard (built against the richer local mock
-// shape) always have something to render.
+// The backend's discovery DTOs (see backend/app/schemas/discovery.py) carry
+// only real/derived data fields - for clubs: id, name, category, description,
+// activity_score, leader_name, tags; for events: id, club_id, title,
+// description, venue, starts_at, club_name, leader_name. Presentational bits
+// the cards need (banner colour, member count, date parts) are derived here so
+// ClubCard/EventCard always have something to render.
 const CARD_ACCENTS = ['banner-orange', 'banner-blue', 'banner-green', 'banner-yellow', 'banner-mint']
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 function accentFor(id) {
   return CARD_ACCENTS[id % CARD_ACCENTS.length]
@@ -25,12 +26,18 @@ function normalizeClub(club) {
 }
 
 function normalizeEvent(event) {
+  const startsAt = event.starts_at ? new Date(event.starts_at) : null
+  const isValidDate = startsAt && !Number.isNaN(startsAt.getTime())
+
   return {
     ...event,
     accent: event.accent || accentFor(event.id),
-    day: event.day || '•',
-    month: event.month || '',
-    time: event.time || 'TBA',
+    club: event.club || event.club_name || '',
+    day: event.day || (isValidDate ? String(startsAt.getDate()) : '•'),
+    month: event.month || (isValidDate ? MONTHS[startsAt.getMonth()] : ''),
+    time: event.time || (isValidDate
+      ? startsAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+      : 'TBA'),
     venue: event.venue || 'Ask the organiser',
     status: event.status || 'upcoming'
   }

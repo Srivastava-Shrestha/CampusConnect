@@ -114,7 +114,12 @@ def score_event(profile: dict, event: dict, cfg: ScoreConfig = DEFAULT_CFG) -> f
 
 
 # ---------------------------------------------------------------------------
-# selection: clubs first -> public event fallback -> popularity fallback
+# selection: clubs first -> event fallback -> popularity fallback
+#
+# The event set passed in is already the discoverable one: upcoming events of
+# APPROVED clubs in the student's college (see discovery layer). The schema
+# has no public/private event flag, so there is nothing to filter here - every
+# event handed to this function is fair game.
 # ---------------------------------------------------------------------------
 def select_recommendations(profile: dict, clubs: list[dict], events: list[dict],
                            cfg: ScoreConfig = DEFAULT_CFG) -> dict:
@@ -128,10 +133,9 @@ def select_recommendations(profile: dict, clubs: list[dict], events: list[dict],
     if matched:
         return {"kind": "clubs", "items": matched[:cfg.top_k]}
 
-    # fallback 1: public events only (never members-only)
-    public = [e for e in events if e.get("visibility") == "public"]
+    # fallback 1: closest matching events
     scored_e = sorted(
-        ({**e, "_score": score_event(profile, e, cfg)} for e in public),
+        ({**e, "_score": score_event(profile, e, cfg)} for e in events),
         key=lambda e: e["_score"], reverse=True,
     )
     ev = [e for e in scored_e if e["_score"] >= cfg.event_threshold]
@@ -148,8 +152,8 @@ def select_recommendations(profile: dict, clubs: list[dict], events: list[dict],
             # with an LLM-phrased message when interest_text is present, and
             # only falls back to this string if that call fails.
             "message": (
-                f'I could not find a club that matches, but a public event '
-                f'"{best["title"]}" covered something similar. It was hosted by '
+                f'I could not find a club that matches, but the event '
+                f'"{best["title"]}" covered something similar. It is run by '
                 f'{best.get("club_name", "a club")} '
                 f'(organiser: {best.get("leader_name", "the club lead")}). '
                 f'You can reach out through the platform if you would like to know more.'
@@ -251,11 +255,11 @@ def build_finder_prompt(profile: dict, top_clubs: list[dict]) -> str:
 
 
 CHAT_SYSTEM_PROMPT = (
-    "You are Campus Connect's club assistant. You help students discover clubs and public events.\n"
+    "You are Campus Connect's club assistant. You help students discover clubs and events.\n"
     "HARD RULES:\n"
     "1. Only mention clubs/events from the AVAILABLE list below. Never invent one.\n"
     "2. Reference any club as [[club:ID]] and any event as [[event:ID]] using the exact IDs given.\n"
-    "3. If nothing matches, say so plainly; if a public event fits, mention it and that the student "
+    "3. If nothing matches, say so plainly; if an event fits, mention it and that the student "
     "can contact the organiser through the platform. Never reveal email addresses.\n"
     "4. Keep replies under 90 words.\n"
     "AVAILABLE:\n{available}\n"
@@ -315,7 +319,7 @@ def build_conversational_message_prompt(interest_text: str, kind: str, items: li
         return (
             rules
             + f'The student described their interests as: "{interest_text}"\n'
-            + "No club matched closely, but these public events did. Write an honest "
+            + "No club matched closely, but these events did. Write an honest "
               "reply that says so, then introduces the event(s) as a next-best option:\n"
             + f"MATCHED EVENTS:\n{listing}\n"
             + output_format
@@ -339,8 +343,8 @@ def build_chat_available(clubs: list[dict], events: list[dict]) -> str:
         for c in clubs
     ]
     lines += [
-        f'[[event:{e["id"]}]] {e["title"]} - public event by {e.get("club_name", "")} '
+        f'[[event:{e["id"]}]] {e["title"]} - event by {e.get("club_name", "")} '
         f'(organiser {e.get("leader_name", "")})'
-        for e in events if e.get("visibility") == "public"
+        for e in events
     ]
-    return "\n".join(lines) if lines else "(no clubs or public events available yet)"
+    return "\n".join(lines) if lines else "(no clubs or events available yet)"
