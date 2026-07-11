@@ -15,3 +15,7 @@ class AuthenticationError(AppException):
 class CollegeAlreadyExistError(AppException):
     status_code = 409
     message = "College already registered"
+    
+class IncorrectCredentialError(AppException):
+    status_code = 401
+    message = "Incorrect email or password"
