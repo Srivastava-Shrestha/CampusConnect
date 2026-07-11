@@ -17,3 +17,11 @@ class SignupRequest(BaseModel):
 class SignupResponse(BaseModel):
     access_token: str
     refresh_token: str
+    
+class LoginRequest(BaseModel):
+    email: EmailStr = Field(..., max_length=255)
+    password: str = Field(..., min_length=8, max_length=255)
+    
+class LoginResponse(BaseModel):
+    access_token: str
+    refresh_token: str

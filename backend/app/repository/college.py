@@ -14,3 +14,7 @@ class CollegeRepository:
             )
         )
         return result.scalar_one_or_none()
+    
+    async def id_to_slug(self, id: int) -> str:
+        result = await self.db.execute(select(College.slug).where(College.id==id))
+        return result.scalar()
