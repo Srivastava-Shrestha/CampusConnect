@@ -31,5 +31,9 @@ class UserRepository:
         new_campus_admin = CampusAdmin(user_id = user_id)
         self.db.add(new_campus_admin)
         return new_campus_admin
+    
+    async def get_user_by_email(self, email: str) -> User | None:
+        result = await self.db.execute(select(User).where(User.email==email))
+        return result.scalar_one_or_none()
 
 
