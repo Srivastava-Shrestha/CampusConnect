@@ -14,7 +14,7 @@ class User(Base):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    college_id: Mapped[int] = mapped_column(ForeignKey("colleges.id"))
+    college_id: Mapped[int | None] = mapped_column(ForeignKey("colleges.id"))
     email: Mapped[str] = mapped_column(unique=True)
     hashed_password: Mapped[str] = mapped_column()
     full_name: Mapped[str] = mapped_column()
