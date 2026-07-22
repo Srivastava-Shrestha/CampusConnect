@@ -2,9 +2,18 @@ from fastapi import FastAPI, Request
 from app.exceptions import AppException
 from fastapi.responses import JSONResponse
 from app.api import auth_router
-
+from fastapi.middleware.cors import CORSMiddleware
+from app.core.config import settings
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[settings.FRONTEND_URL],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.exception_handler(AppException)
 async def handle_app_exc(request: Request, exc: AppException):
