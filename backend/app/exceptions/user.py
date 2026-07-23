@@ -19,3 +19,7 @@ class CollegeAlreadyExistError(AppException):
 class IncorrectCredentialError(AppException):
     status_code = 401
     message = "Incorrect email or password"
+    
+class AuthorizationError(AppException):
+    status_code = 401
+    message = "Invalid token"

@@ -22,20 +22,19 @@ def create_refresh_token(payload: dict, expires_days: int = 7) -> str:
     }
     return jwt.encode(to_encode, settings.JWT_SECRET_KEY, settings.JWT_ALGORITHM)
 
-def decode_token(token: str, exp_aud: str, exp_type: str = "access") -> dict:
+def decode_token(token: str, exp_type: str = "access") -> dict:
     try:
         payload = jwt.decode(
             token=token,
             key=settings.JWT_SECRET_KEY,
             algorithms=[settings.JWT_ALGORITHM],
-            audience=exp_aud
         )
         if payload.get("type") != exp_type:
             raise AuthenticationError()
         return payload
     except ExpiredSignatureError:
         raise AuthenticationError()
-    except JWTError:
+    except JWTError as e:
         raise AuthenticationError()
         
     
