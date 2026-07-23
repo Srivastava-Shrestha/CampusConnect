@@ -34,7 +34,7 @@ class UserService:
             college_id=college_id
         )
         payload = {
-            "sub": new_user.id,
+            "sub": str(new_user.id),
             "full_name": new_user.full_name,
             "email": new_user.email,
             "role": new_user.role
@@ -62,7 +62,7 @@ class UserService:
         slug = await self.college_repo.id_to_slug(user.college_id) if user.college_id else None
         
         payload = {
-            "sub": user.id,
+            "sub": str(user.id),
             "full_name": user.full_name,
             "email": user.email,
             "role": user.role,
