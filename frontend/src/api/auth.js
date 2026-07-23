@@ -1,21 +1,29 @@
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1'
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 async function postJson(path, payload) {
   const response = await fetch(BASE_URL + path, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json'
+    },
     body: JSON.stringify(payload)
   })
-  return response.json()
+
+  const data = await response.json()
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Request failed')
+  }
+
+  return data
 }
 
 // TODO: replace with real endpoint when backend is ready
 export async function loginUser(email, password) {
-  try {
-    return await postJson('/auth/login', { email, password })
-  } catch (error) {
-    return { ok: true, token: 'mock-token', role: 'student', email }
-  }
+  return await postJson('/auth/login', {
+    email,
+    password
+  })
 }
 
 // TODO: replace with real endpoint when backend is ready

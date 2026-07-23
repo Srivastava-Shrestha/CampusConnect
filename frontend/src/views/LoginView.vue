@@ -62,19 +62,21 @@ async function handleLogin() {
     return
   }
 
-  const result = await loginUser(email.value.trim(), password.value)
-  if (result.token) {
-    auth.setToken(result.token)
-  }
+  try {
+    const result = await loginUser(email.value.trim(), password.value)
 
-  auth.setRole(selectedRole.value)
+    auth.setToken(result.access_token)
 
-  // A member who also leads a club picks their workspace first; everyone else
-  // goes straight to their home area.
-  if (auth.canManageClubs) {
-    router.push('/workspace')
-  } else {
-    router.push(auth.homeRoute)
+    auth.setRole(selectedRole.value)
+
+    if (auth.canManageClubs) {
+      router.push('/workspace')
+    } else {
+      router.push(auth.homeRoute)
+    }
+
+  } catch (error) {
+    toast.error(error.message)
   }
 }
 </script>
