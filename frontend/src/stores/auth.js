@@ -45,7 +45,7 @@ export const useAuthStore = defineStore('auth', {
     // Whether this member also leads at least one club. In the real app this
     // comes from the backend after login; kept true here so the leader tools
     // are reachable in the mock build.
-    isClubLeader: true
+    isClubLeader: false
   }),
 
   getters: {
