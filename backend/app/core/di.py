@@ -1,8 +1,10 @@
 from app.core.database import get_db
 from fastapi import Depends, Security
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.repository import UserRepository, CollegeRepository
-from app.services import UserService, CollegeService
+from app.repository import (
+    UserRepository, CollegeRepository, StudentRepository, ClubRepository, MembershipRepository
+)
+from app.services import UserService, CollegeService, ClubService, MembershipService
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials, SecurityScopes
 from app.core.token import decode_token
 from app.exceptions import AuthorizationError
@@ -23,6 +25,19 @@ def get_college_service(db: AsyncSession = Depends(get_db)):
     college_repo = CollegeRepository(db)
     user_repo = UserRepository(db)
     return CollegeService(college_repo, user_repo)
+
+def get_club_service(db: AsyncSession = Depends(get_db)):
+    club_repo = ClubRepository(db)
+    student_repo = StudentRepository(db)
+    user_repo = UserRepository(db)
+    membership_repo = MembershipRepository(db)
+    return ClubService(club_repo, student_repo, user_repo, membership_repo)
+
+def get_membership_service(db: AsyncSession = Depends(get_db)):
+    membership_repo = MembershipRepository(db)
+    club_repo = ClubRepository(db)
+    student_repo = StudentRepository(db)
+    return MembershipService(membership_repo, club_repo, student_repo)
 
 
     
