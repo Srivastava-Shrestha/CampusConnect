@@ -4,6 +4,7 @@ from app.exceptions import UserAlreadyExistError, CollegeNotFoundError, CollegeA
 from app.utils.hashing import hash_password, verify_password
 from app.models import UserRole
 from app.core.token import create_access_token, create_refresh_token
+from app.core.messages import AuthMessages
 
 class UserService:
     def __init__(self, user_repo : UserRepository, college_repo: CollegeRepository):
@@ -47,7 +48,7 @@ class UserService:
             
         access_token = create_access_token(payload=payload)
         refresh_token = create_refresh_token(payload=payload)
-        return SignupResponse(access_token=access_token, refresh_token=refresh_token)
+        return SignupResponse(access_token=access_token, refresh_token=refresh_token, message=AuthMessages.SIGNUP_SUCCESS)
     
     async def login(self, data: LoginRequest):
         is_exist = await self.user_repo.is_email_exist(data.email)
@@ -71,7 +72,7 @@ class UserService:
             
         access_token = create_access_token(payload=payload)
         refresh_token = create_refresh_token(payload=payload)
-        return LoginResponse(access_token=access_token, refresh_token=refresh_token)
+        return LoginResponse(access_token=access_token, refresh_token=refresh_token, message=AuthMessages.LOGIN_SUCCESS)
         
         
         

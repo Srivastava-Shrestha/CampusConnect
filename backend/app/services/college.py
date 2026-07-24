@@ -2,6 +2,7 @@
 from app.repository import CollegeRepository, UserRepository
 from app.exceptions import UserAlreadyExistError, CollegeNotFoundError, CollegeAlreadyExistError, IncorrectCredentialError
 from app.schemas import CollegeOnboardingRequest, CollegeOnboardingResponse
+from app.core.messages import CollegeMessages
 
 class CollegeService:
     def __init__(self, college_repo: CollegeRepository, user_repo: UserRepository):
@@ -30,7 +31,8 @@ class CollegeService:
             name=new_college.name,
             slug=new_college.slug,
             email_suffix=new_college.email_suffix,
-            description=new_college.description
+            description=new_college.description,
+            message=CollegeMessages.ONBOARDED
         )
         
         
