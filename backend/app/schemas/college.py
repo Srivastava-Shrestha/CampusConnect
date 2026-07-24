@@ -6,7 +6,8 @@ class CollegeOnboardingRequest(BaseModel):
     description: str = Field(..., min_length=5, max_length=1000)
     
 class CollegeOnboardingResponse(BaseModel):
-    name: str 
+    name: str
     slug: str
     email_suffix: str
-    description: str 
+    description: str
+    message: str

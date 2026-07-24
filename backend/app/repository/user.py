@@ -35,6 +35,10 @@ class UserRepository:
     async def get_user_by_email(self, email: str) -> User | None:
         result = await self.db.execute(select(User).where(User.email==email))
         return result.scalar_one_or_none()
+
+    async def get_college_id(self, user_id: int) -> int | None:
+        result = await self.db.execute(select(User.college_id).where(User.id==user_id))
+        return result.scalar_one_or_none()
     
     async def update_user(self, id: int, full_name: str | None = None, college_id: int | None = None, profile_image_url: str | None = None) -> User:
         result = await self.db.execute(select(User).where(User.id==id))

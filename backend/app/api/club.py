@@ -77,7 +77,6 @@ async def reject_club(
 ):
     return await service.reject(payload, club_id)
 
-
 @club_router.post("/{club_id}/join", response_model=JoinResponse)
 async def join_club(
     club_id: int,
