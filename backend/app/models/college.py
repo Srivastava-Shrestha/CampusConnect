@@ -14,3 +14,4 @@ class College(Base):
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 
     users: Mapped[list["User"]] = relationship(back_populates="college")
+    clubs: Mapped[list["Club"]] = relationship(back_populates="college")
