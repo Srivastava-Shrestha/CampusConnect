@@ -20,3 +20,5 @@ class Student(Base):
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 
     user: Mapped["User"] = relationship(back_populates="student")
+    headed_clubs: Mapped[list["Club"]] = relationship(back_populates="head")
+    memberships: Mapped[list["Membership"]] = relationship(back_populates="student")
