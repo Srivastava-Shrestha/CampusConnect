@@ -76,3 +76,16 @@ def pytest_runtest_makereport(item, call):
 def pytest_sessionfinish(session, exitstatus):
     Path("tests/reports").mkdir(parents=True, exist_ok=True)
     Path("tests/reports/results_log.json").write_text(json.dumps(_results_log, indent=2))
+
+@pytest_asyncio.fixture()
+async def admin_token(client):
+    payload = {
+        "email": "admin@newcollege.edu",
+        "full_name": "Admin User",
+        "password": "Admin@123",
+        "confirm_password": "Admin@123",
+        "role": "CAMPUS_ADMIN"
+    }
+    response = await client.post("/auth/signup", json=payload)
+    body = response.json()
+    return body["access_token"]
