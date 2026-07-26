@@ -12,8 +12,8 @@ from app.core.config import settings
 from app.models.college import College
 from main import app
 
-# Derive test DB url from the real one, just append _test to the db name
-TEST_DATABASE_URL = settings.DATABASE_URL.replace("/campus_connect", "/campus_connect_test")
+
+TEST_DATABASE_URL = settings.TEST_DATABASE_URL
 test_engine = create_async_engine(TEST_DATABASE_URL, echo=False, poolclass=NullPool)
 TestSessionLocal = async_sessionmaker(bind=test_engine, class_=AsyncSession, expire_on_commit=False)
 
