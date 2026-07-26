@@ -22,3 +22,5 @@ class Student(Base):
     user: Mapped["User"] = relationship(back_populates="student")
     headed_clubs: Mapped[list["Club"]] = relationship(back_populates="head")
     memberships: Mapped[list["Membership"]] = relationship(back_populates="student")
+    created_events: Mapped[list["Event"]] = relationship(back_populates="creator")
+    event_registrations: Mapped[list["EventRegistration"]] = relationship(back_populates="student")
