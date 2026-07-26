@@ -7,3 +7,11 @@ from app.schemas.club import (
 from app.schemas.membership import (
     JoinResponse, RequestActionRequest, RequestActionResponse, PendingRequestItem, MemberItem
 )
+from app.schemas.event import (
+    CreateEventRequest, UpdateEventRequest, CreateEventResponse, EventStatusResponse,
+    EventListItem, EventDetailResponse
+)
+from app.schemas.event_registration import (
+    RegistrationConfirmation, UnregisterResponse, ParticipantItem, MarkAttendanceRequest,
+    AttendanceResponse, SetResultRequest, ResultResponse, MyRegistrationItem, MyResultItem
+)
