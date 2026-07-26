@@ -2,9 +2,13 @@ from app.core.database import get_db
 from fastapi import Depends, Security
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.repository import (
-    UserRepository, CollegeRepository, StudentRepository, ClubRepository, MembershipRepository
+    UserRepository, CollegeRepository, StudentRepository, ClubRepository, MembershipRepository,
+    EventRepository, EventRegistrationRepository
 )
-from app.services import UserService, CollegeService, ClubService, MembershipService
+from app.services import (
+    UserService, CollegeService, ClubService, MembershipService,
+    EventService, EventRegistrationService
+)
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials, SecurityScopes
 from app.core.token import decode_token
 from app.exceptions import AuthorizationError
@@ -38,6 +42,26 @@ def get_membership_service(db: AsyncSession = Depends(get_db)):
     club_repo = ClubRepository(db)
     student_repo = StudentRepository(db)
     return MembershipService(membership_repo, club_repo, student_repo)
+
+def get_event_service(db: AsyncSession = Depends(get_db)):
+    event_repo = EventRepository(db)
+    registration_repo = EventRegistrationRepository(db)
+    club_repo = ClubRepository(db)
+    membership_repo = MembershipRepository(db)
+    student_repo = StudentRepository(db)
+    user_repo = UserRepository(db)
+    return EventService(event_repo, registration_repo, club_repo, membership_repo,
+                        student_repo, user_repo)
+
+def get_event_registration_service(db: AsyncSession = Depends(get_db)):
+    registration_repo = EventRegistrationRepository(db)
+    event_repo = EventRepository(db)
+    club_repo = ClubRepository(db)
+    membership_repo = MembershipRepository(db)
+    student_repo = StudentRepository(db)
+    user_repo = UserRepository(db)
+    return EventRegistrationService(registration_repo, event_repo, club_repo, membership_repo,
+                                    student_repo, user_repo)
 
 
     
