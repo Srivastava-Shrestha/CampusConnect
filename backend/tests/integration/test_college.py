@@ -3,7 +3,7 @@ import pytest
 
 @pytest.mark.asyncio
 async def test_onboarding_success(client, admin_token):
-    """Admin can create a college when they have a valid token"""
+    """Verify that college onboarding succeeds for an admin with a valid token"""
     payload = {
         "name": "Kamla Nehru Institute of Technology",
         "email_suffix": "knit.edu.in",
@@ -18,11 +18,12 @@ async def test_onboarding_success(client, admin_token):
     body = response.json()
     assert body["slug"] == "knit"
     assert body["email_suffix"] == "knit.edu.in"
+    assert body["message"] == "College onboarded successfully"
 
 
 @pytest.mark.asyncio
 async def test_onboarding_without_token_fails(client):
-    """Cannot create a college without logging in"""
+    """Verify that college onboarding is rejected when no authentication token is provided"""
     payload = {
         "name": "Kamla Nehru Institute of Technology",
         "email_suffix": "knit.edu.in",
@@ -30,11 +31,15 @@ async def test_onboarding_without_token_fails(client):
     }
     response = await client.post("/college/onboarding", json=payload)
     assert response.status_code == 401
+    body = response.json()
+    # assert body["message"] == "Not authenticated"
+    assert body["detail"] == "Not authenticated"
+
 
 
 @pytest.mark.asyncio
 async def test_onboarding_with_student_token_fails(client):
-    """A student cannot create a college, only an admin can"""
+    """Verify that college onboarding is rejected for a user with the student role"""
     admin_payload = {
         "email": "seed.admin@somecollege.edu",
         "full_name": "Seed Admin",
@@ -77,11 +82,13 @@ async def test_onboarding_with_student_token_fails(client):
         headers={"Authorization": f"Bearer {student_token}"}
     )
     assert response.status_code == 401
+    body = response.json()
+    assert body["message"] == "Invalid token"
 
 
 @pytest.mark.asyncio
 async def test_onboarding_duplicate_college_fails(client, admin_token):
-    """Cannot create a college that already exists"""
+    """Verify that college onboarding is rejected when the college already exists"""
     college_payload = {
         "name": "Kamla Nehru Institute of Technology",
         "email_suffix": "knit.edu.in",
@@ -109,11 +116,13 @@ async def test_onboarding_duplicate_college_fails(client, admin_token):
         headers={"Authorization": f"Bearer {second_token}"}
     )
     assert response.status_code == 409
+    body = response.json()
+    assert body["message"] == "College already registered"
 
 
 @pytest.mark.asyncio
 async def test_onboarding_missing_fields_fails(client, admin_token):
-    """Cannot create a college if required fields are missing"""
+    """Validate that college onboarding is rejected when required fields are missing"""
     payload = {"name": "Kamla Nehru Institute of Technology"}
     response = await client.post(
         "/college/onboarding",
@@ -125,7 +134,7 @@ async def test_onboarding_missing_fields_fails(client, admin_token):
 
 @pytest.mark.asyncio
 async def test_onboarding_invalid_token_fails(client):
-    """Cannot create a college with a fake token"""
+    """Verify that college onboarding is rejected when an invalid token is provided"""
     payload = {
         "name": "Kamla Nehru Institute of Technology",
         "email_suffix": "knit.edu.in",
@@ -137,11 +146,13 @@ async def test_onboarding_invalid_token_fails(client):
         headers={"Authorization": "Bearer not-a-real-token"}
     )
     assert response.status_code == 401
+    body = response.json()
+    assert body["message"] == "Invalid token"
 
 
 @pytest.mark.asyncio
 async def test_onboarding_short_name_fails(client, admin_token):
-    """College name must be long enough"""
+    """Validate that college onboarding is rejected when the college name is below the minimum length"""
     payload = {
         "name": "KN",
         "email_suffix": "shortname.edu.in",
@@ -157,7 +168,7 @@ async def test_onboarding_short_name_fails(client, admin_token):
 
 @pytest.mark.asyncio
 async def test_onboarding_short_description_fails(client, admin_token):
-    """College description must be long enough"""
+    """Validate that college onboarding is rejected when the college description is below the minimum length"""
     payload = {
         "name": "Kamla Nehru Institute of Technology",
         "email_suffix": "shortdesc.edu.in",
@@ -172,7 +183,7 @@ async def test_onboarding_short_description_fails(client, admin_token):
 
 @pytest.mark.asyncio
 async def test_onboarding_slug_collision_increments(client, admin_token):
-    """College onboarding gets a numbered slug when the prefix is already taken"""
+    """Verify that college onboarding generates an incremented numeric suffix for the slug when a prefix collision occurs"""
     first_payload = {
         "name": "Kamla Nehru Institute of Technology",
         "email_suffix": "knit.edu.in",
@@ -206,10 +217,11 @@ async def test_onboarding_slug_collision_increments(client, admin_token):
     )
     assert response.status_code == 200
     assert response.json()["slug"] == "knit-2"
+    assert response.json()["message"] == "College onboarded successfully"
 
 @pytest.mark.asyncio
 async def test_onboarding_third_slug_collision_increments_further(client, admin_token):
-    """Third college with the same prefix gets slug knit-3"""
+    """Verify that college onboarding generates further incremented slug suffixes for subsequent prefix collisions"""
     first_payload = {
         "name": "Kamla Nehru Institute of Technology",
         "email_suffix": "knit.edu.in",
@@ -264,10 +276,28 @@ async def test_onboarding_third_slug_collision_increments_further(client, admin_
     )
     assert response.status_code == 200
     assert response.json()["slug"] == "knit-3"
+    assert response.json()["message"] == "College onboarded successfully"
+
+# ====jul 26=====
+
+@pytest.mark.asyncio
+async def test_onboarding_email_suffix_below_min_length_fails(client, admin_token):
+    """Validate that college onboarding is rejected when the email suffix is below the minimum length"""
+    payload = {
+        "name": "Kamla Nehru Institute of Technology",
+        "email_suffix": "ab",
+        "description": "Testing email suffix under minimum length"
+    }
+    response = await client.post(
+        "/college/onboarding",
+        json=payload,
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    assert response.status_code == 422
 
 @pytest.mark.asyncio
 async def test_onboarding_malformed_email_suffix_fails(client, admin_token):
-    """Onboarding fails with an invalid domain-like suffix"""
+    """Validate that college onboarding is rejected when the email suffix is not a valid domain format"""
     payload = {
         "name": "Some Random College",
         "email_suffix": "not_a_domain",
@@ -279,3 +309,171 @@ async def test_onboarding_malformed_email_suffix_fails(client, admin_token):
         headers={"Authorization": f"Bearer {admin_token}"}
     )
     assert response.status_code in (400, 422)
+
+
+@pytest.mark.asyncio
+async def test_onboarding_name_over_max_length_fails(client, admin_token):
+    """Validate that college onboarding is rejected when the college name exceeds the maximum length"""
+    payload = {
+        "name": "A" * 101,
+        "email_suffix": "toolongname.edu.in",
+        "description": "Testing name over max length"
+    }
+    response = await client.post(
+        "/college/onboarding",
+        json=payload,
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_onboarding_description_over_max_length_fails(client, admin_token):
+    """Validate that college onboarding is rejected when the description exceeds the maximum length"""
+    payload = {
+        "name": "Kamla Nehru Institute of Technology",
+        "email_suffix": "toolongdesc.edu.in",
+        "description": "A" * 1001
+    }
+    response = await client.post(
+        "/college/onboarding",
+        json=payload,
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_onboarding_email_suffix_over_max_length_fails(client, admin_token):
+    """Validate that college onboarding is rejected when the email suffix exceeds the maximum length"""
+    payload = {
+        "name": "Kamla Nehru Institute of Technology",
+        "email_suffix": "a" * 101,
+        "description": "Testing email suffix over max length"
+    }
+    response = await client.post(
+        "/college/onboarding",
+        json=payload,
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_onboarding_whitespace_only_name_fails(client, admin_token):
+    """Validate that college onboarding is rejected when the college name consists only of whitespace"""
+    payload = {
+        "name": "     ",
+        "email_suffix": "blankname.edu.in",
+        "description": "Testing whitespace-only name"
+    }
+    response = await client.post(
+        "/college/onboarding",
+        json=payload,
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_onboarding_whitespace_only_description_fails(client, admin_token):
+    """Validate that college onboarding is rejected when the description consists only of whitespace"""
+    payload = {
+        "name": "Kamla Nehru Institute of Technology",
+        "email_suffix": "blankdesc.edu.in",
+        "description": "     "
+    }
+    response = await client.post(
+        "/college/onboarding",
+        json=payload,
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_onboarding_email_suffix_whitespace_is_stripped(client, admin_token):
+    """Verify that leading and trailing whitespace in the email suffix is stripped during onboarding"""
+    payload = {
+        "name": "Kamla Nehru Institute of Technology",
+        "email_suffix": " knit.edu.in ",
+        "description": "Testing whitespace stripping on email suffix"
+    }
+    response = await client.post(
+        "/college/onboarding",
+        json=payload,
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["name"] == "Kamla Nehru Institute of Technology"
+    assert body["slug"] == "knit"
+    assert body["email_suffix"] == "knit.edu.in"
+    assert body["description"] == "Testing whitespace stripping on email suffix"
+    assert isinstance(body["slug"], str)
+    assert len(body["slug"]) > 0
+    assert body["message"] == "College onboarded successfully"
+
+
+@pytest.mark.asyncio
+async def test_onboarding_suffix_starting_with_dot_fails(client, admin_token):
+    """Validate that college onboarding is rejected when the email suffix starts with a dot"""
+    payload = {
+        "name": "Kamla Nehru Institute of Technology",
+        "email_suffix": ".knit.edu.in",
+        "description": "Testing suffix starting with a dot"
+    }
+    response = await client.post(
+        "/college/onboarding",
+        json=payload,
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_onboarding_suffix_ending_with_dot_fails(client, admin_token):
+    """Validate that college onboarding is rejected when the email suffix ends with a dot"""
+    payload = {
+        "name": "Kamla Nehru Institute of Technology",
+        "email_suffix": "knit.edu.in.",
+        "description": "Testing suffix ending with a dot"
+    }
+    response = await client.post(
+        "/college/onboarding",
+        json=payload,
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_onboarding_suffix_with_double_dots_fails(client, admin_token):
+    """Validate that college onboarding is rejected when the email suffix contains consecutive dots"""
+    payload = {
+        "name": "Kamla Nehru Institute of Technology",
+        "email_suffix": "knit..edu.in",
+        "description": "Testing suffix with double dots"
+    }
+    response = await client.post(
+        "/college/onboarding",
+        json=payload,
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_onboarding_suffix_with_at_symbol_fails(client, admin_token):
+    """Validate that college onboarding is rejected when the email suffix contains an at symbol"""
+    payload = {
+        "name": "Kamla Nehru Institute of Technology",
+        "email_suffix": "admin@knit.edu.in",
+        "description": "Testing suffix with an @ symbol"
+    }
+    response = await client.post(
+        "/college/onboarding",
+        json=payload,
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    assert response.status_code == 422
