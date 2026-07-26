@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field, model_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 from app.models import UserRole
 
 class SignupRequest(BaseModel):
@@ -7,7 +7,17 @@ class SignupRequest(BaseModel):
     password: str = Field(..., min_length=8, max_length=255)
     confirm_password: str = Field(..., min_length=8, max_length=255)
     role: UserRole
-    
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def normalize_email(cls, value):
+        return value.strip().lower() if isinstance(value, str) else value
+
+    @field_validator("full_name", mode="before")
+    @classmethod
+    def strip_full_name(cls, value):
+        return value.strip() if isinstance(value, str) else value
+
     @model_validator(mode="after")
     def passwords_match(self):
         if self.password != self.confirm_password:
@@ -22,7 +32,12 @@ class SignupResponse(BaseModel):
 class LoginRequest(BaseModel):
     email: EmailStr = Field(..., max_length=255)
     password: str = Field(..., min_length=8, max_length=255)
-    
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def normalize_email(cls, value):
+        return value.strip().lower() if isinstance(value, str) else value
+
 class LoginResponse(BaseModel):
     access_token: str
     refresh_token: str
