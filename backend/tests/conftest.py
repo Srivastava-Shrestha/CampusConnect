@@ -89,3 +89,17 @@ async def admin_token(client):
     response = await client.post("/auth/signup", json=payload)
     body = response.json()
     return body["access_token"]
+
+
+@pytest_asyncio.fixture()
+async def student_token(client, seed_college):
+    payload = {
+        "email": "club.student@knit.edu.in",
+        "full_name": "Club Student",
+        "password": "Student@123",
+        "confirm_password": "Student@123",
+        "role": "STUDENT"
+    }
+    response = await client.post("/auth/signup", json=payload)
+    body = response.json()
+    return body["access_token"]
