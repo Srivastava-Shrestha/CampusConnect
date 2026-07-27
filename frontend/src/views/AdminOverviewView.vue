@@ -8,16 +8,19 @@ import StatusPill from '../components/ui/StatusPill.vue'
 import ApprovalCard from '../components/ui/ApprovalCard.vue'
 import { getClubApprovals, approveClubRequest, rejectClubRequest } from '../api/clubs'
 import { toast } from '../composables/useToast'
+import { onboardCollege } from '../api/auth'
+import { useAuthStore } from '../stores/auth'
 
 const pendingList = ref([])
 
-const collegeName = ref('KNIT Sultanpur')
-const emailDomain = ref('@knit.ac.in')
-const city = ref('Sultanpur')
-const state = ref('Uttar Pradesh')
+const collegeName = ref('')
+const emailDomain = ref('')
+const description = ref('')
 
 const approvedTotal = 18
 const rejectedTotal = 2
+
+const auth = useAuthStore()
 
 const pendingCount = computed(function countStillPending() {
   return pendingList.value.filter(function isPending(approval) {
@@ -40,8 +43,27 @@ async function handleReject(approval) {
   approval.status = 'rejected'
 }
 
-function saveSettings() {
-  toast.success('College settings saved successfully.')
+async function saveSettings() {
+  if (!collegeName.value.trim() || !emailDomain.value.trim() || !description.value.trim()) {
+    toast.error('College name, email domain and description are required.')
+    return
+  }
+
+  try {
+    await onboardCollege(
+      {
+        name: collegeName.value.trim(),
+        email_suffix: emailDomain.value.replace('@', '').trim(),
+        description: description.value.trim()
+      },
+      auth.token
+    )
+
+    toast.success('College registered successfully.')
+
+  } catch (error) {
+    toast.error(error.message)
+  }
 }
 
 onMounted(async function loadOverview() {
@@ -93,19 +115,16 @@ onMounted(async function loadOverview() {
           <div class="admin-settings-grid">
             <div class="form-group">
               <label for="college-name">College Name</label>
-              <input type="text" id="college-name" v-model="collegeName" class="input-field">
+              <input type="text" id="college-name" v-model="collegeName" class="input-field" placeholder="Indian Institute Of Technology Madras">
             </div>
             <div class="form-group">
               <label for="email-domain">Verified Student Email Domain</label>
-              <input type="text" id="email-domain" v-model="emailDomain" class="input-field">
+              <input type="text" id="email-domain" v-model="emailDomain" class="input-field" placeholder=".iitm.ac.in">
             </div>
             <div class="form-group">
-              <label for="city">City</label>
-              <input type="text" id="city" v-model="city" class="input-field">
-            </div>
-            <div class="form-group">
-              <label for="state">State</label>
-              <input type="text" id="state" v-model="state" class="input-field">
+              <label for="description">Description</label>
+              <textarea id="description" v-model="description" class="input-field" rows="3" placeholder="Enter a short description about the college">
+              </textarea>
             </div>
           </div>
           <button class="btn-primary" @click="saveSettings">
