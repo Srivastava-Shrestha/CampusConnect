@@ -7,6 +7,8 @@ import { useAuthStore } from '../stores/auth'
 import { useFormValidation } from '../composables/useFormValidation'
 import { toast } from '../composables/useToast'
 
+import { jwtDecode } from 'jwt-decode'
+
 const router = useRouter()
 const auth = useAuthStore()
 const { isValidEmail } = useFormValidation()
@@ -16,24 +18,9 @@ const password = ref('')
 const rememberChecked = ref(true)
 const passwordVisible = ref(false)
 const errorMessage = ref('')
-const selectedRole = ref('student')
 
-const roleOptions = [
-  {
-    id: 'student',
-    label: 'Member',
-    icon: Compass
-  },
-  {
-    id: 'admin',
-    label: 'Institute Admin',
-    icon: ShieldCheck
-  }
-]
 
-function selectRole(roleId) {
-  selectedRole.value = roleId
-}
+
 
 function toggleRemember() {
   rememberChecked.value = !rememberChecked.value
@@ -67,12 +54,16 @@ async function handleLogin() {
 
     auth.setToken(result.access_token)
 
-    auth.setRole(selectedRole.value)
+    const payload = jwtDecode(result.access_token)
+
+    auth.setRole(
+    payload.role === 'CAMPUS_ADMIN' ? 'admin' : 'student'
+    )
 
     if (auth.canManageClubs) {
-      router.push('/workspace')
+     router.push('/workspace')
     } else {
-      router.push(auth.homeRoute)
+    router.push(auth.homeRoute)
     }
 
   } catch (error) {
@@ -132,21 +123,7 @@ async function handleLogin() {
         New here? <span @click="router.push('/signup')">Create an account</span>
       </p>
 
-      <div class="form-group">
-        <label>Sign in as</label>
-        <div class="register-role-grid">
-          <button
-            v-for="role in roleOptions"
-            :key="role.id"
-            class="btn-register-role"
-            :class="{ active: selectedRole === role.id }"
-            @click="selectRole(role.id)"
-          >
-            <component :is="role.icon" /> {{ role.label }}
-          </button>
-        </div>
-      </div>
-
+      
       <div class="form-group">
         <label for="email-input">College Email Address</label>
         <div class="input-icon-wrapper">
