@@ -3,3 +3,5 @@ from app.repository.college import CollegeRepository
 from app.repository.student import StudentRepository
 from app.repository.club import ClubRepository
 from app.repository.membership import MembershipRepository
+from app.repository.event import EventRepository
+from app.repository.event_registration import EventRegistrationRepository

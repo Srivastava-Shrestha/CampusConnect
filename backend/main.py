@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Request
 from app.exceptions import AppException
 from fastapi.responses import JSONResponse
-from app.api import auth_router, college_router, club_router
+from app.api import auth_router, college_router, club_router, event_router
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 
@@ -25,4 +25,5 @@ async def handle_app_exc(request: Request, exc: AppException):
 app.include_router(auth_router)
 app.include_router(college_router)
 app.include_router(club_router)
+app.include_router(event_router)
 

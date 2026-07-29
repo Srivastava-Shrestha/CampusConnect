@@ -1,10 +1,11 @@
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
-async function postJson(path, payload) {
+async function postJson(path, payload, extraHeaders = {}) {
   const response = await fetch(BASE_URL + path, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      ...extraHeaders
     },
     body: JSON.stringify(payload)
   })
@@ -12,13 +13,12 @@ async function postJson(path, payload) {
   const data = await response.json()
 
   if (!response.ok) {
-    throw new Error(data.message || 'Request failed')
+    throw new Error(data.detail || data.message || 'Request failed')
   }
 
   return data
 }
 
-// TODO: replace with real endpoint when backend is ready
 export async function loginUser(email, password) {
   return await postJson('/auth/login', {
     email,
@@ -26,13 +26,8 @@ export async function loginUser(email, password) {
   })
 }
 
-// TODO: replace with real endpoint when backend is ready
-export async function signupUser(name, email, password, role) {
-  try {
-    return await postJson('/auth/signup', { name, email, password, role })
-  } catch (error) {
-    return { ok: true, name, email, role }
-  }
+export async function signupUser(data) {
+  return await postJson('/auth/signup', data)
 }
 
 // TODO: replace with real endpoint when backend is ready
@@ -60,6 +55,16 @@ export async function sendResetLink(email) {
   } catch (error) {
     return { ok: true, sent: true }
   }
+}
+
+export async function onboardCollege(data, token) {
+  return await postJson(
+    '/college/onboarding',
+    data,
+    {
+      Authorization: `Bearer ${token}`
+    }
+  )
 }
 
 // TODO: replace with real endpoint when backend is ready

@@ -6,5 +6,10 @@ from app.exceptions.user import (
 from app.exceptions.club import (
     ClubNotFoundError, ClubNotActiveError, NotClubLeaderError, AlreadyMemberError,
     MembershipNotFoundError, ClubActionNotAllowedError, StudentNotFoundError,
-    InvalidStatusFilterError
+    InvalidStatusFilterError, MembershipNotFoundError, ClubActionNotAllowedError, StudentNotFoundError
+)
+from app.exceptions.event import (
+    EventNotFoundError, EventActionNotAllowedError, EventNotPublishedError, EventFullError,
+    RegistrationClosedError, AlreadyRegisteredError, RegistrationNotFoundError,
+    NotClubMemberError, AttendanceNotAllowedError, NotCheckedInError
 )

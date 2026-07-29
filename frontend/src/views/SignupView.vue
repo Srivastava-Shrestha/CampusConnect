@@ -15,6 +15,7 @@ const selectedRole = ref('student')
 const fullName = ref('')
 const email = ref('')
 const password = ref('')
+const confirmPassword = ref('')
 
 function selectRole(role) {
   selectedRole.value = role
@@ -25,7 +26,7 @@ function handlePasswordInput() {
 }
 
 function validateSignupForm() {
-  const fields = { name: fullName.value, email: email.value, password: password.value }
+  const fields = { name: fullName.value, email: email.value, password: password.value, confirmPassword: confirmPassword.value }
 
   if (!allFieldsFilled(fields)) {
     toast.error('Please fill in all fields before continuing.')
@@ -39,16 +40,38 @@ function validateSignupForm() {
     toast.error('Password must be at least 6 characters.')
     return false
   }
+  if (password.value !== confirmPassword.value) {
+    toast.error("Passwords do not match.")
+    return false
+}
   return true
 }
 
 async function handleSignup() {
   if (!validateSignupForm()) return
+  const roleMap = {
+    student: "STUDENT",
+    admin: "CAMPUS_ADMIN"
+    }
 
-  await signupUser(fullName.value.trim(), email.value.trim(), password.value, selectedRole.value)
-  sessionStorage.setItem('signupEmail', email.value.trim())
-  sessionStorage.setItem('signupRole', selectedRole.value)
-  router.push('/verify-email')
+  try {
+    
+    const result = await signupUser({
+      email: email.value.trim(),
+      full_name: fullName.value.trim(),
+      password: password.value,
+      confirm_password: confirmPassword.value,
+      role: roleMap[selectedRole.value]
+    })
+
+    sessionStorage.setItem('signupEmail', email.value.trim())
+    sessionStorage.setItem('signupRole', selectedRole.value)
+
+    router.push('/verify-email')
+
+  } catch (error) {
+    toast.error(error.message)
+  }
 }
 </script>
 
@@ -109,6 +132,16 @@ async function handleSignup() {
           class="input-field"
           @input="handlePasswordInput"
         >
+      </div>
+
+      <div class="form-group">
+        <label>Confirm Password</label>
+        <input
+          type="password"
+          v-model="confirmPassword"
+          placeholder="••••••••"
+          class="input-field"
+         />
       </div>
 
       <div class="password-strength-row">

@@ -24,3 +24,18 @@ class MembershipMessages:
     JOIN_REQUESTED = "Join request sent"
     REQUEST_APPROVED = "Join request approved"
     REQUEST_REJECTED = "Join request rejected"
+
+
+class EventMessages:
+    CREATED = "Event created as a draft"
+    UPDATED = "Event updated successfully"
+    PUBLISHED = "Event published successfully"
+    CANCELLED = "Event cancelled successfully"
+
+
+class RegistrationMessages:
+    REGISTERED = "Registered successfully"
+    UNREGISTERED = "Registration cancelled"
+    CHECKED_IN = "Attendance marked"
+    CHECK_IN_UNDONE = "Attendance unmarked"
+    RESULT_SET = "Result recorded"
