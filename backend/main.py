@@ -5,7 +5,9 @@ from app.api import auth_router, college_router, club_router, event_router
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 
-app = FastAPI()
+app = FastAPI(title="CampusConnect",
+    description="Backend APIs for campusconnect.itshrestha.dev"
+    )
 
 app.add_middleware(
     CORSMiddleware,
