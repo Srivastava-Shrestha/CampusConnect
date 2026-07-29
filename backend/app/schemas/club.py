@@ -1,6 +1,6 @@
 from datetime import datetime
 from pydantic import BaseModel, Field
-from app.models import ClubType, ClubStatus
+from app.models import ClubType, ClubStatus, MembershipRole, MembershipStatus
 
 
 class ClubLinkSchema(BaseModel):
@@ -59,6 +59,13 @@ class ClubListItem(BaseModel):
     member_count: int
     head_name: str
     created_at: datetime
+
+
+class MyClubItem(ClubListItem):
+    membership_id: int
+    membership_role: MembershipRole
+    membership_status: MembershipStatus
+    joined_at: datetime
 
 
 class ClubDetailResponse(BaseModel):
