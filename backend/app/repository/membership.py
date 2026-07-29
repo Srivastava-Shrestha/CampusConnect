@@ -1,6 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.models import Membership, MembershipRole, MembershipStatus, Student, User
-from sqlalchemy import select
+from app.models import Club, ClubStatus, Membership, MembershipRole, MembershipStatus, Student, User
+from sqlalchemy import select, func
+from sqlalchemy.orm import aliased
 
 
 class MembershipRepository:
@@ -41,6 +42,34 @@ class MembershipRepository:
             )
         )
         return result.scalar_one_or_none() is not None
+
+    async def list_by_student(self, student_id: int, role: MembershipRole | None = None,
+                              membership_status: MembershipStatus | None = None,
+                              club_status: ClubStatus | None = None) -> list[tuple[Membership, Club, int, str]]:
+        conditions = [Membership.student_id == student_id]
+        if role is not None:
+            conditions.append(Membership.role == role)
+        if membership_status is not None:
+            conditions.append(Membership.status == membership_status)
+        if club_status is not None:
+            conditions.append(Club.status == club_status)
+
+        approved = aliased(Membership)
+        member_count = (
+            select(func.count(approved.id))
+            .where(approved.club_id == Club.id, approved.status == MembershipStatus.APPROVED)
+            .scalar_subquery()
+        )
+
+        result = await self.db.execute(
+            select(Membership, Club, member_count, User.full_name)
+            .join(Club, Club.id == Membership.club_id)
+            .join(Student, Student.id == Club.club_head)
+            .join(User, User.id == Student.user_id)
+            .where(*conditions)
+            .order_by(Membership.created_at.desc())
+        )
+        return result.all()
 
     async def get_pending_by_club(self, club_id: int) -> list[tuple[Membership, str]]:
         result = await self.db.execute(

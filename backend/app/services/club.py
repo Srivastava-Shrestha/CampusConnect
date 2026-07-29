@@ -2,11 +2,11 @@ from app.repository import ClubRepository, StudentRepository, UserRepository, Me
 from app.models import Club, ClubType, ClubStatus, MembershipRole, MembershipStatus, UserRole
 from app.schemas import (
     CreateClubRequest, UpdateClubRequest, CreateClubResponse, ClubStatusResponse,
-    ClubListItem, ClubDetailResponse, ClubLinkSchema, ClubHeadInfo
+    ClubListItem, ClubDetailResponse, ClubLinkSchema, ClubHeadInfo, MyClubItem
 )
 from app.exceptions import (
     ClubNotFoundError, NotClubLeaderError, ClubActionNotAllowedError, StudentNotFoundError,
-    CollegeNotFoundError
+    CollegeNotFoundError, InvalidStatusFilterError
 )
 from app.core.messages import ClubMessages
 
@@ -50,6 +50,34 @@ class ClubService:
 
         message = ClubMessages.CREATED_ACTIVE if status == ClubStatus.ACTIVE else ClubMessages.CREATED_PENDING
         return CreateClubResponse(id=club.id, name=club.name, type=club.type, status=club.status, message=message)
+
+    # Defined before `list` on purpose: that method shadows the builtin inside the class body.
+    async def my_clubs(self, payload: dict, role: MembershipRole | None = None,
+                       status: str | None = None) -> list[MyClubItem]:
+        student = await self._get_student(payload)
+        club_status, membership_status = self._resolve_status(role, status)
+        rows = await self.membership_repo.list_by_student(
+            student.id, role, membership_status=membership_status, club_status=club_status
+        )
+        return [
+            MyClubItem(
+                id=club.id,
+                name=club.name,
+                description=club.description,
+                category=club.category,
+                type=club.type,
+                status=club.status,
+                image_url=club.image_url,
+                member_count=count,
+                head_name=head_name,
+                created_at=club.created_at,
+                membership_id=membership.id,
+                membership_role=membership.role,
+                membership_status=membership.status,
+                joined_at=membership.created_at,
+            )
+            for membership, club, count, head_name in rows
+        ]
 
     async def list(self, payload: dict, status: ClubStatus | None = None,
                    search: str | None = None, category: str | None = None,
@@ -124,6 +152,25 @@ class ClubService:
         club = await self._admin_pending_club(payload, club_id)
         await self.club_repo.set_status(club, ClubStatus.REJECTED)
         return ClubStatusResponse(id=club.id, name=club.name, status=club.status, message=ClubMessages.REJECTED)
+
+    @staticmethod
+    def _resolve_status(role: MembershipRole | None, status: str | None):
+        """A leader filters on the club's approval status, a member on their own membership status."""
+        if status is None:
+            return None, None
+        if role is None:
+            raise InvalidStatusFilterError(ClubMessages.STATUS_NEEDS_ROLE)
+
+        is_leader = role == MembershipRole.LEADER
+        options = ClubStatus if is_leader else MembershipStatus
+        try:
+            parsed = options(status)
+        except ValueError:
+            allowed = ", ".join(option.value for option in options)
+            raise InvalidStatusFilterError(
+                f"status must be one of {allowed} when role is {role.value}"
+            )
+        return (parsed, None) if is_leader else (None, parsed)
 
     @staticmethod
     def _is_admin(payload: dict) -> bool:

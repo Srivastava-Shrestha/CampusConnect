@@ -31,6 +31,11 @@ class ClubActionNotAllowedError(AppException):
     message = "This action is not allowed"
 
 
+class InvalidStatusFilterError(AppException):
+    status_code = 422
+    message = "Invalid status filter"
+
+
 class StudentNotFoundError(AppException):
     status_code = 404
     message = "Student profile not found"

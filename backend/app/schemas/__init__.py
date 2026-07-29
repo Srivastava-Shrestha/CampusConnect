@@ -2,7 +2,7 @@ from app.schemas.user import SignupRequest, SignupResponse, LoginRequest, LoginR
 from app.schemas.college import CollegeOnboardingRequest, CollegeOnboardingResponse
 from app.schemas.club import (
     ClubLinkSchema, CreateClubRequest, UpdateClubRequest, CreateClubResponse,
-    ClubStatusResponse, ClubListItem, ClubDetailResponse, ClubHeadInfo
+    ClubStatusResponse, ClubListItem, ClubDetailResponse, ClubHeadInfo, MyClubItem
 )
 from app.schemas.membership import (
     JoinResponse, RequestActionRequest, RequestActionResponse, PendingRequestItem, MemberItem

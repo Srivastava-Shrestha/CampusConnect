@@ -2,11 +2,11 @@ from fastapi import APIRouter, Depends, Query, Security
 from app.schemas import (
     CreateClubRequest, UpdateClubRequest, CreateClubResponse, ClubStatusResponse,
     ClubListItem, ClubDetailResponse, JoinResponse, RequestActionRequest, RequestActionResponse,
-    PendingRequestItem, MemberItem
+    PendingRequestItem, MemberItem, MyClubItem
 )
 from app.services import ClubService, MembershipService
 from app.core.di import get_club_service, get_membership_service, get_user_info
-from app.models import ClubStatus, ClubType
+from app.models import ClubStatus, ClubType, MembershipRole
 
 club_router = APIRouter(prefix="/clubs", tags=["Clubs"])
 
@@ -30,6 +30,21 @@ async def browse_clubs(
     service: ClubService = Depends(get_club_service),
 ):
     return await service.list(payload, status=status, search=search, category=category, type=type)
+
+
+@club_router.get("/me", response_model=list[MyClubItem])
+async def my_clubs(
+    role: MembershipRole | None = Query(None, description="LEADER returns clubs you lead, MEMBER the ones you joined"),
+    status: str | None = Query(
+        None,
+        description="Role-aware: with role=LEADER it filters the club status "
+                    "(PENDING, ACTIVE, REJECTED, ARCHIVED); with role=MEMBER it filters your "
+                    "membership status (PENDING, APPROVED, REJECTED). Requires role.",
+    ),
+    payload: dict = Security(get_user_info, scopes=["STUDENT"]),
+    service: ClubService = Depends(get_club_service),
+):
+    return await service.my_clubs(payload, role=role, status=status)
 
 
 @club_router.get("/{club_id}", response_model=ClubDetailResponse)

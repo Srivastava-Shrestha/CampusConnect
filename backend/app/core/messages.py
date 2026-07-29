@@ -14,6 +14,10 @@ class ClubMessages:
     ARCHIVED = "Club archived successfully"
     APPROVED = "Club approved"
     REJECTED = "Club rejected"
+    STATUS_NEEDS_ROLE = (
+        "status must be sent together with role: it means the club status for LEADER "
+        "and your membership status for MEMBER"
+    )
 
 
 class MembershipMessages:
