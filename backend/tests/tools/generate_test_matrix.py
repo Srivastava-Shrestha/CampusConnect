@@ -6,6 +6,8 @@ ROOT_DIR = Path(__file__).resolve().parent.parent.parent
 RESULTS_PATH = ROOT_DIR / "tests/reports/results_log.json"
 OUTPUT_PATH = ROOT_DIR / "tests/test-cases/api-test-matrix.md"
 
+HTTP_METHODS = ("post", "get", "put", "delete", "patch")
+
 
 def extract_docstrings(test_file):
     source = (ROOT_DIR / test_file).read_text()
@@ -17,78 +19,179 @@ def extract_docstrings(test_file):
     return result
 
 
+def collect_local_vars(node):
+    """Collect dict literals assigned to names, plus a source-text fallback for dicts
+    containing non-literal expressions (e.g. future_time(48))."""
+    local_vars = {}
+    for stmt in ast.walk(node):
+        if isinstance(stmt, ast.Assign):
+            try:
+                value = ast.literal_eval(stmt.value)
+                if isinstance(value, dict):
+                    for target in stmt.targets:
+                        if isinstance(target, ast.Name):
+                            local_vars[target.id] = value
+            except Exception:
+                try:
+                    source_text = ast.unparse(stmt.value)
+                    for target in stmt.targets:
+                        if isinstance(target, ast.Name):
+                            local_vars.setdefault(target.id + "__source", source_text)
+                except Exception:
+                    pass
+    return local_vars
+
+
+def collect_http_calls(node):
+    """Every client.<verb>(...) call in the function, in source order."""
+    calls = []
+    for stmt in ast.walk(node):
+        if not (isinstance(stmt, ast.Call) and isinstance(stmt.func, ast.Attribute)):
+            continue
+        if stmt.func.attr not in HTTP_METHODS:
+            continue
+        url = None
+        if stmt.args:
+            try:
+                url = ast.literal_eval(stmt.args[0])
+            except Exception:
+                try:
+                    url = ast.unparse(stmt.args[0])
+                except Exception:
+                    url = None
+        calls.append({
+            "node": stmt,
+            "lineno": stmt.lineno,
+            "method": stmt.func.attr.upper(),
+            "url": url,
+        })
+    calls.sort(key=lambda c: c["lineno"])
+    return calls
+
+
+def find_asserted_names(node):
+    """Names that appear inside assert statements, e.g. 'response', 'body'."""
+    names = set()
+    for stmt in ast.walk(node):
+        if isinstance(stmt, ast.Assert):
+            for sub in ast.walk(stmt.test):
+                if isinstance(sub, ast.Name):
+                    names.add(sub.id)
+    return names
+
+
+def map_assignments_to_calls(node):
+    """Which variable name each HTTP call result was assigned to."""
+    mapping = {}
+    for stmt in ast.walk(node):
+        if not isinstance(stmt, ast.Assign):
+            continue
+        value = stmt.value
+        if isinstance(value, ast.Await):
+            value = value.value
+        if isinstance(value, ast.Call) and isinstance(value.func, ast.Attribute):
+            if value.func.attr in HTTP_METHODS:
+                for target in stmt.targets:
+                    if isinstance(target, ast.Name):
+                        mapping[value.lineno] = target.id
+    return mapping
+
+
+def pick_call_under_test(calls, node):
+    """Choose the call the assertions are actually about, rather than just the last
+    call ast.walk happens to visit. Prefers the last call whose result variable is
+    referenced inside an assert; falls back to the last call overall."""
+    if not calls:
+        return None
+
+    asserted = find_asserted_names(node)
+    assigned = map_assignments_to_calls(node)
+
+    scored = []
+    for call in calls:
+        name = assigned.get(call["lineno"])
+        if name and name in asserted:
+            scored.append(call)
+        elif name is None:
+            # unassigned call result (e.g. `response = await client.patch(...)` used
+            # directly without an intermediate variable check) -- still a candidate
+            scored.append(call)
+
+    if scored:
+        return scored[-1]
+    return calls[-1]
+
+
+def render_json_input(kw_value, local_vars):
+    """Render the json= kwarg value as a readable input string."""
+    if isinstance(kw_value, ast.Name):
+        if kw_value.id in local_vars:
+            return json.dumps(local_vars[kw_value.id])
+        if (kw_value.id + "__source") in local_vars:
+            return local_vars[kw_value.id + "__source"]
+    try:
+        return json.dumps(ast.literal_eval(kw_value))
+    except Exception:
+        try:
+            return ast.unparse(kw_value)
+        except Exception:
+            return "see test code"
+
+
 def extract_test_details(test_file, func_name):
     source = (ROOT_DIR / test_file).read_text()
     tree = ast.parse(source)
 
     for node in ast.walk(tree):
-        if isinstance(node, (ast.AsyncFunctionDef, ast.FunctionDef)) and node.name == func_name:
-            api = None
+        if not (isinstance(node, (ast.AsyncFunctionDef, ast.FunctionDef)) and node.name == func_name):
+            continue
+
+        local_vars = collect_local_vars(node)
+
+        expected_parts = []
+        for stmt in ast.walk(node):
+            if isinstance(stmt, ast.Assert):
+                try:
+                    expected_parts.append(ast.unparse(stmt.test))
+                except Exception:
+                    pass
+            if isinstance(stmt, (ast.With, ast.AsyncWith)):
+                for item in stmt.items:
+                    call = item.context_expr
+                    if isinstance(call, ast.Call) and getattr(call.func, "attr", "") == "raises":
+                        exc_name = ast.unparse(call.args[0]) if call.args else "Exception"
+                        expected_parts.append(f"raises {exc_name}")
+
+        expected = " AND ".join(expected_parts) if expected_parts else "see test code"
+
+        calls = collect_http_calls(node)
+        chosen = pick_call_under_test(calls, node)
+
+        if chosen is not None:
+            api = f"{chosen['method']} {chosen['url']}" if chosen["url"] else chosen["method"]
             inputs = None
-            expected_parts = []
-            local_vars = {}
+            for kw in chosen["node"].keywords:
+                if kw.arg == "json":
+                    inputs = render_json_input(kw.value, local_vars)
+                    break
+            if inputs is None:
+                inputs = "N/A"
+            return api, inputs, expected
 
-            for stmt in ast.walk(node):
-                if isinstance(stmt, ast.Assign):
-                    try:
-                        value = ast.literal_eval(stmt.value)
-                        if isinstance(value, dict):
-                            for target in stmt.targets:
-                                if isinstance(target, ast.Name):
-                                    local_vars[target.id] = value
-                    except Exception:
-                        pass
+        # no HTTP call found, look for a plain function call instead (unit tests)
+        for stmt in ast.walk(node):
+            if isinstance(stmt, ast.Call) and isinstance(stmt.func, ast.Name):
+                func_called = stmt.func.id
+                if func_called.startswith("test_"):
+                    continue
+                try:
+                    args_repr = ", ".join(ast.unparse(a) for a in stmt.args)
+                    return f"{func_called}()", (args_repr or "no arguments"), expected
+                except Exception:
+                    return f"{func_called}()", "see test code", expected
 
-            # look for HTTP calls first (integration tests)
-            for stmt in ast.walk(node):
-                if isinstance(stmt, ast.Call) and isinstance(stmt.func, ast.Attribute):
-                    if stmt.func.attr in ("post", "get", "put", "delete", "patch"):
-                        method = stmt.func.attr.upper()
-                        if stmt.args:
-                            try:
-                                url = ast.literal_eval(stmt.args[0])
-                                api = f"{method} {url}"
-                            except Exception:
-                                pass
-                        for kw in stmt.keywords:
-                            if kw.arg == "json":
-                                if isinstance(kw.value, ast.Name) and kw.value.id in local_vars:
-                                    inputs = json.dumps(local_vars[kw.value.id])
-                                else:
-                                    try:
-                                        inputs = json.dumps(ast.literal_eval(kw.value))
-                                    except Exception:
-                                        inputs = "see test code"
+        return "N/A", "N/A", expected
 
-                if isinstance(stmt, ast.Assert):
-                    try:
-                        expected_parts.append(ast.unparse(stmt.test))
-                    except Exception:
-                        pass
-                if isinstance(stmt, ast.With):
-                    for item in stmt.items:
-                        call = item.context_expr
-                        if isinstance(call, ast.Call) and getattr(call.func, "attr", "") == "raises":
-                            exc_name = ast.unparse(call.args[0]) if call.args else "Exception"
-                            expected_parts.append(f"raises {exc_name}")
-
-            # if no HTTP call found, look for a plain function call instead (unit tests)
-            if api is None:
-                for stmt in ast.walk(node):
-                    if isinstance(stmt, ast.Call) and isinstance(stmt.func, ast.Name):
-                        func_called = stmt.func.id
-                        if func_called.startswith("test_"):
-                            continue
-                        try:
-                            args_repr = ", ".join(ast.unparse(a) for a in stmt.args)
-                            api = f"{func_called}()"
-                            inputs = args_repr if args_repr else "no arguments"
-                        except Exception:
-                            api = f"{func_called}()"
-                            inputs = "see test code"
-
-            expected = " AND ".join(expected_parts) if expected_parts else "see test code"
-            return api or "N/A", inputs or "N/A", expected
     return "N/A", "N/A", "see test code"
 
 
@@ -149,24 +252,6 @@ def simplify_expected(expected_parts):
 
 
 def extract_actual_error(raw_error: str) -> str:
-    """
-    Pull the real assertion message out of a stored pytest error string.
-
-    conftest.py stores errors as str(call.excinfo.value), e.g.:
-        assert ' knit' == 'knit'
-
-          - knit
-          +  knit
-          ? +
-
-    This is the raw exception message, NOT pytest's terminal-rendered
-    traceback -- it has no "E " prefixes (those are added by pytest's
-    terminal reporter only when printing to the console, and are not
-    part of the exception string itself). The FIRST line is always the
-    actual assertion/exception message; every line after that is the
-    diff renderer's context (blank lines, "-", "+", "?" markers) and
-    must not be used as a substitute for the real message.
-    """
     lines_err = [l for l in raw_error.split("\n") if l.strip()]
     return lines_err[0].strip() if lines_err else "Failed"
 
@@ -191,17 +276,14 @@ def build_table(results):
         node_id = r["test"]
         test_file, _ = node_id.split("::")
         cat = get_category_name(test_file)
-        if cat not in grouped_results:
-            grouped_results[cat] = []
-        grouped_results[cat].append(r)
+        grouped_results.setdefault(cat, []).append(r)
 
     docstring_cache = {}
     test_count = 1
 
-    # Group categories dynamically (Integration first, then Unit)
-    integration_cats = sorted([c for c in grouped_results.keys() if "Integration Tests" in c])
-    unit_cats = sorted([c for c in grouped_results.keys() if "Unit Tests" in c])
-    other_cats = sorted([c for c in grouped_results.keys() if c not in integration_cats and c not in unit_cats])
+    integration_cats = sorted([c for c in grouped_results if "Integration Tests" in c])
+    unit_cats = sorted([c for c in grouped_results if "Unit Tests" in c])
+    other_cats = sorted([c for c in grouped_results if c not in integration_cats and c not in unit_cats])
 
     all_cats = integration_cats + unit_cats + other_cats
 
@@ -235,14 +317,11 @@ def build_table(results):
                 actual = f"<code>{assert_err}</code>"
                 result = "Fail"
 
-            if "unit" in test_file:
-                prefix = "UT"
-            else:
-                prefix = "IT"
+            prefix = "UT" if "unit" in test_file else "IT"
             case_id = f"**{prefix}-{test_count:03d}**"
             test_count += 1
 
-            inputs_fmt = f"`{inputs}`" if inputs != "N/A" and inputs != "see test code" else inputs
+            inputs_fmt = f"`{inputs}`" if inputs not in ("N/A", "see test code") else inputs
             api_fmt = f"`{api}`" if api != "N/A" else api
 
             lines.append(f"| {case_id} | {doc} | {api_fmt} | {inputs_fmt} | {expected} | {actual} | {result} |")
