@@ -6,3 +6,5 @@ from app.models.club import Club, ClubLink, ClubType, ClubStatus
 from app.models.membership import Membership, MembershipRole, MembershipStatus
 from app.models.event import Event, EventStatus
 from app.models.event_registration import EventRegistration, RegistrationResult
+from app.models.announcement import Announcement, AnnouncementCategory
+from app.models.issue import Issue, IssueCategory, IssueStatus

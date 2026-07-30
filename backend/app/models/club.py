@@ -36,6 +36,8 @@ class Club(Base):
     links: Mapped[list["ClubLink"]] = relationship(back_populates="club")
     memberships: Mapped[list["Membership"]] = relationship(back_populates="club")
     events: Mapped[list["Event"]] = relationship(back_populates="club")
+    announcements: Mapped[list["Announcement"]] = relationship(back_populates="club")
+    issues: Mapped[list["Issue"]] = relationship(back_populates="club")
 
 
 class ClubLink(Base):

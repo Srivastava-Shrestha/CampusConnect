@@ -17,6 +17,7 @@ class Student(Base):
     roll_no: Mapped[str | None] = mapped_column()
     branch: Mapped[str | None] = mapped_column()
     year: Mapped[int | None] = mapped_column()
+    announcements_seen_at: Mapped[datetime | None] = mapped_column()
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 
     user: Mapped["User"] = relationship(back_populates="student")
@@ -24,3 +25,8 @@ class Student(Base):
     memberships: Mapped[list["Membership"]] = relationship(back_populates="student")
     created_events: Mapped[list["Event"]] = relationship(back_populates="creator")
     event_registrations: Mapped[list["EventRegistration"]] = relationship(back_populates="student")
+    announcements: Mapped[list["Announcement"]] = relationship(back_populates="author")
+    issues: Mapped[list["Issue"]] = relationship(back_populates="student",
+                                                 foreign_keys="Issue.student_id")
+    issue_responses: Mapped[list["Issue"]] = relationship(back_populates="responder",
+                                                          foreign_keys="Issue.responded_by")

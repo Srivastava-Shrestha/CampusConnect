@@ -30,3 +30,4 @@ class Event(Base):
     club: Mapped["Club"] = relationship(back_populates="events")
     creator: Mapped["Student"] = relationship(back_populates="created_events")
     registrations: Mapped[list["EventRegistration"]] = relationship(back_populates="event")
+    issues: Mapped[list["Issue"]] = relationship(back_populates="event")
