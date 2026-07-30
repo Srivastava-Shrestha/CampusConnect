@@ -1,6 +1,6 @@
 import enum
 from datetime import datetime
-from sqlalchemy import Text, ForeignKey, Enum, func, text
+from sqlalchemy import Text, ForeignKey, Enum, Index, func, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core import Base
 
@@ -15,6 +15,10 @@ class AnnouncementCategory(str, enum.Enum):
 
 class Announcement(Base):
     __tablename__ = "announcements"
+    __table_args__ = (
+        # the member feed joins memberships -> announcements on club_id, newest first
+        Index("ix_announcements_club_created", "club_id", "created_at"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     club_id: Mapped[int] = mapped_column(ForeignKey("clubs.id"))

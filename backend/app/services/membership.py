@@ -1,5 +1,8 @@
-from app.repository import MembershipRepository, ClubRepository, StudentRepository
-from app.models import ClubStatus, MembershipRole, MembershipStatus
+from sqlalchemy.exc import IntegrityError
+from app.repository import (
+    MembershipRepository, ClubRepository, StudentRepository, NotificationRepository
+)
+from app.models import ClubStatus, MembershipRole, MembershipStatus, NotificationType
 from app.schemas import (
     JoinResponse, RequestActionRequest, RequestActionResponse, PendingRequestItem, MemberItem
 )
@@ -7,15 +10,16 @@ from app.exceptions import (
     ClubNotFoundError, ClubNotActiveError, NotClubLeaderError, AlreadyMemberError,
     MembershipNotFoundError, ClubActionNotAllowedError, StudentNotFoundError
 )
-from app.core.messages import MembershipMessages
+from app.core.messages import MembershipMessages, NotificationMessages
 
 
 class MembershipService:
     def __init__(self, membership_repo: MembershipRepository, club_repo: ClubRepository,
-                 student_repo: StudentRepository):
+                 student_repo: StudentRepository, notification_repo: NotificationRepository):
         self.membership_repo = membership_repo
         self.club_repo = club_repo
         self.student_repo = student_repo
+        self.notification_repo = notification_repo
 
     async def join(self, payload: dict, club_id: int) -> JoinResponse:
         student = await self._get_student(payload)
@@ -29,12 +33,16 @@ class MembershipService:
         if existing:
             raise AlreadyMemberError()
 
-        membership = await self.membership_repo.create_membership(
-            student_id=student.id,
-            club_id=club_id,
-            role=MembershipRole.MEMBER,
-            status=MembershipStatus.PENDING,
-        )
+        try:
+            membership = await self.membership_repo.create_membership(
+                student_id=student.id,
+                club_id=club_id,
+                role=MembershipRole.MEMBER,
+                status=MembershipStatus.PENDING,
+            )
+        except IntegrityError:
+            # uq_membership_student_club: two concurrent joins raced past the check above
+            raise AlreadyMemberError()
         return JoinResponse(
             id=membership.id,
             club_id=club_id,
@@ -69,9 +77,22 @@ class MembershipService:
             raise ClubActionNotAllowedError("Request has already been handled")
 
         await self.membership_repo.set_status(membership, data.action)
+
+        club = await self.club_repo.get_by_id(club_id)
+        approved = data.action == MembershipStatus.APPROVED
+        await self.notification_repo.create_notification(
+            student_id=membership.student_id,
+            type=NotificationType.JOIN_APPROVED if approved else NotificationType.JOIN_REJECTED,
+            message=(
+                NotificationMessages.join_approved(club.name) if approved
+                else NotificationMessages.join_rejected(club.name)
+            ),
+            club_id=club_id,
+        )
+
         message = (
             MembershipMessages.REQUEST_APPROVED
-            if data.action == MembershipStatus.APPROVED
+            if approved
             else MembershipMessages.REQUEST_REJECTED
         )
         return RequestActionResponse(

@@ -53,21 +53,22 @@ class AnnouncementService:
         )
 
     async def feed(self, payload: dict, club_id: int | None = None,
-                   category: AnnouncementCategory | None = None,
-                   search: str | None = None) -> list[AnnouncementItem]:
+                   category: AnnouncementCategory | None = None, search: str | None = None,
+                   limit: int = 50, offset: int = 0) -> list[AnnouncementItem]:
         student = await self._get_student(payload)
         rows = await self.announcement_repo.list_for_student(
-            student.id, club_id=club_id, category=category, search=search
+            student.id, club_id=club_id, category=category, search=search,
+            limit=limit, offset=offset
         )
         return self._to_items(rows, student.announcements_seen_at)
 
     async def mine(self, payload: dict, club_id: int | None = None,
-                   category: AnnouncementCategory | None = None,
-                   search: str | None = None) -> list[AnnouncementItem]:
+                   category: AnnouncementCategory | None = None, search: str | None = None,
+                   limit: int = 50, offset: int = 0) -> list[AnnouncementItem]:
         student = await self._get_student(payload)
         rows = await self.announcement_repo.list_for_student(
             student.id, role=MembershipRole.LEADER, club_id=club_id,
-            category=category, search=search
+            category=category, search=search, limit=limit, offset=offset
         )
         return self._to_items(rows, student.announcements_seen_at)
 

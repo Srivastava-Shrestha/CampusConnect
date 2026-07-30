@@ -38,7 +38,8 @@ class AnnouncementRepository:
     async def list_for_student(self, student_id: int, role: MembershipRole | None = None,
                                club_id: int | None = None,
                                category: AnnouncementCategory | None = None,
-                               search: str | None = None) -> list[tuple[Announcement, str, str]]:
+                               search: str | None = None, limit: int = 50,
+                               offset: int = 0) -> list[tuple[Announcement, str, str]]:
         conditions = [
             Membership.student_id == student_id,
             Membership.status == MembershipStatus.APPROVED,
@@ -63,6 +64,8 @@ class AnnouncementRepository:
             .join(User, User.id == Student.user_id)
             .where(*conditions)
             .order_by(Announcement.is_pinned.desc(), Announcement.created_at.desc())
+            .limit(limit)
+            .offset(offset)
         )
         return result.all()
 
