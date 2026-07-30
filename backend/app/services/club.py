@@ -51,7 +51,7 @@ class ClubService:
         message = ClubMessages.CREATED_ACTIVE if status == ClubStatus.ACTIVE else ClubMessages.CREATED_PENDING
         return CreateClubResponse(id=club.id, name=club.name, type=club.type, status=club.status, message=message)
 
-    # Defined before `list` on purpose: that method shadows the builtin inside the class body.
+    
     async def my_clubs(self, payload: dict, role: MembershipRole | None = None,
                        status: str | None = None) -> list[MyClubItem]:
         student = await self._get_student(payload)
@@ -155,7 +155,6 @@ class ClubService:
 
     @staticmethod
     def _resolve_status(role: MembershipRole | None, status: str | None):
-        """A leader filters on the club's approval status, a member on their own membership status."""
         if status is None:
             return None, None
         if role is None:
@@ -200,7 +199,6 @@ class ClubService:
 
     @staticmethod
     def _head_info(club: Club, include_contact: bool) -> ClubHeadInfo:
-        """Everyone sees who leads the club; only admins get the head's contact details."""
         head = club.head
         return ClubHeadInfo(
             student_id=head.id,
