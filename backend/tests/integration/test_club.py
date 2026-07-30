@@ -594,13 +594,20 @@ async def test_view_active_club_success_for_student(client, student_token):
     }
     create = await client.post("/clubs", json=payload, headers={"Authorization": f"Bearer {student_token}"})
     club_id = create.json()["id"]
- 
+
     response = await client.get(f"/clubs/{club_id}", headers={"Authorization": f"Bearer {student_token}"})
     assert response.status_code == 200
     body = response.json()
     assert body["id"] == club_id
     assert body["name"] == "Viewable Club"
-    assert body["head"] is None
+
+    assert body["head"] is not None
+    assert body["head"]["student_id"] is not None
+    assert body["head"]["full_name"] is not None
+    assert body["head"]["email"] is None
+    assert body["head"]["roll_no"] is None
+    assert body["head"]["branch"] is None
+    assert body["head"]["year"] is None
  
  
 @pytest.mark.asyncio
