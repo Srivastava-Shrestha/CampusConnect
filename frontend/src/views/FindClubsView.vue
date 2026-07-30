@@ -6,11 +6,12 @@ import StudentSidebar from '../components/layout/StudentSidebar.vue'
 import Topbar from '../components/layout/Topbar.vue'
 import ClubCard from '../components/ui/ClubCard.vue'
 import { findMatchingClubs } from '../api/ai'
-import { mockClubs } from '../api/clubs'
+import { getClubs } from '../api/clubs'
+import { onMounted } from 'vue'
 import { toast } from '../composables/useToast'
 
 const router = useRouter()
-
+const clubs = ref([])
 const interestsText = ref('')
 const isSearching = ref(false)
 const showResults = ref(false)
@@ -26,6 +27,14 @@ const suggestions = [
   'Startups, coding, and product design'
 ]
 
+onMounted(async () => {
+  try {
+    clubs.value = await getClubs()
+  } catch (error) {
+    console.error(error)
+    toast.error('Failed to load clubs.')
+  }
+})
 function buildResultsDescription(input) {
   const firstWords = input.split(' ').slice(0, 4).join(' ')
   return 'Based on: "' + firstWords + '..."'
@@ -38,7 +47,7 @@ function useSuggestion(text) {
 
 function attachClubDetails(matchList) {
   return matchList.map(function combineWithClub(match) {
-    const club = mockClubs.find((item) => item.name === match.name)
+    const club = clubs.value.find((item) => item.name === match.name)
     return { ...club, reason: match.reason }
   })
 }
