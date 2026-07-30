@@ -7,3 +7,4 @@ from app.repository.event import EventRepository
 from app.repository.event_registration import EventRegistrationRepository
 from app.repository.announcement import AnnouncementRepository
 from app.repository.issue import IssueRepository
+from app.repository.notification import NotificationRepository
