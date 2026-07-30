@@ -13,3 +13,5 @@ from app.exceptions.event import (
     RegistrationClosedError, AlreadyRegisteredError, RegistrationNotFoundError,
     NotClubMemberError, AttendanceNotAllowedError, NotCheckedInError
 )
+from app.exceptions.announcement import AnnouncementNotFoundError
+from app.exceptions.issue import IssueNotFoundError, IssueActionNotAllowedError

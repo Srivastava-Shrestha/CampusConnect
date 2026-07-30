@@ -39,3 +39,17 @@ class RegistrationMessages:
     CHECKED_IN = "Attendance marked"
     CHECK_IN_UNDONE = "Attendance unmarked"
     RESULT_SET = "Result recorded"
+
+
+class AnnouncementMessages:
+    POSTED = "Announcement posted successfully"
+    PINNED = "Announcement pinned to the top of the feed"
+    UNPINNED = "Announcement unpinned"
+    DELETED = "Announcement deleted successfully"
+    MARKED_READ = "All announcements marked as read"
+
+
+class IssueMessages:
+    RAISED = "Issue submitted to the club leader"
+    REPLIED = "Reply sent to the student"
+    RESOLVED = "Issue marked as resolved"
