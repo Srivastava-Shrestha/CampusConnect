@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import Student, User
-from sqlalchemy import select
+from sqlalchemy import select, func
 
 
 class StudentRepository:
@@ -18,3 +18,9 @@ class StudentRepository:
             .where(Student.id == student_id)
         )
         return result.scalar_one_or_none()
+
+    async def mark_announcements_seen(self, student: Student) -> Student:
+        student.announcements_seen_at = func.now()
+        await self.db.flush()
+        await self.db.refresh(student)
+        return student

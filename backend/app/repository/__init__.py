@@ -5,3 +5,5 @@ from app.repository.club import ClubRepository
 from app.repository.membership import MembershipRepository
 from app.repository.event import EventRepository
 from app.repository.event_registration import EventRegistrationRepository
+from app.repository.announcement import AnnouncementRepository
+from app.repository.issue import IssueRepository
