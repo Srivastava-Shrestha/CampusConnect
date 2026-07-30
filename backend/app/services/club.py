@@ -115,7 +115,7 @@ class ClubService:
         if not is_admin and club.status != ClubStatus.ACTIVE:
             raise ClubNotFoundError()
 
-        return await self._detail(club, include_head=is_admin)
+        return await self._detail(club, include_contact=is_admin)
 
     async def update(self, payload: dict, club_id: int, data: UpdateClubRequest) -> ClubDetailResponse:
         student = await self._get_student(payload)
@@ -130,7 +130,7 @@ class ClubService:
             await self.club_repo.replace_links(club_id, data.links)
 
         updated = await self.club_repo.get_by_id(club_id)
-        return await self._detail(updated, include_head=False)
+        return await self._detail(updated, include_contact=False)
 
     async def delete(self, payload: dict, club_id: int) -> ClubStatusResponse:
         student = await self._get_student(payload)
@@ -182,7 +182,7 @@ class ClubService:
             raise CollegeNotFoundError()
         return college_id
 
-    async def _detail(self, club: Club, include_head: bool) -> ClubDetailResponse:
+    async def _detail(self, club: Club, include_contact: bool) -> ClubDetailResponse:
         member_count = await self.club_repo.count_members(club.id)
         return ClubDetailResponse(
             id=club.id,
@@ -195,19 +195,20 @@ class ClubService:
             member_count=member_count,
             created_at=club.created_at,
             links=[ClubLinkSchema(label=link.label, url=link.url) for link in club.links],
-            head=self._head_info(club) if include_head else None,
+            head=self._head_info(club, include_contact),
         )
 
     @staticmethod
-    def _head_info(club: Club) -> ClubHeadInfo:
+    def _head_info(club: Club, include_contact: bool) -> ClubHeadInfo:
+        """Everyone sees who leads the club; only admins get the head's contact details."""
         head = club.head
         return ClubHeadInfo(
             student_id=head.id,
             full_name=head.user.full_name,
-            email=head.user.email,
-            roll_no=head.roll_no,
-            branch=head.branch,
-            year=head.year,
+            email=head.user.email if include_contact else None,
+            roll_no=head.roll_no if include_contact else None,
+            branch=head.branch if include_contact else None,
+            year=head.year if include_contact else None,
         )
 
     async def _get_student(self, payload: dict):

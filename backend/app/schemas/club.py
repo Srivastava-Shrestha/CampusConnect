@@ -40,12 +40,13 @@ class ClubStatusResponse(BaseModel):
 
 
 class ClubHeadInfo(BaseModel):
+    """Name is visible to anyone in the college; contact details are filled for campus admins only."""
     student_id: int
     full_name: str
-    email: str
-    roll_no: str | None
-    branch: str | None
-    year: int | None
+    email: str | None = None
+    roll_no: str | None = None
+    branch: str | None = None
+    year: int | None = None
 
 
 class ClubListItem(BaseModel):
