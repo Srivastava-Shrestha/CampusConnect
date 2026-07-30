@@ -15,3 +15,12 @@ from app.schemas.event_registration import (
     RegistrationConfirmation, UnregisterResponse, ParticipantItem, MarkAttendanceRequest,
     AttendanceResponse, SetResultRequest, ResultResponse, MyRegistrationItem, MyResultItem
 )
+from app.schemas.announcement import (
+    CreateAnnouncementRequest, PinAnnouncementRequest, CreateAnnouncementResponse,
+    AnnouncementItem, PinAnnouncementResponse, DeleteAnnouncementResponse,
+    UnreadCountResponse, MarkAnnouncementsReadResponse
+)
+from app.schemas.issue import (
+    RaiseIssueRequest, ReplyIssueRequest, RaiseIssueResponse, IssueResponseInfo,
+    MyIssueItem, LeaderIssueItem, IssueActionResponse, OpenIssueCountResponse
+)
