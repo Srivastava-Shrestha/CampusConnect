@@ -3,11 +3,13 @@ from fastapi import Depends, Security
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.repository import (
     UserRepository, CollegeRepository, StudentRepository, ClubRepository, MembershipRepository,
-    EventRepository, EventRegistrationRepository
+    EventRepository, EventRegistrationRepository, AnnouncementRepository, IssueRepository,
+    NotificationRepository
 )
 from app.services import (
     UserService, CollegeService, ClubService, MembershipService,
-    EventService, EventRegistrationService
+    EventService, EventRegistrationService, AnnouncementService, IssueService,
+    NotificationService
 )
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials, SecurityScopes
 from app.core.token import decode_token
@@ -41,7 +43,8 @@ def get_membership_service(db: AsyncSession = Depends(get_db)):
     membership_repo = MembershipRepository(db)
     club_repo = ClubRepository(db)
     student_repo = StudentRepository(db)
-    return MembershipService(membership_repo, club_repo, student_repo)
+    notification_repo = NotificationRepository(db)
+    return MembershipService(membership_repo, club_repo, student_repo, notification_repo)
 
 def get_event_service(db: AsyncSession = Depends(get_db)):
     event_repo = EventRepository(db)
@@ -60,8 +63,33 @@ def get_event_registration_service(db: AsyncSession = Depends(get_db)):
     membership_repo = MembershipRepository(db)
     student_repo = StudentRepository(db)
     user_repo = UserRepository(db)
+    notification_repo = NotificationRepository(db)
     return EventRegistrationService(registration_repo, event_repo, club_repo, membership_repo,
-                                    student_repo, user_repo)
+                                    student_repo, user_repo, notification_repo)
+
+def get_announcement_service(db: AsyncSession = Depends(get_db)):
+    announcement_repo = AnnouncementRepository(db)
+    club_repo = ClubRepository(db)
+    membership_repo = MembershipRepository(db)
+    student_repo = StudentRepository(db)
+    user_repo = UserRepository(db)
+    return AnnouncementService(announcement_repo, club_repo, membership_repo,
+                               student_repo, user_repo)
+
+def get_issue_service(db: AsyncSession = Depends(get_db)):
+    issue_repo = IssueRepository(db)
+    club_repo = ClubRepository(db)
+    event_repo = EventRepository(db)
+    membership_repo = MembershipRepository(db)
+    student_repo = StudentRepository(db)
+    user_repo = UserRepository(db)
+    return IssueService(issue_repo, club_repo, event_repo, membership_repo,
+                        student_repo, user_repo)
+
+def get_notification_service(db: AsyncSession = Depends(get_db)):
+    notification_repo = NotificationRepository(db)
+    student_repo = StudentRepository(db)
+    return NotificationService(notification_repo, student_repo)
 
 
     
