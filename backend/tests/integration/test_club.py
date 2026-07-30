@@ -1676,3 +1676,261 @@ async def test_approve_club_without_token_fails(client, student_token):
     response = await client.patch(f"/clubs/{club_id}/approve")
     assert response.status_code == 401
     assert response.json()["detail"] == "Not authenticated"
+
+# ==== my clubs ====
+
+@pytest.mark.asyncio
+async def test_my_clubs_role_leader_returns_led_clubs(client, student_token):
+    """Verify that role=LEADER returns clubs the student leads"""
+    payload = {
+        "name": "My Led Club",
+        "description": "A club led by the requesting student",
+        "category": "Technical",
+        "type": "UNOFFICIAL"
+    }
+    await client.post("/clubs", json=payload, headers={"Authorization": f"Bearer {student_token}"})
+
+    response = await client.get(
+        "/clubs/me", params={"role": "LEADER"}, headers={"Authorization": f"Bearer {student_token}"}
+    )
+    assert response.status_code == 200
+    body = response.json()
+    names = [item["name"] for item in body]
+    assert "My Led Club" in names
+    assert all(item["membership_role"] == "LEADER" for item in body)
+
+
+@pytest.mark.asyncio
+async def test_my_clubs_role_leader_with_status_filters_club_status(client, student_token):
+    """Verify that role=LEADER with status filters by the club's approval status"""
+    payload = {
+        "name": "Active Led Club",
+        "description": "An active club led by the student",
+        "category": "Technical",
+        "type": "UNOFFICIAL"
+    }
+    await client.post("/clubs", json=payload, headers={"Authorization": f"Bearer {student_token}"})
+
+    payload = {
+        "name": "Pending Led Club",
+        "description": "A pending club led by the student",
+        "category": "Technical",
+        "type": "OFFICIAL"
+    }
+    await client.post("/clubs", json=payload, headers={"Authorization": f"Bearer {student_token}"})
+
+    response = await client.get(
+        "/clubs/me",
+        params={"role": "LEADER", "status": "ACTIVE"},
+        headers={"Authorization": f"Bearer {student_token}"}
+    )
+    assert response.status_code == 200
+    names = [item["name"] for item in response.json()]
+    assert "Active Led Club" in names
+    assert "Pending Led Club" not in names
+
+
+@pytest.mark.asyncio
+async def test_my_clubs_role_member_returns_joined_clubs(client, student_token):
+    """Verify that role=MEMBER returns clubs the student has joined"""
+    payload = {
+        "name": "Joinable Member Club",
+        "description": "A club the student will join as a member",
+        "category": "Technical",
+        "type": "UNOFFICIAL"
+    }
+    create = await client.post("/clubs", json=payload, headers={"Authorization": f"Bearer {student_token}"})
+    club_id = create.json()["id"]
+
+    payload = {
+        "email": "myclubs.joiner@knit.edu.in",
+        "full_name": "MyClubs Joiner",
+        "password": "Joiner@123",
+        "confirm_password": "Joiner@123",
+        "role": "STUDENT"
+    }
+    joiner_signup = await client.post("/auth/signup", json=payload)
+    joiner_token = joiner_signup.json()["access_token"]
+    await client.post(f"/clubs/{club_id}/join", headers={"Authorization": f"Bearer {joiner_token}"})
+
+    response = await client.get(
+        "/clubs/me", params={"role": "MEMBER"}, headers={"Authorization": f"Bearer {joiner_token}"}
+    )
+    assert response.status_code == 200
+    body = response.json()
+    names = [item["name"] for item in body]
+    assert "Joinable Member Club" in names
+    assert all(item["membership_role"] == "MEMBER" for item in body)
+
+
+@pytest.mark.asyncio
+async def test_my_clubs_role_member_with_status_filters_membership_status(client, student_token):
+    """Verify that role=MEMBER with status filters by the membership's own status, not club status"""
+    payload = {
+        "name": "Membership Status Club",
+        "description": "A club used to test membership status filtering",
+        "category": "Technical",
+        "type": "UNOFFICIAL"
+    }
+    create = await client.post("/clubs", json=payload, headers={"Authorization": f"Bearer {student_token}"})
+    club_id = create.json()["id"]
+
+    payload = {
+        "email": "myclubs.pendingjoiner@knit.edu.in",
+        "full_name": "MyClubs Pending Joiner",
+        "password": "Joiner@123",
+        "confirm_password": "Joiner@123",
+        "role": "STUDENT"
+    }
+    joiner_signup = await client.post("/auth/signup", json=payload)
+    joiner_token = joiner_signup.json()["access_token"]
+    await client.post(f"/clubs/{club_id}/join", headers={"Authorization": f"Bearer {joiner_token}"})
+
+    response = await client.get(
+        "/clubs/me",
+        params={"role": "MEMBER", "status": "PENDING"},
+        headers={"Authorization": f"Bearer {joiner_token}"}
+    )
+    assert response.status_code == 200
+    body = response.json()
+    names = [item["name"] for item in body]
+    assert "Membership Status Club" in names
+    assert all(item["membership_status"] == "PENDING" for item in body)
+
+
+@pytest.mark.asyncio
+async def test_my_clubs_status_without_role_fails(client, student_token):
+    """Validate that supplying status without role is rejected"""
+    response = await client.get(
+        "/clubs/me", params={"status": "ACTIVE"}, headers={"Authorization": f"Bearer {student_token}"}
+    )
+    assert response.status_code == 422
+    body = response.json()
+    assert body["message"] == (
+        "status must be sent together with role: it means the club status for LEADER "
+        "and your membership status for MEMBER"
+    )
+
+
+@pytest.mark.asyncio
+async def test_my_clubs_leader_status_with_membership_status_value_fails(client, student_token):
+    """Validate that role=LEADER with a membership-status value (not a club status) is rejected"""
+    response = await client.get(
+        "/clubs/me",
+        params={"role": "LEADER", "status": "APPROVED"},
+        headers={"Authorization": f"Bearer {student_token}"}
+    )
+    assert response.status_code == 422
+    body = response.json()
+    assert "status must be one of" in body["message"]
+    assert "role is LEADER" in body["message"]
+
+
+@pytest.mark.asyncio
+async def test_my_clubs_member_status_with_club_status_value_fails(client, student_token):
+    """Validate that role=MEMBER with a club-status value (not a membership status) is rejected"""
+    response = await client.get(
+        "/clubs/me",
+        params={"role": "MEMBER", "status": "ARCHIVED"},
+        headers={"Authorization": f"Bearer {student_token}"}
+    )
+    assert response.status_code == 422
+    body = response.json()
+    assert "status must be one of" in body["message"]
+    assert "role is MEMBER" in body["message"]
+
+
+@pytest.mark.asyncio
+async def test_my_clubs_invalid_role_value_fails(client, student_token):
+    """Validate that an unrecognized role value is rejected"""
+    response = await client.get(
+        "/clubs/me", params={"role": "PRESIDENT"}, headers={"Authorization": f"Bearer {student_token}"}
+    )
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_my_clubs_no_role_no_status_returns_all(client, student_token):
+    """Verify that omitting both role and status returns all of the student's clubs regardless of role"""
+    payload = {
+        "name": "No Filter Club",
+        "description": "A club used to test the unfiltered my-clubs listing",
+        "category": "Technical",
+        "type": "UNOFFICIAL"
+    }
+    await client.post("/clubs", json=payload, headers={"Authorization": f"Bearer {student_token}"})
+
+    response = await client.get("/clubs/me", headers={"Authorization": f"Bearer {student_token}"})
+    assert response.status_code == 200
+    names = [item["name"] for item in response.json()]
+    assert "No Filter Club" in names
+
+
+@pytest.mark.asyncio
+async def test_my_clubs_includes_head_name_and_member_count(client, student_token):
+    """Verify that each item includes head_name and member_count"""
+    payload = {
+        "name": "Head Name Club",
+        "description": "A club used to test head_name and member_count fields",
+        "category": "Technical",
+        "type": "UNOFFICIAL"
+    }
+    await client.post("/clubs", json=payload, headers={"Authorization": f"Bearer {student_token}"})
+
+    response = await client.get("/clubs/me", headers={"Authorization": f"Bearer {student_token}"})
+    assert response.status_code == 200
+    item = next(i for i in response.json() if i["name"] == "Head Name Club")
+    assert item["head_name"] == "Club Student"
+    assert item["member_count"] == 1
+
+
+# @pytest.mark.asyncio
+# async def test_my_clubs_ordered_by_most_recent_membership_first(client, student_token):
+#     """Verify that results are ordered by membership created_at descending, most recent first"""
+#     payload = {
+#         "name": "First Created Club",
+#         "description": "The first club the student joins/creates",
+#         "category": "Technical",
+#         "type": "UNOFFICIAL"
+#     }
+#     await client.post("/clubs", json=payload, headers={"Authorization": f"Bearer {student_token}"})
+
+#     payload = {
+#         "name": "Second Created Club",
+#         "description": "The second club the student joins/creates",
+#         "category": "Technical",
+#         "type": "UNOFFICIAL"
+#     }
+#     await client.post("/clubs", json=payload, headers={"Authorization": f"Bearer {student_token}"})
+
+#     response = await client.get("/clubs/me", headers={"Authorization": f"Bearer {student_token}"})
+    
+#     assert response.status_code == 200
+#     names = [item["name"] for item in response.json()]
+#     assert names.index("Second Created Club") < names.index("First Created Club")
+
+
+@pytest.mark.asyncio
+async def test_my_clubs_empty_for_student_with_no_clubs(client, seed_college):
+    """Verify that a student with no memberships gets an empty list"""
+    payload = {
+        "email": "noclubs.student@knit.edu.in",
+        "full_name": "No Clubs Student",
+        "password": "Student@123",
+        "confirm_password": "Student@123",
+        "role": "STUDENT"
+    }
+    signup = await client.post("/auth/signup", json=payload)
+    token = signup.json()["access_token"]
+
+    response = await client.get("/clubs/me", headers={"Authorization": f"Bearer {token}"})
+    assert response.status_code == 200
+    assert response.json() == []
+
+
+@pytest.mark.asyncio
+async def test_my_clubs_without_token_fails(client):
+    """Verify that requesting my-clubs is rejected when no authentication token is provided"""
+    response = await client.get("/clubs/me")
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Not authenticated"
