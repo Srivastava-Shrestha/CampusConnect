@@ -1,4 +1,4 @@
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1'
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 const mockMatches = [
   {
@@ -20,19 +20,10 @@ const mockMatches = [
 
 // TODO: replace with real endpoint when backend is ready
 export async function findMatchingClubs(interestsText) {
-  try {
-    const response = await fetch(BASE_URL + '/ai/find-clubs', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ interests: interestsText })
-    })
-    return await response.json()
-  } catch (error) {
-    await simulateThinkingDelay()
-    return mockMatches
-  }
-}
+  await simulateThinkingDelay()
 
+  return mockMatches
+}
 function simulateThinkingDelay() {
   return new Promise((resolve) => setTimeout(resolve, 1200))
 }
