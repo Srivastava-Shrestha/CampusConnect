@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { GraduationCap, Mail, Lock, Eye, EyeOff, Check, ArrowRight, Globe, School, Compass, ShieldCheck } from 'lucide-vue-next'
 import { loginUser } from '../api/auth'
 import { useAuthStore } from '../stores/auth'
+import { getMyClubs } from '../api/clubs'
 import { useFormValidation } from '../composables/useFormValidation'
 import { toast } from '../composables/useToast'
 
@@ -56,16 +57,40 @@ async function handleLogin() {
 
     const payload = jwtDecode(result.access_token)
 
+    console.log("JWT Payload:", payload)
+
+    const role = payload.role?.toUpperCase()
+
+    auth.setUser({
+      name: payload.full_name,
+      email: payload.email,
+      college: payload.college_slug,
+      initials: payload.full_name
+      .split(" ")
+      .map(word => word[0])
+      .join("")
+      .toUpperCase()
+})
     auth.setRole(
-    payload.role === 'CAMPUS_ADMIN' ? 'admin' : 'student'
+     role === "ADMIN" || role === "CAMPUS_ADMIN"
+    ? "admin"
+    : "student"
     )
 
-    if (auth.canManageClubs) {
-     router.push('/workspace')
-    } else {
-    router.push(auth.homeRoute)
+    if (auth.role === "student") {
+      try {
+        const ledClubs = await getMyClubs({ role: "LEADER" })
+        auth.setClubLeader(ledClubs.length > 0)
+    } catch (error) {
+        auth.setClubLeader(false)
+    }
     }
 
+    if (auth.canManageClubs) {
+      router.push(`/leader/club`)
+  } else {
+      router.push(auth.homeRoute)
+  }
   } catch (error) {
     toast.error(error.message)
   }

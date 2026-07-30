@@ -1,10 +1,11 @@
 <script setup>
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
 import { GraduationCap, LayoutDashboard, UsersRound, CalendarDays, Megaphone, TriangleAlert, PlusCircle, Compass } from 'lucide-vue-next'
 import MobileNav from './MobileNav.vue'
 
 const route = useRoute()
+const router = useRouter()
 const auth = useAuthStore()
 
 const menuItems = [
@@ -13,7 +14,7 @@ const menuItems = [
   { label: 'Events', to: '/leader/events', icon: CalendarDays },
   { label: 'Announcements', to: '/leader/announcements', icon: Megaphone },
   { label: 'Issues', to: '/leader/issues', icon: TriangleAlert },
-  { label: 'Create Club', to: '/leader/clubs/new', icon: PlusCircle },
+  { label: 'Create Club', to: '/clubs/propose', icon: PlusCircle },
   { label: 'Member Area', to: '/clubs', icon: Compass }
 ]
 
@@ -29,6 +30,12 @@ const mobileItems = [
 function isActive(itemPath) {
   return route.path === itemPath || route.path.startsWith(itemPath + '/')
 }
+
+function logout() {
+  auth.logout()
+  router.push('/login')
+}
+
 </script>
 
 <template>
@@ -56,13 +63,19 @@ function isActive(itemPath) {
 
     <div class="sidebar-spacer"></div>
 
-    <a href="#" class="user-card">
+    <div>
+    <div class="user-card">
       <div class="user-avatar leader-av">{{ auth.user.initials }}</div>
       <div class="user-info">
         <p class="user-name">{{ auth.user.name }}</p>
-        <p class="user-sub">{{ auth.user.sub }}</p>
+        <p class="user-sub">{{ auth.user.email }}</p>
       </div>
-    </a>
+    </div>
+
+    <button class="logout-btn" @click="logout">
+        Logout
+    </button>
+    </div>
   </aside>
 
   <MobileNav :items="mobileItems" role-class="leader" />

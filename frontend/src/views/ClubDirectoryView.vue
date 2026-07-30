@@ -1,12 +1,11 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Search, SearchX, ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import { Search, SearchX, Users } from 'lucide-vue-next'
 import StudentSidebar from '../components/layout/StudentSidebar.vue'
 import Topbar from '../components/layout/Topbar.vue'
 import ClubCard from '../components/ui/ClubCard.vue'
 import FilterChips from '../components/ui/FilterChips.vue'
-import ClubIcon from '../components/ui/ClubIcon.vue'
 import { useClubsStore } from '../stores/clubs'
 
 const router = useRouter()
@@ -14,8 +13,6 @@ const clubsStore = useClubsStore()
 
 const searchText = ref('')
 const activeCategory = ref('all')
-const carouselTrack = ref(null)
-const showMyClubs = ref(false)
 
 const categoryChips = [
   { id: 'all', label: 'All' },
@@ -32,27 +29,16 @@ const visibleClubs = computed(function filterClubs() {
   const search = searchText.value.toLowerCase().trim()
 
   return clubsStore.clubs.filter(function matchesClub(club) {
-    const categoryMatch = activeCategory.value === 'all' || club.category === activeCategory.value
-    const searchMatch = search === '' || club.name.toLowerCase().includes(search)
+    const categoryMatch = activeCategory.value === 'all' || club.category.toLowerCase() === activeCategory.value.toLowerCase()
+    const searchMatch = search === '' || club.name.toLowerCase().includes(search) || club.category.toLowerCase().includes(search)
     return categoryMatch && searchMatch
   })
 })
 
-const myClubs = computed(function buildMyClubs() {
-  const joinedIds = clubsStore.joinedClubs.map((joined) => joined.id)
-  return clubsStore.clubs.filter((club) => joinedIds.includes(club.id))
-})
+const myClubs = computed(() => clubsStore.joinedClubs)
 
 function openClub(clubId) {
   router.push('/clubs/' + clubId)
-}
-
-function scrollCarousel(direction) {
-  carouselTrack.value.scrollLeft += direction * 248
-}
-
-function toggleMyClubs() {
-  showMyClubs.value = !showMyClubs.value
 }
 
 onMounted(function loadDirectory() {
@@ -85,57 +71,25 @@ onMounted(function loadDirectory() {
       </div>
 
       <div>
-        <div class="clubs-section-header">
-          <h2 class="clubs-section-title">Active in These Clubs</h2>
-          <span class="clubs-section-link" @click="toggleMyClubs">
-            {{ showMyClubs ? 'Hide my clubs' : 'View all joined clubs' }}
-          </span>
-        </div>
-        <div class="clubs-carousel-wrapper">
+  <div class="clubs-section-header">
+    <h2 class="clubs-section-title">My Clubs</h2>
+  </div>
 
-          <button class="carousel-nav-btn prev" @click="scrollCarousel(-1)">
-            <ChevronLeft />
-          </button>
+  <div v-if="myClubs.length" class="clubs-grid">
+    <ClubCard
+      v-for="club in myClubs"
+      :key="club.id"
+      :club="club"
+      @open="openClub(club.id)"
+    />
+  </div>
 
-          <div class="clubs-carousel-track" ref="carouselTrack">
-            <div
-              v-for="joined in clubsStore.joinedClubs"
-              :key="joined.id"
-              class="joined-club-card"
-              @click="openClub(joined.id)"
-            >
-              <div class="joined-club-dot" :class="joined.banner">
-                <ClubIcon :name="joined.icon" />
-              </div>
-              <div class="joined-club-info">
-                <p class="joined-club-name">{{ joined.name }}</p>
-                <p class="joined-club-sub">{{ joined.sub }}</p>
-                <span class="active-badge" :class="{ alert: joined.alert }">{{ joined.badge }}</span>
-              </div>
-            </div>
-          </div>
+  <div v-else class="empty-state">
+    <Users />
+    <p>You haven't joined any clubs yet. Explore clubs below and send a join request.</p>
+  </div>
+</div>
 
-          <button class="carousel-nav-btn next" @click="scrollCarousel(1)">
-            <ChevronRight />
-          </button>
-
-        </div>
-      </div>
-
-      <div v-if="showMyClubs">
-        <div class="clubs-section-header">
-          <h2 class="clubs-section-title">My Clubs</h2>
-          <span class="clubs-count-text">{{ myClubs.length }} joined</span>
-        </div>
-        <div class="clubs-grid">
-          <ClubCard
-            v-for="club in myClubs"
-            :key="club.id"
-            :club="club"
-            @open="openClub(club.id)"
-          />
-        </div>
-      </div>
 
       <div>
         <div class="clubs-section-header">

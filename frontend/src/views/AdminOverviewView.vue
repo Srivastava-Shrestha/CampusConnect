@@ -119,7 +119,7 @@ onMounted(async function loadOverview() {
             </div>
             <div class="form-group">
               <label for="email-domain">Verified Student Email Domain</label>
-              <input type="text" id="email-domain" v-model="emailDomain" class="input-field" placeholder=".iitm.ac.in">
+              <input type="text" id="email-domain" v-model="emailDomain" class="input-field" placeholder="@iitm.ac.in">
             </div>
             <div class="form-group">
               <label for="description">Description</label>

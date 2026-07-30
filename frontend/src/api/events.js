@@ -1,4 +1,4 @@
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1'
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 const mockEvents = [
   {
@@ -253,10 +253,14 @@ export async function getEventParticipants(eventId) {
   }
 }
 
-// TODO: replace with real endpoint when backend is ready
 export async function getEvents() {
   try {
     const response = await fetch(BASE_URL + '/events')
+
+    if (!response.ok) {
+      return mockEvents
+    }
+
     return await response.json()
   } catch (error) {
     return mockEvents
@@ -267,9 +271,18 @@ export async function getEvents() {
 export async function getEventById(eventId) {
   try {
     const response = await fetch(BASE_URL + '/events/' + eventId)
+
+    if (!response.ok) {
+      return mockEvents.find(
+        (event) => event.id === Number(eventId)
+      ) || mockEvents[1]
+    }
+
     return await response.json()
   } catch (error) {
-    return mockEvents.find((event) => event.id === Number(eventId)) || mockEvents[1]
+    return mockEvents.find(
+      (event) => event.id === Number(eventId)
+    ) || mockEvents[1]
   }
 }
 

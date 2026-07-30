@@ -39,21 +39,41 @@ const pendingCount = computed(function countPending() {
 
 async function handleApprove(approval) {
   await approveClubRequest(approval.id)
-  approval.status = 'approved'
+  approvals.value = approvals.value.map((item) =>
+    item.id === approval.id
+      ? { ...item, status: "approved" }
+      : item
+  )
 }
 
 async function handleReject(approval) {
-  const reason = window.prompt('Enter a short reason for rejection (shown to the club leader):')
-  if (reason === null) {
-    return
-  }
+  const reason = window.prompt(
+    "Enter a short reason for rejection (shown to the club leader):"
+  )
 
-  await rejectClubRequest(approval.id, reason)
-  approval.status = 'rejected'
+  if (reason === null) return
+
+  await rejectClubRequest(approval.id)
+
+  approvals.value = approvals.value.map((item) =>
+    item.id === approval.id
+      ? { ...item, status: "rejected" }
+      : item
+  )
 }
 
-onMounted(async function loadApprovals() {
-  approvals.value = await getClubApprovals()
+onMounted(async () => {
+  try {
+    const data = await getClubApprovals()
+
+    approvals.value = data.map((approval) => ({
+      ...approval,
+      status: approval.status.toLowerCase()
+    }))
+  } catch (error) {
+    console.error(error)
+    approvals.value = []
+  }
 })
 </script>
 

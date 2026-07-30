@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, UserPlus, Clock, MapPin, Users } from 'lucide-vue-next'
 import StudentSidebar from '../components/layout/StudentSidebar.vue'
@@ -25,11 +25,24 @@ const clubEvents = computed(function eventsForThisClub() {
   })
 })
 
+watch(
+  () => route.params.id,
+  (id) => {
+    joinState.value = "none"
+    clubsStore.loadClub(id)
+  }
+)
+
 async function handleJoinRequest() {
   if (joinState.value === 'pending') return
 
-  joinState.value = 'pending'
-  await requestToJoinClub(route.params.id)
+  try {
+    await requestToJoinClub(route.params.id)
+    joinState.value = 'pending'
+    toast.success('Join request sent successfully.')
+  } catch (error) {
+    toast.error(error.message || 'Failed to send join request.')
+  }
 }
 
 function goBackToClubs() {
@@ -38,6 +51,20 @@ function goBackToClubs() {
 
 function showRegisterHint() {
   toast.info('Register for this event from the Events page.')
+}
+
+function categoryIcon(category) {
+  const map = {
+    tech: "laptop",
+    arts: "palette",
+    culture: "drama",
+    sports: "sports",
+    music: "music",
+    business: "briefcase",
+    science: "microscope",
+  }
+
+  return map[(category || "").toLowerCase()] || "robot"
 }
 
 onMounted(function loadProfile() {
@@ -49,7 +76,7 @@ onMounted(function loadProfile() {
 <template>
   <StudentSidebar />
 
-  <div class="main-content" v-if="club">
+  <div v-if="club" class="main-content">
 
     <header class="topbar">
       <button class="btn-secondary" @click="goBackToClubs">
@@ -58,12 +85,13 @@ onMounted(function loadProfile() {
 
       <div class="title-block">
         <h1 class="page-title">{{ club.name }}</h1>
-        <p class="page-sub">{{ club.category }} · {{ club.college }}</p>
+        <p class="page-sub">{{ club.category }} · {{ club.type }}</p>
       </div>
 
       <div class="topbar-spacer"></div>
 
-      <button class="btn-join" :class="{ pending: joinState === 'pending' }" @click="handleJoinRequest">
+      <button class="btn-join" :disabled="joinState === 'pending'" :class="{ pending: joinState === 'pending' }" @click="handleJoinRequest"
+>
         <Clock v-if="joinState === 'pending'" />
         <UserPlus v-else />
         {{ joinState === 'pending' ? 'Request Sent' : 'Request to Join' }}
@@ -73,20 +101,20 @@ onMounted(function loadProfile() {
     <main class="content-body custom-scrollbar">
 
       <div>
-        <div class="club-profile-banner" :class="club.banner">
+        <div class="club-profile-banner">
           <div class="club-card-circle-1"></div>
           <div class="club-card-circle-2"></div>
           <div class="club-card-circle-3"></div>
           <div class="club-profile-icon">
-            <ClubIcon :name="club.icon" />
+            <ClubIcon :name="categoryIcon(club.category)" />
           </div>
         </div>
         <div class="club-profile-meta">
           <p class="club-profile-name">{{ club.name }}</p>
           <div class="club-profile-sub">
             <span class="cat-chip">{{ club.category }}</span>
-            <span><MapPin /> {{ club.college }}</span>
-            <span><Users /> {{ club.members }} members</span>
+            <span><MapPin /> {{ club.type }}</span>
+            <span><Users /> {{ club.member_count }} members</span>
           </div>
           <p v-if="joinState === 'pending'" class="join-status-text">
             Your join request is pending approval from the club leader.
@@ -96,22 +124,24 @@ onMounted(function loadProfile() {
 
       <div class="club-stats-row">
         <div class="club-stat-card">
-          <p class="club-stat-num">{{ club.members }}</p>
+          <p class="club-stat-num">{{ club.member_count }}</p>
           <p class="club-stat-label">Members</p>
         </div>
         <div class="club-stat-card">
-          <p class="club-stat-num">{{ club.eventsRun }}</p>
+          <p class="club-stat-num">{{ clubEvents.length }}</p>
           <p class="club-stat-label">Events Run</p>
         </div>
         <div class="club-stat-card">
-          <p class="club-stat-num">{{ club.founded }}</p>
+          <p class="club-stat-num">
+            {{ club.created_at ? new Date(club.created_at).getFullYear() : '-' }}
+          </p>
           <p class="club-stat-label">Founded</p>
         </div>
       </div>
 
       <div class="card">
         <p class="section-heading">About</p>
-        <p>{{ club.about }}</p>
+        <p>{{ club.description }}</p>
       </div>
 
       <div>
@@ -138,4 +168,7 @@ onMounted(function loadProfile() {
     </main>
 
   </div>
+  <div v-else class="empty-state">
+  <p>Unable to load club details.</p>
+</div>
 </template>
