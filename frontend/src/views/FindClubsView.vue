@@ -20,6 +20,7 @@ const submittedQuery = ref('')
 const matches = ref([])
 const resultsSection = ref(null)
 
+
 const suggestions = [
   'I love building robots and electronics',
   'Photography and film on weekends',
@@ -39,6 +40,7 @@ function buildResultsDescription(input) {
   const firstWords = input.split(' ').slice(0, 4).join(' ')
   return 'Based on: "' + firstWords + '..."'
 }
+
 
 function useSuggestion(text) {
   interestsText.value = text
