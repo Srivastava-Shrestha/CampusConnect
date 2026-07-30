@@ -2,9 +2,9 @@ from datetime import datetime, timezone
 from sqlalchemy.exc import IntegrityError
 from app.repository import (
     EventRegistrationRepository, EventRepository, ClubRepository,
-    MembershipRepository, StudentRepository, UserRepository
+    MembershipRepository, StudentRepository, UserRepository, NotificationRepository
 )
-from app.models import EventStatus, MembershipStatus, RegistrationResult
+from app.models import EventStatus, MembershipStatus, RegistrationResult, NotificationType
 from app.schemas import (
     RegistrationConfirmation, UnregisterResponse, ParticipantItem, MarkAttendanceRequest,
     AttendanceResponse, SetResultRequest, ResultResponse, MyRegistrationItem, MyResultItem
@@ -15,19 +15,21 @@ from app.exceptions import (
     AttendanceNotAllowedError, NotCheckedInError, NotClubLeaderError,
     StudentNotFoundError, CollegeNotFoundError
 )
-from app.core.messages import RegistrationMessages
+from app.core.messages import RegistrationMessages, NotificationMessages
 
 
 class EventRegistrationService:
     def __init__(self, registration_repo: EventRegistrationRepository, event_repo: EventRepository,
                  club_repo: ClubRepository, membership_repo: MembershipRepository,
-                 student_repo: StudentRepository, user_repo: UserRepository):
+                 student_repo: StudentRepository, user_repo: UserRepository,
+                 notification_repo: NotificationRepository):
         self.registration_repo = registration_repo
         self.event_repo = event_repo
         self.club_repo = club_repo
         self.membership_repo = membership_repo
         self.student_repo = student_repo
         self.user_repo = user_repo
+        self.notification_repo = notification_repo
 
     async def register(self, payload: dict, event_id: int) -> RegistrationConfirmation:
         student = await self._get_student(payload)
@@ -59,6 +61,14 @@ class EventRegistrationService:
             registration = await self.registration_repo.create(event_id, student.id)
         except IntegrityError:
             raise AlreadyRegisteredError()
+
+        await self.notification_repo.create_notification(
+            student_id=student.id,
+            type=NotificationType.REGISTRATION_CONFIRMED,
+            message=NotificationMessages.registration_confirmed(event.title),
+            club_id=event.club_id,
+            event_id=event.id,
+        )
 
         return RegistrationConfirmation(
             registration_id=registration.id,
@@ -131,12 +141,23 @@ class EventRegistrationService:
 
     async def set_result(self, payload: dict, event_id: int, registration_id: int,
                          data: SetResultRequest) -> ResultResponse:
-        await self._managed_event(payload, event_id)
+        event = await self._managed_event(payload, event_id)
         registration = await self._registration_of_event(registration_id, event_id)
         if not registration.checked_in:
             raise NotCheckedInError()
 
         await self.registration_repo.set_result(registration, data.result)
+
+        # REGISTRANT is the default on sign-up, not an outcome worth notifying about
+        if data.result != RegistrationResult.REGISTRANT:
+            await self.notification_repo.create_notification(
+                student_id=registration.student_id,
+                type=NotificationType.RESULT_POSTED,
+                message=NotificationMessages.result_posted(event.title, registration.result.value),
+                club_id=event.club_id,
+                event_id=event.id,
+            )
+
         return ResultResponse(
             registration_id=registration.id,
             student_id=registration.student_id,

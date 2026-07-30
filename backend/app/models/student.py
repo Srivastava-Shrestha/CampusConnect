@@ -30,3 +30,4 @@ class Student(Base):
                                                  foreign_keys="Issue.student_id")
     issue_responses: Mapped[list["Issue"]] = relationship(back_populates="responder",
                                                           foreign_keys="Issue.responded_by")
+    notifications: Mapped[list["Notification"]] = relationship(back_populates="student")
