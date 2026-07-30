@@ -67,7 +67,9 @@ async function handleSignup() {
     sessionStorage.setItem('signupEmail', email.value.trim())
     sessionStorage.setItem('signupRole', selectedRole.value)
 
-    router.push('/verify-email')
+    // TODO: Restore email verification flow when backend implements
+    // POST /auth/verify-email.
+    router.push('/login') 
 
   } catch (error) {
     toast.error(error.message)

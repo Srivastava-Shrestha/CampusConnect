@@ -2,14 +2,18 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ArrowLeft, Send, FileText } from 'lucide-vue-next'
-import LeaderSidebar from '../components/layout/LeaderSidebar.vue'
+import StudentSidebar from '../components/layout/StudentSidebar.vue'
 import CustomSelect from '../components/ui/CustomSelect.vue'
 import { createClub } from '../api/clubs'
+import { useAuthStore } from '../stores/auth'
+import { useClubsStore } from '../stores/clubs'
 import { toast } from '../composables/useToast'
 import { useFormValidation } from '../composables/useFormValidation'
 import { useGuidelinesStore } from '../stores/guidelines'
 
 const router = useRouter()
+const auth = useAuthStore()
+const clubsStore = useClubsStore()
 const { allFieldsFilled, isValidEmail } = useFormValidation()
 const guidelines = useGuidelinesStore()
 
@@ -17,7 +21,6 @@ const clubName = ref('')
 const clubCategory = ref('')
 const clubTagline = ref('')
 const clubAbout = ref('')
-const clubEmail = ref('')
 const applicationLink = ref('')
 
 const categoryOptions = [
@@ -69,7 +72,6 @@ async function handleSubmit() {
     category: clubCategory.value,
     tagline: clubTagline.value,
     about: clubAbout.value,
-    email: clubEmail.value,
     applicationLink: applicationLink.value
   }
 
@@ -78,32 +80,44 @@ async function handleSubmit() {
     return
   }
 
-  if (!isValidEmail(clubEmail.value)) {
-    toast.error('Please enter a valid email address.')
-    return
-  }
-
   if (!/^https?:\/\//i.test(applicationLink.value.trim())) {
-    toast.error('Please paste a valid application document link (it should start with http).')
+    toast.error(
+      'Please paste a valid application document link (it should start with http).'
+    )
     return
   }
 
-  await createClub({
-    name: clubName.value.trim(),
-    category: clubCategory.value,
-    tagline: clubTagline.value.trim(),
-    about: clubAbout.value.trim(),
-    email: clubEmail.value.trim(),
-    applicationLink: applicationLink.value.trim()
-  })
+  try {
+    const response = await createClub({
+      name: clubName.value.trim(),
+      description: clubAbout.value.trim(),
+      category: clubCategory.value,
+      type: 'OFFICIAL',
+      image_url: null,
+      links: [
+        {
+          label: 'Application Document',
+          url: applicationLink.value.trim()
+        }
+      ]
+    })
 
-  toast.success('Your club request has been submitted! The admin will review it within 2 to 3 working days.')
-  router.push('/leader/club')
+    auth.setClubLeader(true)
+
+    await clubsStore.refreshClubs()
+
+    toast.success(response.message)
+
+    router.push('/clubs')
+    
+  } catch (error) {
+    toast.error(error.message)
+  }
 }
 </script>
 
 <template>
-  <LeaderSidebar />
+  <StudentSidebar />
 
   <div class="main-content">
 
@@ -112,7 +126,7 @@ async function handleSubmit() {
         <ArrowLeft /> Back
       </button>
       <div class="title-block">
-        <h1 class="page-title">Create a New Club</h1>
+        <h1 class="page-title">Propose a New Club</h1>
         <p class="page-sub">Submit your request for admin approval</p>
       </div>
       <div class="topbar-spacer"></div>
@@ -143,11 +157,6 @@ async function handleSubmit() {
           <div class="form-group">
             <label for="club-about">About the Club</label>
             <textarea id="club-about" v-model="clubAbout" class="textarea-field" rows="5" placeholder="Describe your club's mission, activities, and what members can expect..."></textarea>
-          </div>
-
-          <div class="form-group">
-            <label for="club-email">Leader Contact Email</label>
-            <input type="email" id="club-email" v-model="clubEmail" class="input-field" placeholder="aayansh@knit.ac.in">
           </div>
 
           <div class="form-group">

@@ -1,11 +1,12 @@
 <script setup>
 import { computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
 import { GraduationCap, Compass, CalendarDays, Megaphone, Trophy, Sparkles, CircleUserRound, Briefcase } from 'lucide-vue-next'
 import MobileNav from './MobileNav.vue'
 
 const route = useRoute()
+const router = useRouter()
 const auth = useAuthStore()
 
 // The "Manage Clubs" entry only appears for a member who also leads a club.
@@ -14,6 +15,7 @@ const manageClubsItem = { label: 'Manage Clubs', to: '/leader/club', icon: Brief
 const menuItems = computed(function buildMenu() {
   const base = [
     { label: 'Clubs', to: '/clubs', icon: Compass },
+    { label: 'Propose Club', to: '/clubs/propose', icon: Briefcase },
     { label: 'Events', to: '/events', icon: CalendarDays },
     { label: 'Announcements', to: '/announcements', icon: Megaphone },
     { label: 'Leaderboard', to: '/leaderboard', icon: Trophy },
@@ -32,7 +34,8 @@ const mobileItems = computed(function buildMobileMenu() {
     { label: 'News', to: '/announcements', icon: Megaphone },
     { label: 'Ranks', to: '/leaderboard', icon: Trophy },
     { label: 'Finder', to: '/find-clubs', icon: Sparkles },
-    { label: 'Profile', to: '/profile', icon: CircleUserRound }
+    { label: 'Profile', to: '/profile', icon: CircleUserRound },
+    { label: 'Propose', to: '/clubs/propose', icon: Briefcase }
   ]
   if (auth.canManageClubs) {
     base.push({ label: 'Manage', to: '/leader/club', icon: Briefcase })
@@ -47,6 +50,11 @@ function isActive(itemPath) {
     return route.path.startsWith('/leader/')
   }
   return route.path === itemPath || route.path.startsWith(itemPath + '/')
+}
+
+function logout() {
+  auth.logout()
+  router.push('/login')
 }
 </script>
 
@@ -75,6 +83,7 @@ function isActive(itemPath) {
 
     <div class="sidebar-spacer"></div>
 
+  <div>
     <router-link to="/profile" class="user-card">
       <div class="user-avatar student-av">{{ auth.user.initials }}</div>
       <div class="user-info">
@@ -82,6 +91,11 @@ function isActive(itemPath) {
         <p class="user-sub">{{ auth.user.sub }}</p>
       </div>
     </router-link>
+
+    <button class="logout-btn" @click="logout">
+        Logout
+    </button>
+  </div>
   </aside>
 
   <MobileNav :items="mobileItems" role-class="student" />

@@ -1,183 +1,99 @@
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1'
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
-const mockClubs = [
-  {
-    id: 1,
-    name: 'Robotics & Automation Club',
-    members: 84,
-    banner: 'banner-orange',
-    icon: 'robot',
-    description: 'Build real robots, compete in national-level challenges, and work on automation projects with peers.',
-    tags: ['Robotics', 'IoT', 'Tech'],
-    category: 'Tech',
-    recommended: true,
-    founded: 2019,
-    eventsRun: 12,
-    college: 'KNIT Sultanpur',
-    about: 'We are a student-run community focused on robotics, embedded systems, and automation. Our members participate in national-level robotics competitions, build IoT projects, and run weekly hands-on workshops. Whether you have zero experience or are already building things, you will find a project to contribute to.'
-  },
-  {
-    id: 2,
-    name: 'Photography Circle',
-    members: 112,
-    banner: 'banner-blue',
-    icon: 'camera',
-    description: 'Weekly photo walks, darkroom sessions, and monthly critique workshops for all skill levels.',
-    tags: ['Photography', 'Arts'],
-    category: 'Arts',
-    recommended: false,
-    founded: 2017,
-    eventsRun: 21,
-    college: 'KNIT Sultanpur',
-    about: 'A community of photographers of every level. We organise weekly photo walks, darkroom sessions, and monthly critique workshops.'
-  },
-  {
-    id: 3,
-    name: 'Coding Society',
-    members: 203,
-    banner: 'banner-green',
-    icon: 'laptop',
-    description: 'Hackathons, competitive programming contests, and open-source contribution drives every semester.',
-    tags: ['Coding', 'Open Source', 'Tech'],
-    category: 'Tech',
-    recommended: true,
-    founded: 2015,
-    eventsRun: 34,
-    college: 'KNIT Sultanpur',
-    about: 'The largest technical club on campus. We run hackathons, competitive programming contests, and open-source contribution drives every semester.'
-  },
-  {
-    id: 4,
-    name: 'Music Collective',
-    members: 67,
-    banner: 'banner-yellow',
-    icon: 'music',
-    description: 'Jam sessions, open mic nights, and collaborative song writing across all genres and instruments.',
-    tags: ['Music', 'Performance'],
-    category: 'Music',
-    recommended: false,
-    founded: 2018,
-    eventsRun: 18,
-    college: 'KNIT Sultanpur',
-    about: 'Jam sessions, open mic nights, and collaborative song writing across all genres and instruments.'
-  },
-  {
-    id: 5,
-    name: 'Drama Society',
-    members: 45,
-    banner: 'banner-pink',
-    icon: 'drama',
-    description: 'Annual theatre productions, improv workshops, and script writing bootcamps through the year.',
-    tags: ['Theatre', 'Writing'],
-    category: 'Arts',
-    recommended: false,
-    founded: 2016,
-    eventsRun: 9,
-    college: 'KNIT Sultanpur',
-    about: 'Annual theatre productions, improv workshops, and script writing bootcamps through the year.'
-  },
-  {
-    id: 6,
-    name: 'Entrepreneurship Cell',
-    members: 91,
-    banner: 'banner-mint',
-    icon: 'briefcase',
-    description: 'Startup pitches, founder talks, and mentorship sessions with working entrepreneurs and investors.',
-    tags: ['Startup', 'Business'],
-    category: 'Business',
-    recommended: true,
-    founded: 2020,
-    eventsRun: 15,
-    college: 'KNIT Sultanpur',
-    about: 'Startup pitches, founder talks, and mentorship sessions with working entrepreneurs and investors.'
-  },
-  {
-    id: 7,
-    name: 'Astronomy Club',
-    members: 38,
-    banner: 'banner-blue',
-    icon: 'telescope',
-    description: 'Telescope nights, space documentaries, and participation in national Astronomy Olympiads every year.',
-    tags: ['Space', 'Science'],
-    category: 'Science',
-    recommended: false,
-    founded: 2021,
-    eventsRun: 7,
-    college: 'KNIT Sultanpur',
-    about: 'Telescope nights, space documentaries, and participation in national Astronomy Olympiads every year.'
-  },
-  {
-    id: 8,
-    name: 'Sports Council',
-    members: 156,
-    banner: 'banner-orange',
-    icon: 'sports',
-    description: 'Coordinates inter-college tournaments, fitness events, and weekly sports leagues on campus.',
-    tags: ['Sports', 'Fitness'],
-    category: 'Sports',
-    recommended: false,
-    founded: 2014,
-    eventsRun: 28,
-    college: 'KNIT Sultanpur',
-    about: 'Coordinates inter-college tournaments, fitness events, and weekly sports leagues on campus.'
-  },
-  {
-    id: 9,
-    name: 'Bharatnatyam & Folk Dance',
-    members: 72,
-    banner: 'banner-yellow',
-    icon: 'dance',
-    description: 'Classical and folk dance training, cultural fest performances, and inter-college dance competitions.',
-    tags: ['Dance', 'Culture'],
-    category: 'Culture',
-    recommended: false,
-    founded: 2019,
-    eventsRun: 11,
-    college: 'KNIT Sultanpur',
-    about: 'Classical and folk dance training, cultural fest performances, and inter-college dance competitions.'
+
+async function apiRequest(endpoint, options = {}) {
+  const token = localStorage.getItem("cc_token")
+
+  const headers = {
+    "Content-Type": "application/json",
+    ...(options.headers || {})
   }
-]
 
-const mockJoinedClubs = [
-  {
-    id: 1,
-    name: 'Robotics & Automation',
-    sub: '84 members · Tech',
-    banner: 'banner-orange',
-    icon: 'robot',
-    badge: '2 new events',
-    alert: true
-  },
-  {
-    id: 3,
-    name: 'Coding Society',
-    sub: '203 members · Tech',
-    banner: 'banner-green',
-    icon: 'laptop',
-    badge: 'Hackathon this week',
-    alert: true
-  },
-  {
-    id: 2,
-    name: 'Photography Circle',
-    sub: '112 members · Arts',
-    banner: 'banner-blue',
-    icon: 'camera',
-    badge: 'Member',
-    alert: false
-  },
-  {
-    id: 4,
-    name: 'Music Collective',
-    sub: '67 members · Music',
-    banner: 'banner-yellow',
-    icon: 'music',
-    badge: 'Open mic Friday',
-    alert: true
+  if (token) {
+    headers.Authorization = `Bearer ${token}`
   }
-]
 
-const mockLeaderboard = {
+  const response = await fetch(`${BASE_URL}${endpoint}`, {
+    ...options,
+    headers
+  })
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}))
+    throw new Error(error.detail || error.message || "Request failed")
+  }
+
+  if (response.status === 204) {
+  return null
+  }
+
+  return response.json()
+}
+
+
+
+export async function getClubs() {
+  return apiRequest("/clubs")
+}
+
+export async function getMyClubs(params = {}) {
+  const query = new URLSearchParams(params).toString()
+
+  return apiRequest(`/clubs/me${query ? `?${query}` : ""}`)
+}
+
+export async function getClubById(clubId) {
+  return apiRequest(`/clubs/${clubId}`)
+}
+
+export async function requestToJoinClub(clubId) {
+  return apiRequest(`/clubs/${clubId}/join`, {
+    method: "POST"
+  })
+}
+
+export async function createClub(clubData) {
+  return apiRequest("/clubs", {
+    method: "POST",
+    body: JSON.stringify(clubData)
+  })
+}
+
+export async function updateClub(clubId, clubData) {
+  return apiRequest(`/clubs/${clubId}`, {
+    method: "PUT",
+    body: JSON.stringify(clubData)
+  })
+}
+
+export async function deleteClub(clubId) {
+  return apiRequest(`/clubs/${clubId}`, {
+    method: "DELETE"
+  })
+}
+
+export async function getClubMembers(clubId) {
+  return apiRequest(`/clubs/${clubId}/members`)
+}
+
+export async function getPendingRequests(clubId) {
+  return apiRequest(`/clubs/${clubId}/requests`)
+}
+
+export async function handleMembershipRequest(
+  clubId,
+  membershipId,
+  action
+) {
+  return apiRequest(`/clubs/${clubId}/requests/${membershipId}`, {
+    method: "PATCH",
+    body: JSON.stringify({
+      action
+    })
+  })
+}
+
+  const mockLeaderboard = {
   podium: [
     {
       rank: '2nd',
@@ -271,165 +187,29 @@ const mockLeaderboard = {
   ]
 }
 
-// TODO: replace with real endpoint when backend is ready
-export async function getClubs() {
-  try {
-    const response = await fetch(BASE_URL + '/clubs')
-    return await response.json()
-  } catch (error) {
-    return mockClubs
-  }
-}
-
-// TODO: replace with real endpoint when backend is ready
-export async function getJoinedClubs() {
-  try {
-    const response = await fetch(BASE_URL + '/clubs/joined')
-    return await response.json()
-  } catch (error) {
-    return mockJoinedClubs
-  }
-}
-
-// TODO: replace with real endpoint when backend is ready
-export async function getClubById(clubId) {
-  try {
-    const response = await fetch(BASE_URL + '/clubs/' + clubId)
-    return await response.json()
-  } catch (error) {
-    return mockClubs.find((club) => club.id === Number(clubId)) || mockClubs[0]
-  }
-}
-
-// TODO: replace with real endpoint when backend is ready
-export async function requestToJoinClub(clubId) {
-  try {
-    const response = await fetch(BASE_URL + '/clubs/' + clubId + '/join', { method: 'POST' })
-    return await response.json()
-  } catch (error) {
-    return { ok: true, status: 'pending' }
-  }
-}
-
-// TODO: replace with real endpoint when backend is ready
-export async function createClub(clubData) {
-  try {
-    const response = await fetch(BASE_URL + '/clubs', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(clubData)
-    })
-    return await response.json()
-  } catch (error) {
-    return { ok: true, status: 'pending_approval', club: clubData }
-  }
-}
-
-const mockApprovals = [
-  {
-    id: 1,
-    name: 'Astronomy Club',
-    banner: 'banner-blue',
-    icon: 'gear',
-    status: 'pending',
-    meta: 'Submitted by Dr. Priya Nair · Science · 2 days ago',
-    metaFull: 'Submitted by Dr. Priya Nair · Science · 2 days ago · 12 founding members',
-    applicationLink: 'https://drive.google.com/file/d/astronomy-club-application/view'
-  },
-  {
-    id: 2,
-    name: 'Chess Club',
-    banner: 'banner-yellow',
-    icon: 'chess',
-    status: 'pending',
-    meta: 'Submitted by Arjun Mehra · Culture · 4 days ago',
-    metaFull: 'Submitted by Arjun Mehra · Culture · 4 days ago · 8 founding members',
-    applicationLink: 'https://drive.google.com/file/d/chess-club-application/view'
-  },
-  {
-    id: 3,
-    name: 'Dance Fusion Club',
-    banner: 'banner-pink',
-    icon: 'dance',
-    status: 'pending',
-    meta: 'Submitted by Priyanka Das · Culture · 1 day ago',
-    metaFull: 'Submitted by Priyanka Das · Culture · 1 day ago · 15 founding members',
-    applicationLink: 'https://drive.google.com/file/d/dance-fusion-application/view'
-  },
-  {
-    id: 4,
-    name: 'Robotics & Automation Club',
-    banner: 'banner-orange',
-    icon: 'robot',
-    status: 'approved',
-    meta: 'Submitted by Aayansh Yadav · Tech · Approved 14 Jan 2026 · 84 members',
-    metaFull: 'Submitted by Aayansh Yadav · Tech · Approved 14 Jan 2026 · 84 members',
-    applicationLink: 'https://drive.google.com/file/d/robotics-club-application/view'
-  },
-  {
-    id: 5,
-    name: 'Photography Circle',
-    banner: 'banner-blue',
-    icon: 'camera',
-    status: 'approved',
-    meta: 'Submitted by Meera Krishnan · Arts · Approved 3 Feb 2026 · 112 members',
-    metaFull: 'Submitted by Meera Krishnan · Arts · Approved 3 Feb 2026 · 112 members',
-    applicationLink: 'https://drive.google.com/file/d/photography-circle-application/view'
-  },
-  {
-    id: 6,
-    name: 'Cricket Betting Analysis Club',
-    banner: 'banner-mint',
-    icon: 'medal',
-    status: 'rejected',
-    meta: 'Submitted by Rahul Bose · Sports · Rejected 5 Apr 2026 · Reason: club name and stated objectives violate campus policy',
-    metaFull: 'Submitted by Rahul Bose · Sports · Rejected 5 Apr 2026 · Reason: club name and stated objectives violate campus policy',
-    applicationLink: 'https://drive.google.com/file/d/cricket-analysis-application/view'
-  }
-]
-
-// TODO: replace with real endpoint when backend is ready
 export async function getClubApprovals() {
-  try {
-    const response = await fetch(BASE_URL + '/clubs/approvals')
-    return await response.json()
-  } catch (error) {
-    return mockApprovals
-  }
+  return apiRequest("/clubs?status=PENDING")
 }
 
-// TODO: replace with real endpoint when backend is ready
-export async function approveClubRequest(approvalId) {
-  try {
-    const response = await fetch(BASE_URL + '/clubs/approvals/' + approvalId + '/approve', { method: 'POST' })
-    return await response.json()
-  } catch (error) {
-    return { ok: true, status: 'approved' }
-  }
+export async function approveClubRequest(clubId) {
+  return apiRequest(`/clubs/${clubId}/approve`, {
+    method: "PATCH"
+  })
 }
 
-// TODO: replace with real endpoint when backend is ready
-export async function rejectClubRequest(approvalId, reason) {
-  try {
-    const response = await fetch(BASE_URL + '/clubs/approvals/' + approvalId + '/reject', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ reason })
-    })
-    return await response.json()
-  } catch (error) {
-    return { ok: true, status: 'rejected', reason }
-  }
+export async function rejectClubRequest(clubId) {
+  return apiRequest(`/clubs/${clubId}/reject`, {
+    method: "PATCH"
+  })
 }
 
 // TODO: replace with real endpoint when backend is ready
 export async function getLeaderboard() {
   try {
-    const response = await fetch(BASE_URL + '/clubs/leaderboard')
-    return await response.json()
+    return await apiRequest("/clubs/leaderboard")
   } catch (error) {
     return mockLeaderboard
   }
 }
 
-export { BASE_URL, mockClubs, mockJoinedClubs, mockLeaderboard, mockApprovals }
+export { BASE_URL }

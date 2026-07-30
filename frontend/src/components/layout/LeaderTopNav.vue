@@ -12,7 +12,7 @@ const navItems = [
   { label: 'Events', to: '/leader/events', icon: CalendarDays },
   { label: 'Announcements', to: '/leader/announcements', icon: Megaphone },
   { label: 'Issues', to: '/leader/issues', icon: TriangleAlert },
-  { label: 'Create Club', to: '/leader/clubs/new', icon: PlusCircle }
+  { label: 'Create Club', to: '/clubs/propose', icon: PlusCircle }
 ]
 
 function isActive(itemPath) {

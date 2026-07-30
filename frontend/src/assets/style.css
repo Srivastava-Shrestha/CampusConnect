@@ -8182,3 +8182,19 @@ html {
     justify-content: center;
   }
 }
+  .logout-btn {
+  width: 100%;
+  margin-top: 12px;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  background: #ef4444;
+  color: white;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+.logout-btn:hover {
+  background: #dc2626;
+}

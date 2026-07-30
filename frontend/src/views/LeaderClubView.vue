@@ -4,14 +4,35 @@ import { useRouter } from 'vue-router'
 import { Pencil, MapPin, Users, Calendar, CalendarPlus, Megaphone, UsersRound } from 'lucide-vue-next'
 import LeaderSidebar from '../components/layout/LeaderSidebar.vue'
 import ClubIcon from '../components/ui/ClubIcon.vue'
-import { getClubById } from '../api/clubs'
+import { getClubById, getMyClubs, updateClub, deleteClub } from '../api/clubs'
 import { getLeaderEvents } from '../api/events'
 import { toast } from '../composables/useToast'
+import CustomSelect from '../components/ui/CustomSelect.vue'
 
 const router = useRouter()
 
 const club = ref(null)
 const upcomingEvents = ref([])
+
+const categoryOptions = [
+  'Tech',
+  'Arts',
+  'Culture',
+  'Sports',
+  'Music',
+  'Business',
+  'Science',
+  'Other'
+]
+
+const editing = ref(false)
+const saving = ref(false)
+
+const editForm = ref({
+  description: '',
+  category: '',
+  image_url: ''
+})
 
 const clubStats = ref([])
 
@@ -41,10 +62,13 @@ const quickActions = [
 
 function buildStats(loadedClub) {
   return [
-    { num: loadedClub.members, label: 'Members' },
-    { num: loadedClub.eventsRun, label: 'Events Run' },
-    { num: 3, label: 'Join Requests' },
-    { num: loadedClub.founded, label: 'Founded' }
+    { num: loadedClub.member_count, label: 'Members' },
+    { num: loadedClub.head?.full_name ?? '-', label: 'Club Head' },
+    { num: loadedClub.status, label: 'Status' },
+    {
+      num: new Date(loadedClub.created_at).getFullYear(),
+      label: 'Created'
+    }
   ]
 }
 
@@ -56,18 +80,129 @@ function manageEvent(event) {
   }
 }
 
-function showEditHint() {
-  toast.info('Club info editing will be available after the backend is connected.')
+function startEditing() {
+  alert("Edit button clicked!")
+
+  editForm.value = {
+    description: club.value.description,
+    category: club.value.category,
+    image_url: club.value.image_url || ''
+  }
+
+  editing.value = true
+
+  console.log("editing =", editing.value)
 }
 
-onMounted(async function loadDashboard() {
-  club.value = await getClubById(1)
-  clubStats.value = buildStats(club.value)
+async function saveClubEdits() {
 
-  const allLeaderEvents = await getLeaderEvents()
-  upcomingEvents.value = allLeaderEvents.filter(function onlyUpcoming(event) {
-    return event.status === 'upcoming'
-  })
+  if (!editForm.value.description.trim()) {
+    toast.error('Description cannot be empty.')
+    return
+  }
+
+  if (!editForm.value.category) {
+    toast.error('Please choose a category.')
+    return
+  }
+
+  saving.value = true
+
+  try {
+
+    await updateClub(
+      club.value.id,
+    {
+      description: editForm.value.description.trim(),
+      category: editForm.value.category,
+      image_url: editForm.value.image_url.trim() || null
+    }
+  )
+
+    club.value.description = editForm.value.description.trim()
+    club.value.category = editForm.value.category
+    club.value.image_url = editForm.value.image_url.trim() || null
+
+    clubStats.value = buildStats(club.value)
+
+    editing.value = false
+
+    toast.success('Club updated successfully.')
+
+  } catch (error) {
+
+    toast.error(error.message)
+
+  } finally {
+
+    saving.value = false
+
+  }
+
+}
+function cancelEditing() {
+  editing.value = false
+}
+
+async function deleteCurrentClub() {
+
+  const confirmed = window.confirm(
+    'Are you sure you want to delete this club?\n\nThis action cannot be undone.'
+  )
+
+  if (!confirmed) return
+
+  try {
+
+    await deleteClub(club.value.id)
+
+    toast.success('Club deleted successfully.')
+
+    router.push('/clubs')
+
+  } catch (error) {
+
+    toast.error(error.message)
+
+  }
+
+}
+onMounted(async function loadDashboard() {
+
+  try {
+    const myClubs = await getMyClubs({ role: 'LEADER' })
+
+    if (!myClubs.length) {
+      toast.error('No club assigned.')
+      return
+    }
+
+    club.value = await getClubById(myClubs[0].id)
+    console.log("Club Details:", club.value)
+    clubStats.value = buildStats(club.value)
+
+  } catch (error) {
+    console.error(error)
+    toast.error('Failed to load club information.')
+    return
+  }
+  try {
+
+    let allLeaderEvents = await getLeaderEvents()
+
+    if (!Array.isArray(allLeaderEvents)) {
+      allLeaderEvents = []
+    }
+
+    upcomingEvents.value = allLeaderEvents.filter(
+      event => event.status === 'upcoming'
+    )
+
+  } catch (error) {
+    console.warn('Events backend not available yet.')
+    upcomingEvents.value = []
+  }
+
 })
 </script>
 
@@ -82,29 +217,39 @@ onMounted(async function loadDashboard() {
         <p class="page-sub">{{ club.name }}</p>
       </div>
       <div class="topbar-spacer"></div>
-      <button class="btn-secondary" @click="showEditHint">
-        <Pencil /> Edit Club Info
-      </button>
+      <div style="display:flex;gap:12px;">
+
+        <button class="btn-secondary" @click="startEditing"> <Pencil />Edit Club Info</button>
+
+        <button
+          class="btn-secondary"
+          style="background:#ef4444;color:white;"
+          @click="deleteCurrentClub"
+        >
+          Delete Club
+        </button>
+
+      </div>
     </header>
 
     <main class="content-body custom-scrollbar">
 
       <div>
-        <div class="club-profile-banner" :class="club.banner">
+        <div class="club-profile-banner banner-blue">
           <div class="club-card-circle-1"></div>
           <div class="club-card-circle-2"></div>
           <div class="club-card-circle-3"></div>
           <div class="club-profile-icon">
-            <ClubIcon :name="club.icon" />
+            <ClubIcon name="users" />
           </div>
         </div>
         <div class="club-profile-meta">
           <p class="club-profile-name">{{ club.name }}</p>
           <div class="club-profile-sub">
             <span class="cat-chip">{{ club.category }}</span>
-            <span><MapPin /> {{ club.college }}</span>
-            <span><Users /> {{ club.members }} members</span>
-            <span><Calendar /> Founded {{ club.founded }}</span>
+            <span><MapPin /> {{ club.type }}</span>
+            <span><Users /> {{ club.member_count }} members</span>
+            <span><Calendar /> {{ new Date(club.created_at).getFullYear() }}</span>
           </div>
         </div>
       </div>
@@ -135,9 +280,69 @@ onMounted(async function loadDashboard() {
       </div>
 
       <div class="card">
-        <p class="section-heading">About the Club</p>
-        <p>{{ club.about }}</p>
-      </div>
+
+  <p class="section-heading">About the Club</p>
+
+  <div v-if="!editing">
+  <p>{{ club.description }}</p>
+</div>
+
+<div v-if="editing">
+
+  <div class="form-group">
+    <label>Category</label>
+
+    <select v-model="editForm.category" class="input-field">
+      <option
+        v-for="category in categoryOptions"
+        :key="category"
+        :value="category"
+      >
+        {{ category }}
+      </option>
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label>Description</label>
+
+    <textarea
+      v-model="editForm.description"
+      rows="6"
+      class="input-field"
+    ></textarea>
+  </div>
+
+  <div class="form-group">
+    <label>Image URL</label>
+
+    <input
+      v-model="editForm.image_url"
+      class="input-field"
+    />
+  </div>
+
+  <div style="display:flex;gap:10px;margin-top:20px;">
+
+    <button
+      class="btn-primary"
+      @click="saveClubEdits"
+    >
+      Save Changes
+    </button>
+
+    <button
+      class="btn-secondary"
+      @click="cancelEditing"
+    >
+      Cancel
+    </button>
+
+  </div>
+
+</div>
+
+</div>
 
       <div>
         <p class="section-heading">Upcoming Events</p>

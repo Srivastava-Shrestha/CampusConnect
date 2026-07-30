@@ -167,7 +167,16 @@ const studentRoutes = [
       role: 'student',
       bodyClass: 'portal-body'
     }
+  },
+    {
+    path: '/clubs/propose',
+    name: 'propose-club',
+    component: () => import('../views/CreateClubView.vue'),
+    meta: {
+      role: 'student',
+      bodyClass: 'portal-body'
   }
+}
 ]
 
 const leaderRoutes = [
@@ -247,15 +256,6 @@ const leaderRoutes = [
     path: '/leader/issues',
     name: 'leader-issues',
     component: () => import('../views/LeaderIssuesView.vue'),
-    meta: {
-      role: 'leader',
-      bodyClass: 'portal-body'
-    }
-  },
-  {
-    path: '/leader/clubs/new',
-    name: 'create-club',
-    component: () => import('../views/CreateClubView.vue'),
     meta: {
       role: 'leader',
       bodyClass: 'portal-body'

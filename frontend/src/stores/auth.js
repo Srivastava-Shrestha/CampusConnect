@@ -1,30 +1,10 @@
 import { defineStore } from 'pinia'
 
-const personas = {
-  student: {
-    name: 'Shikha Singh',
-    sub: 'CS · 1st Year',
-    initials: 'SK',
-    college: 'KNIT Sultanpur'
-  },
-  leader: {
-    name: 'Aayansh Yadav',
-    sub: 'Leader · Robotics Club',
-    initials: 'AY',
-    college: 'KNIT Sultanpur'
-  },
-  admin: {
-    name: 'Student Affairs',
-    sub: 'Admin · KNIT Sultanpur',
-    initials: 'SA',
-    college: 'KNIT Sultanpur'
-  }
-}
-
-const roleHomes = {
-  student: '/clubs',
-  leader: '/leader/club',
-  admin: '/admin'
+const defaultUser = {
+  name: "",
+  email: "",
+  college: "",
+  initials: ""
 }
 
 function readStoredRole() {
@@ -39,45 +19,62 @@ function readStoredRole() {
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
-    role: readStoredRole(),
-    token: localStorage.getItem('cc_token') || '',
-    user: personas[readStoredRole()],
-    // Whether this member also leads at least one club. In the real app this
-    // comes from the backend after login; kept true here so the leader tools
-    // are reachable in the mock build.
-    isClubLeader: false
-  }),
+  role: readStoredRole(),
+  token: localStorage.getItem("cc_token") || "",
+  user: JSON.parse(localStorage.getItem("cc_user")) || defaultUser,
+  isClubLeader:
+    JSON.parse(localStorage.getItem("cc_isClubLeader")) || false
+}),
 
   getters: {
-    isLoggedIn: (state) => state.role !== '',
-    homeRoute: (state) => roleHomes[state.role] || '/login',
+    isLoggedIn: (state) => !!state.token,
+    homeRoute: (state) => {
+  if (state.role === 'admin') {
+    return '/admin'
+  }
+
+  return '/clubs'
+},
     // A member who leads a club may open the club-leader tools.
     canManageClubs: (state) => state.role === 'student' && state.isClubLeader
   },
 
   actions: {
     setRole(role) {
-      if (!personas[role]) {
-        return
-      }
-      this.role = role
-      this.user = personas[role]
-      localStorage.setItem('cc_role', role)
-    },
+    this.role = role
+    localStorage.setItem("cc_role", role)
+},
 
     setToken(token) {
       this.token = token
       localStorage.setItem('cc_token', token)
     },
 
+    setUser(user) {
+      this.user = user
+      localStorage.setItem("cc_user", JSON.stringify(user))
+    },
+
+    setClubLeader(value) {
+      this.isClubLeader = value
+      localStorage.setItem(
+      "cc_isClubLeader",
+      JSON.stringify(value)
+    )
+    },
+
     logout() {
-      this.role = ''
-      this.token = ''
-      this.user = null
-      localStorage.removeItem('cc_role')
-      localStorage.removeItem('cc_token')
-    }
+      this.role = "student"
+      this.token = ""
+      this.user = defaultUser
+      this.isClubLeader = false
+
+      localStorage.removeItem("cc_role")
+      localStorage.removeItem("cc_token")
+      localStorage.removeItem("cc_user")
+      localStorage.removeItem("cc_isClubLeader")
+}
   }
 })
 
-export { personas, roleHomes }
+export { defaultUser }

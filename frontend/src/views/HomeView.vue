@@ -2,8 +2,9 @@
 import { useRouter } from 'vue-router'
 import { GraduationCap, Compass, ArrowRight, Users, ShieldCheck, UserPlus, CalendarCheck, Award } from 'lucide-vue-next'
 import { useScrollReveal } from '../composables/useScrollReveal'
+import { ref, onMounted } from 'vue'
 import ClubIcon from '../components/ui/ClubIcon.vue'
-import { mockClubs } from '../api/clubs'
+import { getClubs } from '../api/clubs'
 
 const router = useRouter()
 const { collectReveal } = useScrollReveal()
@@ -85,7 +86,6 @@ const quotes = [
   }
 ]
 
-const trendingClubs = [...mockClubs, ...mockClubs]
 
 const showcaseRowOne = [
   { img: 'https://picsum.photos/seed/cc-discover/400/260', label: 'Discover clubs' },
@@ -144,6 +144,46 @@ const accountLinks = [
   { label: 'For club leaders', to: '/signup' },
   { label: 'Verify a certificate', to: '/verify/lookup' }
 ]
+
+const trendingClubs = ref([])
+
+function categoryIcon(category) {
+  const map = {
+    Tech: 'laptop',
+    Arts: 'palette',
+    Culture: 'drama',
+    Sports: 'sports',
+    Music: 'music',
+    Business: 'briefcase',
+    Science: 'microscope'
+  }
+
+  return map[category] || 'robot'
+}
+
+function bannerClass(category) {
+  const map = {
+    Tech: 'banner-blue',
+    Arts: 'banner-pink',
+    Culture: 'banner-yellow',
+    Sports: 'banner-green',
+    Music: 'banner-purple',
+    Business: 'banner-mint',
+    Science: 'banner-orange'
+  }
+
+  return map[category] || 'banner-blue'
+}
+
+onMounted(async () => {
+  try {
+    const clubs = await getClubs()
+
+    trendingClubs.value = [...clubs, ...clubs]
+  } catch (err) {
+    console.error(err)
+  }
+})
 
 function goTo(path) {
   router.push(path)
@@ -270,14 +310,14 @@ function goTo(path) {
             :key="index"
             class="mini-club-card"
           >
-            <div class="mini-club-dot" :class="club.banner">
-              <ClubIcon :name="club.icon" />
+            <div class="mini-club-dot" :class="bannerClass(club.category)">
+              <ClubIcon :name="categoryIcon(club.category)" />
             </div>
-            <div>
-              <p class="mini-club-name">{{ club.name }}</p>
-              <p class="mini-club-sub">{{ club.members }} members · {{ club.category }}</p>
+
+            <p class="mini-club-name"> {{ club.name }} </p>
+
+            <p class="mini-club-sub"> {{ club.member_count }} members · {{ club.category }} </p>
             </div>
-          </div>
         </div>
       </div>
     </section>
