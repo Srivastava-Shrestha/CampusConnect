@@ -53,3 +53,24 @@ class IssueMessages:
     RAISED = "Issue submitted to the club leader"
     REPLIED = "Reply sent to the student"
     RESOLVED = "Issue marked as resolved"
+
+
+class NotificationMessages:
+    MARKED_READ = "Notification marked as read"
+    ALL_MARKED_READ = "All notifications marked as read"
+
+    @staticmethod
+    def join_approved(club_name: str) -> str:
+        return f"Your request to join {club_name} was approved"
+
+    @staticmethod
+    def join_rejected(club_name: str) -> str:
+        return f"Your request to join {club_name} was not approved"
+
+    @staticmethod
+    def registration_confirmed(event_title: str) -> str:
+        return f"You are registered for {event_title}"
+
+    @staticmethod
+    def result_posted(event_title: str, result: str) -> str:
+        return f"Your result for {event_title} is now available: {result}"

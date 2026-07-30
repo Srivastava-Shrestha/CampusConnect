@@ -15,3 +15,4 @@ from app.exceptions.event import (
 )
 from app.exceptions.announcement import AnnouncementNotFoundError
 from app.exceptions.issue import IssueNotFoundError, IssueActionNotAllowedError
+from app.exceptions.notification import NotificationNotFoundError

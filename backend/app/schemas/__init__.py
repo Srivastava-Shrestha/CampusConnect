@@ -24,3 +24,7 @@ from app.schemas.issue import (
     RaiseIssueRequest, ReplyIssueRequest, RaiseIssueResponse, IssueResponseInfo,
     MyIssueItem, LeaderIssueItem, IssueActionResponse, OpenIssueCountResponse
 )
+from app.schemas.notification import (
+    NotificationItem, NotificationCountResponse, NotificationReadResponse,
+    MarkAllNotificationsReadResponse
+)
