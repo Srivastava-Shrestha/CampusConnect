@@ -1,37 +1,108 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, Calendar, Clock, MapPin, Users, Tag, CheckCircle2, Award } from 'lucide-vue-next'
+import { ArrowLeft, Calendar, Clock, MapPin, Users, CheckCircle2, XCircle, Award } from 'lucide-vue-next'
 import StudentSidebar from '../components/layout/StudentSidebar.vue'
 import { useEventsStore } from '../stores/events'
-import { registerForEvent } from '../api/events'
+import { registerForEvent, unregisterFromEvent, getMyResults } from '../api/events'
+import { toast } from '../composables/useToast'
 
 const route = useRoute()
 const router = useRouter()
 const eventsStore = useEventsStore()
 
-const isRegistered = ref(false)
-const registrationId = ref('')
+const submitting = ref(false)
+const myResult = ref(null)
 
 const event = computed(() => eventsStore.currentEvent)
 
 const seatsRemaining = computed(function calcSeats() {
-  if (!event.value) return 0
-  return event.value.capacity - event.value.registered
+  if (!event.value) return null
+  return event.value.seats_left
 })
 
+// The backend refuses a registration once the event has started or if it is not published.
+const registrationOpen = computed(function isOpen() {
+  if (!event.value) return false
+  return event.value.lifecycle === 'PUBLISHED' && new Date(event.value.starts_at) > new Date()
+})
+
+const resultLabels = {
+  WINNER: 'Winner',
+  RUNNER_UP: 'Runner-up',
+  PARTICIPANT: 'Participant'
+}
+
+const resultClasses = {
+  WINNER: 'winner',
+  RUNNER_UP: 'runner-up',
+  PARTICIPANT: 'participant'
+}
+
+async function reloadEvent() {
+  await eventsStore.loadEvent(route.params.id)
+  await eventsStore.loadMyRegistrations()
+  // The browse list caches its normalized copies, so let it rebuild on the next visit.
+  eventsStore.loaded = false
+}
+
 async function handleRegister() {
-  const result = await registerForEvent(route.params.id)
-  registrationId.value = result.registrationId || 'CC-2026-0482'
-  isRegistered.value = true
+  submitting.value = true
+
+  try {
+    const confirmation = await registerForEvent(route.params.id)
+    await reloadEvent()
+    await loadMyResult()
+    toast.success(confirmation.message)
+  } catch (error) {
+    toast.error(error.message)
+  } finally {
+    submitting.value = false
+  }
+}
+
+async function handleUnregister() {
+  submitting.value = true
+
+  try {
+    const result = await unregisterFromEvent(route.params.id)
+    await reloadEvent()
+    await loadMyResult()
+    toast.success(result.message)
+  } catch (error) {
+    toast.error(error.message)
+  } finally {
+    submitting.value = false
+  }
+}
+
+async function loadMyResult() {
+  try {
+    const results = await getMyResults()
+
+    myResult.value =
+      results.find(
+        r => r.event_id === Number(route.params.id)
+      ) || null
+
+  } catch (error) {
+    console.error(error)
+
+    myResult.value = null
+
+    toast.error(
+      "Unable to load your event result."
+    )
+  }
 }
 
 function goBackToEvents() {
   router.push('/events')
 }
 
-onMounted(function loadDetail() {
-  eventsStore.loadEvent(route.params.id)
+onMounted(async function loadDetail() {
+  await eventsStore.loadEvent(route.params.id)
+  await loadMyResult()
 })
 </script>
 
@@ -63,7 +134,7 @@ onMounted(function loadDetail() {
           <div class="event-hero-overlay"></div>
           <div class="event-hero-text">
             <p class="event-hero-title">{{ event.title }}</p>
-            <p class="event-hero-sub">{{ event.club }} · {{ event.month }} {{ event.day }}, 2026</p>
+            <p class="event-hero-sub">{{ event.club }} · {{ event.dateLong }}</p>
           </div>
         </div>
 
@@ -72,43 +143,51 @@ onMounted(function loadDetail() {
 
             <div>
               <p class="section-heading">About this Event</p>
-              <p class="body-text">{{ event.about || 'Details for this event will be shared by the club soon.' }}</p>
+              <p class="body-text">{{ event.description }}</p>
 
               <div class="event-meta-list mt-20">
                 <div class="event-meta-item">
                   <Calendar />
-                  <span><span class="event-meta-label">Date</span> &nbsp; {{ event.dateLong || (event.day + ' ' + event.month + ' 2026') }}</span>
+                  <span><span class="event-meta-label">Date</span> &nbsp; {{ event.dateLong }}</span>
                 </div>
                 <div class="event-meta-item">
                   <Clock />
-                  <span><span class="event-meta-label">Time</span> &nbsp; {{ event.timeLong || event.time }}</span>
+                  <span><span class="event-meta-label">Time</span> &nbsp; {{ event.timeLong }}</span>
                 </div>
                 <div class="event-meta-item">
                   <MapPin />
-                  <span><span class="event-meta-label">Venue</span> &nbsp; {{ event.venueLong || event.venue }}</span>
+                  <span><span class="event-meta-label">Venue</span> &nbsp; {{ event.venue }}</span>
                 </div>
                 <div class="event-meta-item">
                   <Users />
-                  <span><span class="event-meta-label">Capacity</span> &nbsp; {{ event.capacity }} participants ({{ event.registered }} registered)</span>
-                </div>
-                <div class="event-meta-item">
-                  <Tag />
-                  <span><span class="event-meta-label">Type</span> &nbsp; {{ event.type || 'Event' }}</span>
+                  <span v-if="event.capacity">
+                    <span class="event-meta-label">Capacity</span> &nbsp; {{ event.capacity }} participants ({{ event.registered }} registered)
+                  </span>
+                  <span v-else>
+                    <span class="event-meta-label">Capacity</span> &nbsp; Unlimited ({{ event.registered }} registered)
+                  </span>
                 </div>
               </div>
             </div>
 
             <div class="reg-panel">
 
-              <div v-if="!isRegistered">
+              <div v-if="!event.is_registered">
                 <p class="reg-panel-title">Register for this Event</p>
-                <div class="reg-capacity-row">
+                <div class="reg-capacity-row" v-if="seatsRemaining !== null">
                   <span>Seats remaining</span>
                   <span class="reg-capacity-num">{{ seatsRemaining }}</span>
                 </div>
-                <p class="text-note">{{ event.closesNote || 'Registration closes the day before the event.' }}</p>
-                <button class="btn-auth-submit" @click="handleRegister">
-                  <CheckCircle2 /> Register Now
+                <p class="text-note">
+                  Registration closes when the event starts on {{ event.dateLong }}. Only approved
+                  members of {{ event.club }} can register.
+                </p>
+                <button
+                  class="btn-auth-submit"
+                  :disabled="submitting || !registrationOpen"
+                  @click="handleRegister"
+                >
+                  <CheckCircle2 /> {{ registrationOpen ? 'Register Now' : 'Registration Closed' }}
                 </button>
               </div>
 
@@ -116,14 +195,23 @@ onMounted(function loadDetail() {
                 <p class="reg-panel-title">You are Registered!</p>
                 <div class="reg-id-box">
                   <p class="reg-id-label">Registration ID</p>
-                  <p class="reg-id-value">{{ registrationId }}</p>
+                  <p class="reg-id-value">#{{ event.my_registration_id }}</p>
                 </div>
-                <p class="text-note">Show this ID at the event gate. You will receive a confirmation on your registered email.</p>
+                <p class="text-note">Show this ID at the event gate.</p>
 
-                <div v-if="event.status === 'past'">
+                <button
+                  v-if="registrationOpen"
+                  class="btn-secondary"
+                  :disabled="submitting"
+                  @click="handleUnregister"
+                >
+                  <XCircle /> Cancel Registration
+                </button>
+
+                <div v-if="myResult">
                   <p class="reg-panel-title">Your Result</p>
-                  <div class="result-badge participant">
-                    <Award /> Participant
+                  <div class="result-badge" :class="resultClasses[myResult.result]">
+                    <Award /> {{ resultLabels[myResult.result] }}
                   </div>
                 </div>
               </div>

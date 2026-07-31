@@ -29,8 +29,8 @@ function openEvent(eventId) {
   router.push('/events/' + eventId)
 }
 
-onMounted(function loadEventsList() {
-  eventsStore.loadEvents()
+onMounted(async () => {
+    await eventsStore.loadEvents()
 })
 </script>
 
@@ -54,7 +54,16 @@ onMounted(function loadEventsList() {
         />
       </div>
 
-      <div v-if="filteredItems.length === 0" class="empty-state">
+      <div v-if="eventsStore.loading" class="empty-state">
+        <p>Loading events...</p>
+      </div>
+
+      <div v-else-if="eventsStore.error" class="empty-state">
+        <CalendarX />
+        <p>{{ eventsStore.error }}</p>
+      </div>
+
+      <div v-else-if="filteredItems.length === 0" class="empty-state">
         <CalendarX />
         <p>No events match this filter.</p>
       </div>
@@ -63,3 +72,4 @@ onMounted(function loadEventsList() {
 
   </div>
 </template>
+

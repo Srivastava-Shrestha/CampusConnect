@@ -7,6 +7,7 @@ import Topbar from '../components/layout/Topbar.vue'
 import CertCard from '../components/ui/CertCard.vue'
 import { useAuthStore } from '../stores/auth'
 import { getMyCertificates } from '../api/certificates'
+import { getMyRegistrations } from '../api/events'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -26,51 +27,47 @@ const profileStats = [
   { num: 2, label: 'Certs' }
 ]
 
-const eventHistory = [
-  {
-    id: 1,
-    day: '8',
-    month: 'Jul',
-    title: 'Photography Walk: Old City',
-    club: 'Photography Circle',
-    result: 'participant'
-  },
-  {
-    id: 2,
-    day: '10',
-    month: 'Jul',
-    title: 'Open Mic Night',
-    club: 'Music Collective',
-    result: 'registered'
-  },
-  {
-    id: 3,
-    day: '15',
-    month: 'Mar',
-    title: 'Open Mic Night, Spring Edition',
-    club: 'Music Collective',
-    result: 'participant'
-  },
-  {
-    id: 4,
-    day: '2',
-    month: 'Feb',
-    title: 'Robot Line Follower Workshop',
-    club: 'Robotics & Automation Club',
-    result: 'participant'
-  },
-  {
-    id: 5,
-    day: '20',
-    month: 'Jan',
-    title: 'Freshers Welcome Hack',
-    club: 'Coding Society',
-    result: 'participant'
-  }
-]
+const eventHistory = ref([])
 
-onMounted(async function loadCertificates() {
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+const resultLabels = {
+  WINNER: 'Winner',
+  RUNNER_UP: 'Runner-up',
+  PARTICIPANT: 'Participant'
+}
+
+const resultClasses = {
+  WINNER: 'winner',
+  RUNNER_UP: 'runner-up',
+  PARTICIPANT: 'participant'
+}
+
+// A registration only carries a real outcome once the leader has checked the student
+// in and set a result; until then it is still just a sign-up.
+function toHistoryEntry(registration) {
+  const startsAt = new Date(registration.starts_at)
+
+  return {
+    id: registration.registration_id,
+    day: String(startsAt.getDate()),
+    month: MONTHS[startsAt.getMonth()],
+    title: registration.event_title,
+    club: registration.club_name,
+    result: registration.result === 'REGISTRANT' ? null : registration.result
+  }
+}
+
+onMounted(async function loadProfile() {
   certificates.value = await getMyCertificates()
+
+  try {
+    const registrations = await getMyRegistrations()
+    eventHistory.value = registrations.map(toHistoryEntry)
+  } catch (error) {
+    console.error('Failed to load event history:', error)
+    eventHistory.value = []
+  }
 })
 </script>
 
@@ -122,7 +119,7 @@ onMounted(async function loadCertificates() {
       <div>
         <div class="clubs-section-header">
           <h2 class="clubs-section-title">Event History</h2>
-          <span class="clubs-count-text">{{ eventHistory.length }} events attended</span>
+          <span class="clubs-count-text">{{ eventHistory.length }} events</span>
         </div>
 
         <div class="announce-feed">
@@ -135,9 +132,9 @@ onMounted(async function loadCertificates() {
               <p class="event-history-title">{{ entry.title }}</p>
               <p class="event-history-club">{{ entry.club }}</p>
             </div>
-            <span v-if="entry.result === 'registered'" class="event-status registered">Registered</span>
-            <div v-else class="result-badge participant">
-              <Award /> Participant
+            <span v-if="!entry.result" class="event-status registered">Registered</span>
+            <div v-else class="result-badge" :class="resultClasses[entry.result]">
+              <Award /> {{ resultLabels[entry.result] }}
             </div>
           </div>
         </div>

@@ -21,7 +21,7 @@ const club = computed(() => clubsStore.currentClub)
 const clubEvents = computed(function eventsForThisClub() {
   if (!club.value) return []
   return eventsStore.events.filter(function belongsToClub(event) {
-    return event.club === club.value.name && event.status !== 'past'
+    return event.club_id === club.value.id && event.status !== 'past'
   })
 })
 
