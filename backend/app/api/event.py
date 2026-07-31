@@ -23,7 +23,7 @@ async def create_event(
 
 @event_router.get("", response_model=list[EventListItem])
 async def browse_events(
-    status: EventStatus | None = Query(None, description="Admins only; students always get PUBLISHED events"),
+    status: EventStatus | None = Query(None, description="Campus admins, and a club leader who also passes their own club_id, get the status they ask for; everyone else always gets PUBLISHED events"),
     club_id: int | None = Query(None),
     search: str | None = Query(None, min_length=1, max_length=100, description="Matches title, description or venue"),
     upcoming_only: bool = Query(False, description="Only events that have not finished yet"),
