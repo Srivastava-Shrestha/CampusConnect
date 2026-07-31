@@ -58,7 +58,7 @@ class EventService:
                    club_id: int | None = None, search: str | None = None,
                    upcoming_only: bool = False) -> list[EventListItem]:
         college_id = await self._college_id(payload)
-        effective_status = status if self._is_admin(payload) else EventStatus.PUBLISHED
+        effective_status = await self._effective_status(payload, status, club_id)
 
         rows = await self.event_repo.list_by_college(
             college_id, effective_status, club_id, search, upcoming_only
@@ -175,6 +175,20 @@ class EventService:
         if not college_id:
             raise CollegeNotFoundError()
         return college_id
+
+    async def _effective_status(self, payload: dict, status: EventStatus | None,
+                                club_id: int | None) -> EventStatus | None:
+        # Campus admins see every status. A club leader does too, but only for a club they
+        # lead and only when they ask for it by id, so the open browse feed stays published-only.
+        if self._is_admin(payload):
+            return status
+        if club_id is not None and await self._leads_club(payload, club_id):
+            return status
+        return EventStatus.PUBLISHED
+
+    async def _leads_club(self, payload: dict, club_id: int) -> bool:
+        student = await self.student_repo.get_student_by_user_id(int(payload.get("sub")))
+        return bool(student) and await self.membership_repo.is_leader(student.id, club_id)
 
     async def _visible_event(self, payload: dict, event_id: int) -> Event:
         event = await self.event_repo.get_by_id(event_id)
