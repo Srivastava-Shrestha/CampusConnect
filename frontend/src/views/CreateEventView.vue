@@ -1,26 +1,26 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ArrowLeft, Send } from 'lucide-vue-next'
+import { ArrowLeft, Send, Save } from 'lucide-vue-next'
 import LeaderSidebar from '../components/layout/LeaderSidebar.vue'
-import CustomSelect from '../components/ui/CustomSelect.vue'
-import { createEvent } from '../api/events'
+import { createEvent, publishEvent } from '../api/events'
+import { getMyClubs } from '../api/clubs'
 import { toast } from '../composables/useToast'
 import { useFormValidation } from '../composables/useFormValidation'
 
 const router = useRouter()
 const { allFieldsFilled } = useFormValidation()
 
+const club = ref(null)
+const saving = ref(false)
+
 const eventTitle = ref('')
-const eventType = ref('')
 const eventDesc = ref('')
 const eventDate = ref('')
 const eventCapacity = ref('')
 const eventStart = ref('')
 const eventEnd = ref('')
 const eventVenue = ref('')
-
-const typeOptions = ['Workshop', 'Hackathon', 'Competition', 'Social / Open Mic', 'Talk / Seminar', 'Other']
 
 const guideSteps = [
   {
@@ -29,23 +29,23 @@ const guideSteps = [
   },
   {
     num: '2',
-    text: 'Set a realistic capacity. Registered students receive a confirmation ID.'
+    text: 'Capacity is optional. Leave it empty to accept unlimited registrations.'
   },
   {
     num: '3',
-    text: 'Once published, all members of your club can see and register for the event.'
+    text: 'Save as draft to keep working on it. Only you and your co-leaders can see a draft.'
   },
   {
     num: '4',
-    text: 'On the day, use the Attendance page to mark who actually showed up.'
+    text: 'Publishing opens registration to every approved member of your club.'
   },
   {
     num: '5',
-    text: 'After the event, set results. Certificates are auto-generated for all attendees.'
+    text: 'On the day, use the Attendance page to mark who showed up, then set results.'
   },
   {
     num: '!',
-    text: 'You can edit or cancel the event anytime before it starts.',
+    text: 'An event starting in the past cannot be published, and a cancelled event cannot be edited.',
     warn: true
   }
 ]
@@ -54,35 +54,117 @@ function goBackToEvents() {
   router.push('/leader/events')
 }
 
-async function publishEvent() {
+// <input type="date"> and <input type="time"> give local wall-clock values; the API
+// wants one ISO instant per boundary.
+function toIsoInstant(date, time) {
+  return new Date(`${date}T${time}`).toISOString()
+}
+
+function buildPayload() {
   const requiredFields = {
     title: eventTitle.value,
-    type: eventType.value,
     desc: eventDesc.value,
     date: eventDate.value,
-    capacity: eventCapacity.value,
+    start: eventStart.value,
+    end: eventEnd.value,
     venue: eventVenue.value
   }
 
   if (!allFieldsFilled(requiredFields)) {
-    toast.error('Please fill in all required fields before publishing.')
-    return
+    toast.error('Please fill in all required fields.')
+    return null
   }
 
-  await createEvent({
-    title: eventTitle.value.trim(),
-    type: eventType.value,
-    desc: eventDesc.value.trim(),
-    date: eventDate.value,
-    capacity: eventCapacity.value,
-    start: eventStart.value,
-    end: eventEnd.value,
-    venue: eventVenue.value.trim()
-  })
+  const startsAt = toIsoInstant(eventDate.value, eventStart.value)
+  if (new Date(startsAt) <= new Date()) {
+  toast.error('The event must start in the future.')
+  return null
+  }
+  const endsAt = toIsoInstant(eventDate.value, eventEnd.value)
 
-  toast.success('Event published! Members can now register.')
-  router.push('/leader/events')
+  if (endsAt <= startsAt) {
+    toast.error('The end time must be after the start time.')
+    return null
+  }
+  const capacity =
+  eventCapacity.value === ''
+    ? null
+    : Number(eventCapacity.value)
+
+  if (capacity !== null && (!Number.isInteger(capacity) || capacity < 1)) {
+    toast.error('Capacity must be at least 1.')
+    return null
 }
+  return {
+    club_id: club.value.id,
+    title: eventTitle.value.trim(),
+    description: eventDesc.value.trim(),
+    venue: eventVenue.value.trim(),
+    starts_at: startsAt,
+    ends_at: endsAt,
+    capacity
+  }
+}
+
+async function saveDraft() {
+  const payload = buildPayload()
+  if (!payload) return
+
+  saving.value = true
+
+  try {
+    const created = await createEvent(payload)
+    toast.success(`"${created.title}" saved as a draft.`)
+    router.push('/leader/events')
+  } catch (error) {
+    toast.error(error?.message || 'Unable to create event.')
+  } finally {
+    saving.value = false
+  }
+}
+
+async function publishNewEvent() {
+  const payload = buildPayload()
+  if (!payload) return
+
+  saving.value = true
+
+  try {
+    const created = await createEvent(payload)
+
+    try {
+      await publishEvent(created.id)
+      toast.success('Event published! Members can now register.')
+    } catch (error) {
+      // The event exists as a draft either way, so say that instead of looking like a total failure.
+      toast.error(`Event was saved as a draft, but publishing failed: ${error?.message || 'Unknown error.'}`
+)
+    }
+
+    router.push('/leader/events')
+  } catch (error) {
+    toast.error(error?.message || 'Unable to create event.')
+  } finally {
+    saving.value = false
+  }
+}
+
+onMounted(async function loadLeaderClub() {
+  try {
+    const ledClubs = await getMyClubs({ role: 'LEADER' })
+
+    if (!ledClubs.length) {
+      toast.error('You do not lead a club yet.')
+      router.push('/clubs')
+      return
+    }
+
+    club.value = ledClubs[0]
+  } catch (error) {
+    toast.error(error?.message || 'Unable to load your club.')
+    router.push('/clubs')
+  }
+})
 </script>
 
 <template>
@@ -96,7 +178,7 @@ async function publishEvent() {
       </button>
       <div class="title-block">
         <h1 class="page-title">Create a New Event</h1>
-        <p class="page-sub">Robotics & Automation Club</p>
+        <p class="page-sub">{{ club ? club.name : 'Loading your club...' }}</p>
       </div>
       <div class="topbar-spacer"></div>
     </header>
@@ -114,11 +196,6 @@ async function publishEvent() {
           </div>
 
           <div class="form-group">
-            <label for="event-type">Event Type</label>
-            <CustomSelect v-model="eventType" :options="typeOptions" placeholder="Select type" />
-          </div>
-
-          <div class="form-group">
             <label for="event-desc">Description</label>
             <textarea id="event-desc" v-model="eventDesc" class="textarea-field" rows="4" placeholder="What will happen at this event? What should attendees bring or prepare?"></textarea>
           </div>
@@ -129,8 +206,8 @@ async function publishEvent() {
               <input type="date" id="event-date" v-model="eventDate" class="input-field">
             </div>
             <div class="form-group">
-              <label for="event-capacity">Max Participants</label>
-              <input type="number" id="event-capacity" v-model="eventCapacity" class="input-field" placeholder="80" min="1">
+              <label for="event-capacity">Max Participants (optional)</label>
+              <input type="number" id="event-capacity" v-model="eventCapacity" class="input-field" placeholder="Leave empty for unlimited" min="1">
             </div>
           </div>
 
@@ -150,9 +227,14 @@ async function publishEvent() {
             <input type="text" id="event-venue" v-model="eventVenue" class="input-field" placeholder="e.g. Seminar Hall, Block A">
           </div>
 
-          <button class="btn-primary" @click="publishEvent">
-            <Send /> Publish Event
-          </button>
+          <div class="event-action-bar">
+            <button class="btn-secondary" :disabled="saving || !club" @click="saveDraft">
+              <Save /> Save as Draft
+            </button>
+            <button class="btn-primary" :disabled="saving || !club" @click="publishNewEvent">
+              <Send /> Publish Event
+            </button>
+          </div>
         </div>
 
         <div class="guide-card">

@@ -1,79 +1,106 @@
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
-async function postJson(path, payload, extraHeaders = {}) {
-  const response = await fetch(BASE_URL + path, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...extraHeaders
-    },
-    body: JSON.stringify(payload)
-  })
+function extractMessage(body) {
+  if (typeof body.message === "string") return body.message;
+  if (typeof body.detail === "string") return body.detail;
 
-  const data = await response.json()
-
-  if (!response.ok) {
-    throw new Error(data.detail || data.message || 'Request failed')
+  if (Array.isArray(body.detail) && body.detail.length) {
+    return body.detail[0].msg || "Request failed";
   }
 
-  return data
+  return "Request failed";
+}
+
+async function apiRequest(endpoint, options = {}) {
+  const token = localStorage.getItem("cc_token");
+
+  const headers = {
+    "Content-Type": "application/json",
+    ...(options.headers || {}),
+  };
+
+  if (token && !headers.Authorization) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${BASE_URL}${endpoint}`, {
+    ...options,
+    headers,
+  });
+
+  let body = {};
+
+  if (response.status !== 204) {
+    body = await response.json().catch(() => ({}));
+  }
+
+  if (!response.ok) {
+    throw new Error(extractMessage(body));
+  }
+
+  return body;
 }
 
 export async function loginUser(email, password) {
-  return await postJson('/auth/login', {
-    email,
-    password
-  })
+  return apiRequest("/auth/login", {
+    method: "POST",
+    body: JSON.stringify({
+      email,
+      password,
+    }),
+  });
 }
 
 export async function signupUser(data) {
-  return await postJson('/auth/signup', data)
+  return apiRequest("/auth/signup", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
 }
 
-// TODO: replace with real endpoint when backend is ready
 export async function verifyEmailOtp(email, code) {
-  try {
-    return await postJson('/auth/verify-email', { email, code })
-  } catch (error) {
-    return { ok: true, verified: true }
-  }
+  return apiRequest("/auth/verify-email", {
+    method: "POST",
+    body: JSON.stringify({
+      email,
+      code,
+    }),
+  });
 }
 
-// TODO: replace with real endpoint when backend is ready
 export async function resendOtp(email) {
-  try {
-    return await postJson('/auth/resend-otp', { email })
-  } catch (error) {
-    return { ok: true, sent: true }
-  }
+  return apiRequest("/auth/resend-otp", {
+    method: "POST",
+    body: JSON.stringify({
+      email,
+    }),
+  });
 }
 
-// TODO: replace with real endpoint when backend is ready
 export async function sendResetLink(email) {
-  try {
-    return await postJson('/auth/forgot-password', { email })
-  } catch (error) {
-    return { ok: true, sent: true }
-  }
+  return apiRequest("/auth/forgot-password", {
+    method: "POST",
+    body: JSON.stringify({
+      email,
+    }),
+  });
 }
 
 export async function onboardCollege(data, token) {
-  return await postJson(
-    '/college/onboarding',
-    data,
-    {
-      Authorization: `Bearer ${token}`
-    }
-  )
+  return apiRequest("/college/onboarding", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
 }
 
-// TODO: replace with real endpoint when backend is ready
 export async function saveOnboarding(profile) {
-  try {
-    return await postJson('/auth/onboarding', profile)
-  } catch (error) {
-    return { ok: true, saved: true }
-  }
+  return apiRequest("/auth/onboarding", {
+    method: "POST",
+    body: JSON.stringify(profile),
+  });
 }
 
-export { BASE_URL }
+export { BASE_URL };

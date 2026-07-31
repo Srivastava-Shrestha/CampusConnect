@@ -1,57 +1,147 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Plus, Clock, MapPin, Users, CalendarX, ClipboardCheck, Trophy, Medal } from 'lucide-vue-next'
+import { Plus, Clock, MapPin, Users, CalendarX, ClipboardCheck, Trophy, Send, Ban } from 'lucide-vue-next'
 import LeaderSidebar from '../components/layout/LeaderSidebar.vue'
 import Topbar from '../components/layout/Topbar.vue'
 import FilterChips from '../components/ui/FilterChips.vue'
-import { getLeaderEvents } from '../api/events'
+import { getEvents, publishEvent, cancelEvent, normalizeEvent } from '../api/events'
+import { getMyClubs } from '../api/clubs'
+import { toast } from '../composables/useToast'
 
 const router = useRouter()
 
+const club = ref(null)
 const events = ref([])
+const loading = ref(true)
 const activeFilter = ref('all')
 
 const filterChips = [
   { id: 'all', label: 'All Events' },
+  { id: 'draft', label: 'Drafts' },
   { id: 'upcoming', label: 'Upcoming' },
   { id: 'past', label: 'Past' },
-  { id: 'needs-action', label: 'Needs Action' }
+  { id: 'cancelled', label: 'Cancelled' }
 ]
+
+const statusLabels = {
+  draft: 'Draft',
+  upcoming: 'Upcoming',
+  registered: 'Upcoming',
+  past: 'Completed',
+  cancelled: 'Cancelled'
+}
 
 const visibleEvents = computed(function filterEvents() {
   return events.value.filter(function matchesFilter(event) {
     if (activeFilter.value === 'all') return true
-    if (activeFilter.value === 'past') return event.status === 'past' || event.status === 'needs-action'
+    if (activeFilter.value === 'upcoming') {
+      return event.status === 'upcoming' || event.status === 'registered'
+    }
     return event.status === activeFilter.value
   })
 })
 
 function statusPillClass(event) {
-  if (event.status === 'needs-action') return 'registered'
-  return event.status === 'past' ? 'past' : 'upcoming'
+  if (event.status === 'registered') return 'upcoming'
+  return event.status
 }
 
-function manageEvent(event) {
-  if (event.action === 'attendance') {
-    router.push('/leader/events/' + event.id + '/attend')
-  } else {
-    router.push('/leader/events/' + event.id + '/results')
+function countText(event) {
+  if (event.capacity === null || event.capacity === undefined) {
+    return `${event.registered} registered`
   }
+  return `${event.registered} / ${event.capacity}`
 }
 
-function manageLabel(event) {
-  if (event.action === 'attendance') return 'Take Attendance'
-  if (event.action === 'set-results') return 'Set Results'
-  return 'View Results'
+// Attendance opens once the event has started; results need attendance taken first.
+function hasStarted(event) {
+  return new Date(event.starts_at) <= new Date()
+}
+
+function canTakeAttendance(event) {
+  return event.lifecycle === 'PUBLISHED' && hasStarted(event)
+}
+
+function canSetResults(event) {
+  return event.lifecycle === 'PUBLISHED' && event.status === 'past'
+}
+
+function goToAttendance(event) {
+  router.push('/leader/events/' + event.id + '/attend')
+}
+
+function goToResults(event) {
+  router.push('/leader/events/' + event.id + '/results')
 }
 
 function goToCreateEvent() {
   router.push('/leader/events/new')
 }
 
+function goToEditEvent(event) {
+  router.push('/leader/events/' + event.id + '/edit')
+}
+
+async function publish(event) {
+  try {
+    const result = await publishEvent(event.id)
+    toast.success(result.message)
+    await loadEvents()
+  } catch (error) {
+    toast.error(error?.message || 'Something went wrong.')
+  }
+}
+
+async function cancel(event) {
+  const confirmed = window.confirm(
+    `Cancel "${event.title}"?\n\nRegistered members keep their registration but the event is closed.`
+  )
+
+  if (!confirmed) return
+
+  try {
+    const result = await cancelEvent(event.id)
+    toast.success(result.message)
+    await loadEvents()
+  } catch (error) {
+    toast.error(error?.message || 'Something went wrong.')
+  }
+}
+
+async function loadEvents() {
+  if (!club.value) return
+
+  loading.value = true
+
+  try {
+    const rows = await getEvents({ club_id: club.value.id })
+    events.value = rows.map(row => normalizeEvent(row))
+  } catch (error) {
+    toast.error(error?.message || 'Something went wrong.')
+    events.value = []
+  } finally {
+    loading.value = false
+  }
+}
+
 onMounted(async function loadLeaderEvents() {
-  events.value = await getLeaderEvents()
+  try {
+    const ledClubs = await getMyClubs({ role: 'LEADER' })
+
+    if (!ledClubs.length) {
+      toast.error('You do not lead a club yet.')
+      router.push('/clubs')
+      return
+    }
+
+    club.value = ledClubs[0]
+    await loadEvents()
+  } catch (error) {
+    toast.error(error?.message || 'Something went wrong.')
+  } finally {
+    loading.value = false
+  }
 })
 </script>
 
@@ -60,7 +150,7 @@ onMounted(async function loadLeaderEvents() {
 
   <div class="main-content">
 
-    <Topbar title="Events" sub="Robotics & Automation Club">
+    <Topbar title="Events" :sub="club ? club.name : 'Loading your club...'">
       <button class="btn-primary" @click="goToCreateEvent">
         <Plus /> Create Event
       </button>
@@ -80,29 +170,57 @@ onMounted(async function loadLeaderEvents() {
           <div class="event-card-body">
             <div>
               <p class="event-card-title">{{ event.title }}</p>
-              <p class="event-card-club">{{ event.type }}</p>
+              <p class="event-card-club">{{ event.club }}</p>
               <div class="event-card-meta">
                 <span><Clock /> {{ event.time }}</span>
                 <span><MapPin /> {{ event.venue }}</span>
               </div>
             </div>
             <div class="event-card-footer">
-              <span class="event-status" :class="statusPillClass(event)">{{ event.statusLabel }}</span>
-              <span class="club-card-members"><Users /> {{ event.countText }}</span>
+              <span class="event-status" :class="statusPillClass(event)">{{ statusLabels[event.status] }}</span>
+              <span class="club-card-members"><Users /> {{ countText(event) }}</span>
             </div>
+
             <div class="event-card-manage-row">
-              <button class="btn-secondary-sm" @click="manageEvent(event)">
-                <ClipboardCheck v-if="event.action === 'attendance'" />
-                <Trophy v-else-if="event.action === 'set-results'" />
-                <Medal v-else />
-                {{ manageLabel(event) }}
+              <button v-if="event.lifecycle === 'DRAFT'" class="btn-secondary-sm" @click="goToEditEvent(event)">Edit</button>
+              <button
+                v-if="event.lifecycle === 'DRAFT'"
+                class="btn-secondary-sm"
+                @click="publish(event)"
+              >
+                <Send /> Publish
+              </button>
+              <button
+                v-if="canTakeAttendance(event)"
+                class="btn-secondary-sm"
+                @click="goToAttendance(event)"
+              >
+                <ClipboardCheck /> Take Attendance
+              </button>
+              <button
+                v-if="canSetResults(event)"
+                class="btn-secondary-sm"
+                @click="goToResults(event)"
+              >
+                <Trophy /> Set Results
+              </button>
+              <button
+                v-if="event.lifecycle !== 'CANCELLED'"
+                class="btn-secondary-sm"
+                @click="cancel(event)"
+              >
+                <Ban /> Cancel
               </button>
             </div>
           </div>
         </div>
       </div>
 
-      <div v-if="visibleEvents.length === 0" class="empty-state">
+      <div v-if="loading" class="empty-state">
+        <p>Loading events...</p>
+      </div>
+
+      <div v-else-if="visibleEvents.length === 0" class="empty-state">
         <CalendarX />
         <p>No events match this filter.</p>
       </div>

@@ -5,7 +5,7 @@ import { Pencil, MapPin, Users, Calendar, CalendarPlus, Megaphone, UsersRound } 
 import LeaderSidebar from '../components/layout/LeaderSidebar.vue'
 import ClubIcon from '../components/ui/ClubIcon.vue'
 import { getClubById, getMyClubs, updateClub, deleteClub } from '../api/clubs'
-import { getLeaderEvents } from '../api/events'
+import { getEvents, normalizeEvent } from '../api/events'
 import { toast } from '../composables/useToast'
 import CustomSelect from '../components/ui/CustomSelect.vue'
 
@@ -73,7 +73,9 @@ function buildStats(loadedClub) {
 }
 
 function manageEvent(event) {
-  if (event.action === 'attendance') {
+  // Attendance only opens once the event has started; until then the events page
+  // carries the publish and cancel actions.
+  if (new Date(event.starts_at) <= new Date()) {
     router.push('/leader/events/' + event.id + '/attend')
   } else {
     router.push('/leader/events')
@@ -188,18 +190,17 @@ onMounted(async function loadDashboard() {
   }
   try {
 
-    let allLeaderEvents = await getLeaderEvents()
+    const rows = await getEvents({
+      club_id: club.value.id,
+      upcoming_only: true
+    })
 
-    if (!Array.isArray(allLeaderEvents)) {
-      allLeaderEvents = []
-    }
-
-    upcomingEvents.value = allLeaderEvents.filter(
-      event => event.status === 'upcoming'
-    )
+    upcomingEvents.value = rows
+      .map(row => normalizeEvent(row))
+      .filter(event => event.status !== 'cancelled')
 
   } catch (error) {
-    console.warn('Events backend not available yet.')
+    console.error('Failed to load club events:', error)
     upcomingEvents.value = []
   }
 
@@ -354,7 +355,7 @@ onMounted(async function loadDashboard() {
             </div>
             <div class="club-event-info">
               <p class="club-event-title">{{ event.title }}</p>
-              <p class="club-event-sub">{{ event.type }} · {{ event.venue }} · {{ event.time }} · {{ event.countText }} registered</p>
+              <p class="club-event-sub">{{ event.venue }} · {{ event.time }} · {{ event.registered }} registered</p>
             </div>
             <button class="btn-secondary-sm" @click="manageEvent(event)">Manage</button>
           </div>
@@ -365,3 +366,4 @@ onMounted(async function loadDashboard() {
 
   </div>
 </template>
+
