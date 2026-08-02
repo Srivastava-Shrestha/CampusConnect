@@ -70,7 +70,7 @@ const publicRoutes = [
 
 const studentRoutes = [
   {
-    path: '/onboard',
+    path: '/:slug/onboard',
     name: 'onboard',
     component: () => import('../views/OnboardView.vue'),
     meta: {
@@ -79,7 +79,7 @@ const studentRoutes = [
     }
   },
   {
-    path: '/workspace',
+    path: '/:slug/workspace',
     name: 'workspace',
     component: () => import('../views/WorkspaceView.vue'),
     meta: {
@@ -88,7 +88,7 @@ const studentRoutes = [
     }
   },
   {
-    path: '/clubs',
+    path: '/:slug/clubs',
     name: 'clubs',
     component: () => import('../views/ClubDirectoryView.vue'),
     meta: {
@@ -97,7 +97,7 @@ const studentRoutes = [
     }
   },
   {
-    path: '/clubs/:id',
+    path: '/:slug/clubs/:id',
     name: 'club-profile',
     component: () => import('../views/ClubProfileView.vue'),
     meta: {
@@ -106,7 +106,7 @@ const studentRoutes = [
     }
   },
   {
-    path: '/find-clubs',
+    path: '/:slug/find-clubs',
     name: 'find-clubs',
     component: () => import('../views/FindClubsView.vue'),
     meta: {
@@ -115,7 +115,7 @@ const studentRoutes = [
     }
   },
   {
-    path: '/events',
+    path: '/:slug/events',
     name: 'events',
     component: () => import('../views/EventsView.vue'),
     meta: {
@@ -124,7 +124,7 @@ const studentRoutes = [
     }
   },
   {
-    path: '/events/:id',
+    path: '/:slug/events/:id',
     name: 'event-detail',
     component: () => import('../views/EventDetailView.vue'),
     meta: {
@@ -133,7 +133,7 @@ const studentRoutes = [
     }
   },
   {
-    path: '/announcements',
+    path: '/:slug/announcements',
     name: 'announcements',
     component: () => import('../views/AnnouncementsView.vue'),
     meta: {
@@ -142,7 +142,7 @@ const studentRoutes = [
     }
   },
   {
-    path: '/issues',
+    path: '/:slug/issues',
     name: 'issues',
     component: () => import('../views/IssuesView.vue'),
     meta: {
@@ -151,7 +151,7 @@ const studentRoutes = [
     }
   },
   {
-    path: '/profile',
+    path: '/:slug/profile',
     name: 'profile',
     component: () => import('../views/ProfileView.vue'),
     meta: {
@@ -160,7 +160,7 @@ const studentRoutes = [
     }
   },
   {
-    path: '/leaderboard',
+    path: '/:slug/leaderboard',
     name: 'leaderboard',
     component: () => import('../views/LeaderboardView.vue'),
     meta: {
@@ -169,7 +169,7 @@ const studentRoutes = [
     }
   },
     {
-    path: '/clubs/propose',
+    path: '/:slug/clubs/propose',
     name: 'propose-club',
     component: () => import('../views/CreateClubView.vue'),
     meta: {
@@ -181,7 +181,7 @@ const studentRoutes = [
 
 const leaderRoutes = [
   {
-    path: '/leader/club',
+    path: '/:slug/leader/club',
     name: 'leader-club',
     component: () => import('../views/LeaderClubView.vue'),
     meta: {
@@ -190,7 +190,7 @@ const leaderRoutes = [
     }
   },
   {
-    path: '/leader/events',
+    path: '/:slug/leader/events',
     name: 'leader-events',
     component: () => import('../views/LeaderEventsView.vue'),
     meta: {
@@ -199,7 +199,7 @@ const leaderRoutes = [
     }
   },
   {
-    path: '/leader/events/new',
+    path: '/:slug/leader/events/new',
     name: 'create-event',
     component: () => import('../views/CreateEventView.vue'),
     meta: {
@@ -208,7 +208,7 @@ const leaderRoutes = [
     }
   },
   {
-    path: '/leader/events/:id/attend',
+    path: '/:slug/leader/events/:id/attend',
     name: 'attendance',
     component: () => import('../views/AttendanceView.vue'),
     meta: {
@@ -217,7 +217,7 @@ const leaderRoutes = [
     }
   },
   {
-    path: '/leader/events/:id/results',
+    path: '/:slug/leader/events/:id/results',
     name: 'results',
     component: () => import('../views/ResultsView.vue'),
     meta: {
@@ -226,7 +226,7 @@ const leaderRoutes = [
     }
   },
   {
-    path: '/leader/members',
+    path: '/:slug/leader/members',
     name: 'members',
     component: () => import('../views/MembersView.vue'),
     meta: {
@@ -235,7 +235,7 @@ const leaderRoutes = [
     }
   },
   {
-    path: '/leader/announcements',
+    path: '/:slug/leader/announcements',
     name: 'leader-announcements',
     component: () => import('../views/LeaderAnnouncementsView.vue'),
     meta: {
@@ -244,7 +244,7 @@ const leaderRoutes = [
     }
   },
   {
-    path: '/leader/announcements/new',
+    path: '/:slug/leader/announcements/new',
     name: 'post-announcement',
     component: () => import('../views/PostAnnouncementView.vue'),
     meta: {
@@ -253,7 +253,7 @@ const leaderRoutes = [
     }
   },
   {
-    path: '/leader/issues',
+    path: '/:slug/leader/issues',
     name: 'leader-issues',
     component: () => import('../views/LeaderIssuesView.vue'),
     meta: {
@@ -265,7 +265,7 @@ const leaderRoutes = [
 
 const adminRoutes = [
   {
-    path: '/admin',
+    path: '/:slug/admin',
     name: 'admin',
     component: () => import('../views/AdminOverviewView.vue'),
     meta: {
@@ -274,7 +274,7 @@ const adminRoutes = [
     }
   },
   {
-    path: '/admin/approvals',
+    path: '/:slug/admin/approvals',
     name: 'admin-approvals',
     component: () => import('../views/AdminApprovalsView.vue'),
     meta: {
@@ -283,7 +283,7 @@ const adminRoutes = [
     }
   },
   {
-    path: '/admin/colleges',
+    path: '/:slug/admin/colleges',
     name: 'admin-colleges',
     component: () => import('../views/AdminCollegesView.vue'),
     meta: {
@@ -292,14 +292,23 @@ const adminRoutes = [
     }
   },
   {
-    path: '/admin/guidelines',
+    path: '/:slug/admin/guidelines',
     name: 'admin-guidelines',
     component: () => import('../views/AdminGuidelinesView.vue'),
     meta: {
       role: 'admin',
       bodyClass: 'portal-body'
     }
+  },
+  {
+    path: '/admin/onboard',
+    name: 'admin-onboard',
+    component: () => import('../views/AdminOnboardView.vue'),
+     meta: {
+      role: 'admin',
+      bodyClass: 'auth-body'
   }
+},
 ]
 
 const routes = [
@@ -309,25 +318,25 @@ const routes = [
   ...adminRoutes
 ]
 
-function resolveGuardTarget(routeMeta, auth) {
-  if (routeMeta.role === 'public') {
+function resolveGuardTarget(to, auth) {
+  if (to.meta.role === 'public') {
     return null
   }
 
+  const slug = to.params.slug
+
   if (!auth.isLoggedIn) {
-    return '/login'
+    return slug ? `/${slug}/login` : '/'
   }
 
-  // Club-leader pages are reachable by a member who leads a club, since
-  // leadership is no longer a separate login role.
-  if (routeMeta.role === 'leader') {
+  if (to.meta.role === 'leader') {
     if (auth.canManageClubs) {
       return null
     }
     return auth.homeRoute
   }
 
-  if (auth.role !== routeMeta.role) {
+  if (auth.role !== to.meta.role) {
     return auth.homeRoute
   }
 
@@ -343,7 +352,7 @@ router.beforeEach(function guardByRole(to) {
   startLoading()
 
   const auth = useAuthStore()
-  const target = resolveGuardTarget(to.meta, auth)
+  const target = resolveGuardTarget(to, auth)
 
   if (target && target !== to.path) {
     return target

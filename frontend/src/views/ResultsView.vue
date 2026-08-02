@@ -84,7 +84,7 @@ async function publishResults() {
   }
 
   toast.success('Results published! Each student can now see their result on the event page.')
-  router.push('/leader/events')
+  router.push(`/${route.params.slug}/leader/events`)
 }
 
 async function loadParticipants() {
@@ -102,7 +102,7 @@ async function loadParticipants() {
 }
 
 function goBackToAttendance() {
-  router.push('/leader/events/' + route.params.id + '/attend')
+  router.push(`/${route.params.slug}/leader/events/${route.params.id}/attend`)
 }
 
 onMounted(async function loadResultsPage() {

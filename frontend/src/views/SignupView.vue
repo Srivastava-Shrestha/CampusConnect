@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { GraduationCap, Compass, ShieldCheck, Sparkles, CheckCircle2 } from 'lucide-vue-next'
 import { signupUser } from '../api/auth'
 import { usePasswordStrength } from '../composables/usePasswordStrength'
@@ -16,6 +17,7 @@ const fullName = ref('')
 const email = ref('')
 const password = ref('')
 const confirmPassword = ref('')
+const route = useRoute()
 
 function selectRole(role) {
   selectedRole.value = role
@@ -36,8 +38,12 @@ function validateSignupForm() {
     toast.error('Please enter a valid college email address.')
     return false
   }
+  if (fullName.value.trim().length < 5) {
+    toast.error('Full name must be at least 5 characters.')
+    return false
+  }
   if (!isStrongEnough(password.value)) {
-    toast.error('Password must be at least 6 characters.')
+    toast.error('Password must be at least 8 characters.')
     return false
   }
   if (password.value !== confirmPassword.value) {
@@ -49,6 +55,7 @@ function validateSignupForm() {
 
 async function handleSignup() {
   if (!validateSignupForm()) return
+
   const roleMap = {
     student: "STUDENT",
     admin: "CAMPUS_ADMIN"
@@ -56,7 +63,7 @@ async function handleSignup() {
 
   try {
     
-    const result = await signupUser({
+    await signupUser({
       email: email.value.trim(),
       full_name: fullName.value.trim(),
       password: password.value,
@@ -67,12 +74,12 @@ async function handleSignup() {
     sessionStorage.setItem('signupEmail', email.value.trim())
     sessionStorage.setItem('signupRole', selectedRole.value)
 
-    // TODO: Restore email verification flow when backend implements
-    // POST /auth/verify-email.
-    router.push('/login') 
+    // Redirect users to sign in after successful registration.
+    // Email verification will be added once the backend supports it.
+    router.push(`/login`)
 
   } catch (error) {
-    toast.error(error.message)
+    toast.error(error?.message || 'Unable to create account.')
   }
 }
 </script>
@@ -91,7 +98,7 @@ async function handleSignup() {
 
       <h2>Create your account</h2>
       <p class="auth-form-subtitle">
-        Already a member? <span @click="router.push('/login')">Sign in</span>
+        Already a member? <span @click="router.push(`/login`)">Sign in</span>
       </p>
 
       <div class="form-group">

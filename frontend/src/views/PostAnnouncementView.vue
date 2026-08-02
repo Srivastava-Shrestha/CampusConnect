@@ -1,17 +1,21 @@
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useAuthStore } from '../stores/auth'
 import { ArrowLeft, Send } from 'lucide-vue-next'
 import LeaderSidebar from '../components/layout/LeaderSidebar.vue'
 import CustomSelect from '../components/ui/CustomSelect.vue'
 import { postAnnouncement } from '../api/announcements'
 import { toast } from '../composables/useToast'
+import { getMyClubs } from '../api/clubs'
 import { useFormValidation } from '../composables/useFormValidation'
 
 const router = useRouter()
+const route = useRoute()
+const auth = useAuthStore()
 const { allFieldsFilled } = useFormValidation()
 
-const clubName = 'Robotics & Automation Club'
+const clubName = ref('')
 
 const announcementTitle = ref('')
 const announcementCategory = ref('')
@@ -59,7 +63,7 @@ function togglePinned() {
 }
 
 function goBackToFeed() {
-  router.push('/leader/announcements')
+  router.push(`/${route.params.slug}/leader/announcements`)
 }
 
 async function handlePostAnnouncement() {
@@ -74,6 +78,7 @@ async function handlePostAnnouncement() {
     return
   }
 
+  try {
   await postAnnouncement({
     title: announcementTitle.value.trim(),
     category: announcementCategory.value,
@@ -82,13 +87,30 @@ async function handlePostAnnouncement() {
   })
 
   let message = 'Announcement posted to 84 members.'
+
   if (isPinned.value) {
     message += ' It is pinned at the top of the feed.'
   }
 
   toast.success(message)
-  router.push('/leader/announcements')
+
+  router.push(`/${route.params.slug}/leader/announcements`)
+} catch (error) {
+  toast.error(error.message)
 }
+}
+
+onMounted(async function loadClub() {
+  try {
+    const clubs = await getMyClubs({ role: 'LEADER' })
+
+    if (clubs.length) {
+      clubName.value = clubs[0].name
+    }
+  } catch (error) {
+    toast.error(error.message)
+  }
+})
 </script>
 
 <template>

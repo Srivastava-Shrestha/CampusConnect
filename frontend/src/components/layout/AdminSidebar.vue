@@ -1,4 +1,5 @@
 <script setup>
+import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
 import { GraduationCap, LayoutDashboard, CheckCircle2, Building2, ScrollText } from 'lucide-vue-next'
@@ -6,25 +7,27 @@ import MobileNav from './MobileNav.vue'
 
 const route = useRoute()
 const auth = useAuthStore()
+const slug = computed(() => auth.user.collegeSlug)
 
-const menuItems = [
-  { label: 'Overview', to: '/admin', icon: LayoutDashboard },
-  { label: 'Approvals', to: '/admin/approvals', icon: CheckCircle2 },
-  { label: 'Colleges', to: '/admin/colleges', icon: Building2 },
-  { label: 'Guidelines', to: '/admin/guidelines', icon: ScrollText }
-]
+const menuItems = computed(() => [
+  { label: 'Overview', to: `/${slug.value}/admin`, icon: LayoutDashboard },
+  { label: 'Approvals', to: `/${slug.value}/admin/approvals`, icon: CheckCircle2 },
+  { label: 'Colleges', to: `/${slug.value}/admin/colleges`, icon: Building2 },
+  { label: 'Guidelines', to: `/${slug.value}/admin/guidelines`, icon: ScrollText }
+])
 
-const mobileItems = [
-  { label: 'Overview', to: '/admin', icon: LayoutDashboard, exact: true },
-  { label: 'Approvals', to: '/admin/approvals', icon: CheckCircle2 },
-  { label: 'Colleges', to: '/admin/colleges', icon: Building2 },
-  { label: 'Rules', to: '/admin/guidelines', icon: ScrollText }
-]
+const mobileItems = computed(() => [
+  { label: 'Overview', to: `/${slug.value}/admin`, icon: LayoutDashboard, exact: true },
+  { label: 'Approvals', to: `/${slug.value}/admin/approvals`, icon: CheckCircle2 },
+  { label: 'Colleges', to: `/${slug.value}/admin/colleges`, icon: Building2 },
+  { label: 'Rules', to: `/${slug.value}/admin/guidelines`, icon: ScrollText }
+])
 
 function isActive(itemPath) {
-  if (itemPath === '/admin') {
-    return route.path === '/admin'
+  if (itemPath.endsWith('/admin')) {
+    return route.path === `/${slug.value}/admin`
   }
+
   return route.path === itemPath || route.path.startsWith(itemPath + '/')
 }
 </script>
@@ -54,13 +57,13 @@ function isActive(itemPath) {
 
     <div class="sidebar-spacer"></div>
 
-    <a href="#" class="user-card">
+    <div class="user-card">
       <div class="user-avatar admin-av">{{ auth.user.initials }}</div>
       <div class="user-info">
         <p class="user-name">{{ auth.user.name }}</p>
         <p class="user-sub">{{ auth.user.sub }}</p>
       </div>
-    </a>
+    </div>
   </aside>
 
   <MobileNav :items="mobileItems" role-class="admin" />

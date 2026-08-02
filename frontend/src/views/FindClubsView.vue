@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { Sparkles } from 'lucide-vue-next'
 import StudentSidebar from '../components/layout/StudentSidebar.vue'
 import Topbar from '../components/layout/Topbar.vue'
@@ -11,6 +11,7 @@ import { onMounted } from 'vue'
 import { toast } from '../composables/useToast'
 
 const router = useRouter()
+const route = useRoute()
 const clubs = ref([])
 const interestsText = ref('')
 const isSearching = ref(false)
@@ -48,13 +49,26 @@ function useSuggestion(text) {
 }
 
 function attachClubDetails(matchList) {
-  return matchList.map(function combineWithClub(match) {
-    const club = clubs.value.find((item) => item.name === match.name)
-    return { ...club, reason: match.reason }
-  })
+  return matchList
+    .map(function (match) {
+      const club = clubs.value.find(item => item.name === match.name)
+
+      if (!club) {
+        return null
+      }
+
+      return {
+        ...club,
+        reason: match.reason
+      }
+    })
+    .filter(Boolean)
 }
 
 async function findClubs() {
+  if (isSearching.value) {
+    return
+  }
   const input = interestsText.value.trim()
 
   if (!input) {
@@ -64,21 +78,33 @@ async function findClubs() {
 
   submittedQuery.value = input
   isSearching.value = true
+
+try {
   const matchList = await findMatchingClubs(input)
-  isSearching.value = false
 
   matches.value = attachClubDetails(matchList)
+  if (matches.value.length === 0) {
+    toast.info('No matching clubs were found.')
+  }
   resultsDesc.value = buildResultsDescription(input)
   showResults.value = true
   interestsText.value = ''
 
   if (resultsSection.value) {
-    resultsSection.value.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    resultsSection.value.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start'
+    })
   }
+} catch (error) {
+  toast.error(error?.message || 'Failed to find matching clubs.')
+} finally {
+  isSearching.value = false
+}
 }
 
 function openClub(clubId) {
-  router.push('/clubs/' + clubId)
+  router.push(`/${route.params.slug}/clubs/${clubId}`)
 }
 </script>
 

@@ -1,4 +1,5 @@
 <script setup>
+import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
 import { GraduationCap, LayoutDashboard, UsersRound, CalendarDays, Megaphone, TriangleAlert, PlusCircle, Compass } from 'lucide-vue-next'
@@ -7,33 +8,37 @@ import MobileNav from './MobileNav.vue'
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
+const slug = computed(() => auth.user?.collegeSlug || '')
 
-const menuItems = [
-  { label: 'My Club', to: '/leader/club', icon: LayoutDashboard },
-  { label: 'Members', to: '/leader/members', icon: UsersRound },
-  { label: 'Events', to: '/leader/events', icon: CalendarDays },
-  { label: 'Announcements', to: '/leader/announcements', icon: Megaphone },
-  { label: 'Issues', to: '/leader/issues', icon: TriangleAlert },
-  { label: 'Create Club', to: '/clubs/propose', icon: PlusCircle },
-  { label: 'Member Area', to: '/clubs', icon: Compass }
-]
+const menuItems = computed(() => [
+  { label: 'My Club', to: `/${slug.value}/leader/club`, icon: LayoutDashboard },
+  { label: 'Members', to: `/${slug.value}/leader/members`, icon: UsersRound },
+  { label: 'Events', to: `/${slug.value}/leader/events`, icon: CalendarDays },
+  { label: 'Announcements', to: `/${slug.value}/leader/announcements`, icon: Megaphone },
+  { label: 'Issues', to: `/${slug.value}/leader/issues`, icon: TriangleAlert },
+  { label: 'Create Club', to: `/${slug.value}/clubs/propose`, icon: PlusCircle },
+  { label: 'Member Area', to: `/${slug.value}/clubs`, icon: Compass }
+])
 
-const mobileItems = [
-  { label: 'Club', to: '/leader/club', icon: LayoutDashboard },
-  { label: 'Members', to: '/leader/members', icon: UsersRound },
-  { label: 'Events', to: '/leader/events', icon: CalendarDays },
-  { label: 'Posts', to: '/leader/announcements', icon: Megaphone },
-  { label: 'Issues', to: '/leader/issues', icon: TriangleAlert },
-  { label: 'Member', to: '/clubs', icon: Compass }
-]
+const mobileItems = computed(() => [
+  { label: 'Club', to: `/${slug.value}/leader/club`, icon: LayoutDashboard },
+  { label: 'Members', to: `/${slug.value}/leader/members`, icon: UsersRound },
+  { label: 'Events', to: `/${slug.value}/leader/events`, icon: CalendarDays },
+  { label: 'Posts', to: `/${slug.value}/leader/announcements`, icon: Megaphone },
+  { label: 'Issues', to: `/${slug.value}/leader/issues`, icon: TriangleAlert },
+  { label: 'Member', to: `/${slug.value}/clubs`, icon: Compass }
+])
 
 function isActive(itemPath) {
   return route.path === itemPath || route.path.startsWith(itemPath + '/')
 }
 
 function logout() {
+  const collegeSlug = auth.user.collegeSlug
+
   auth.logout()
-  router.push('/login')
+
+  router.push(`/${collegeSlug}/login`)
 }
 
 </script>
@@ -64,17 +69,18 @@ function logout() {
     <div class="sidebar-spacer"></div>
 
     <div>
-    <div class="user-card">
-      <div class="user-avatar leader-av">{{ auth.user.initials }}</div>
-      <div class="user-info">
-        <p class="user-name">{{ auth.user.name }}</p>
-        <p class="user-sub">{{ auth.user.email }}</p>
-      </div>
-    </div>
+      <router-link :to="`/${slug}/profile`" class="user-card">
+        <div class="user-avatar leader-av">{{ auth.user.initials }}</div>
+        <div class="user-info">
+          <p class="user-name">{{ auth.user.name }}</p>
+          <p class="user-sub">{{ auth.user.email }}</p>
+        </div>
+      </router-link>
 
-    <button class="logout-btn" @click="logout">
+      <button class="logout-btn" @click="logout">
         Logout
     </button>
+
     </div>
   </aside>
 

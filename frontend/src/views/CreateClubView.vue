@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { ArrowLeft, Send, FileText } from 'lucide-vue-next'
 import StudentSidebar from '../components/layout/StudentSidebar.vue'
 import CustomSelect from '../components/ui/CustomSelect.vue'
@@ -12,6 +12,7 @@ import { useFormValidation } from '../composables/useFormValidation'
 import { useGuidelinesStore } from '../stores/guidelines'
 
 const router = useRouter()
+const route = useRoute()
 const auth = useAuthStore()
 const clubsStore = useClubsStore()
 const { allFieldsFilled, isValidEmail } = useFormValidation()
@@ -108,7 +109,7 @@ async function handleSubmit() {
 
     toast.success(response.message)
 
-    router.push('/clubs')
+    router.push(`/${route.params.slug}/clubs`)
     
   } catch (error) {
     toast.error(error.message)

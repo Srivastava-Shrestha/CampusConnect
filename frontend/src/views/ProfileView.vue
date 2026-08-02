@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { Award, LogOut } from 'lucide-vue-next'
 import StudentSidebar from '../components/layout/StudentSidebar.vue'
@@ -8,24 +8,28 @@ import CertCard from '../components/ui/CertCard.vue'
 import { useAuthStore } from '../stores/auth'
 import { getMyCertificates } from '../api/certificates'
 import { getMyRegistrations } from '../api/events'
+import { toast } from '../composables/useToast'
 
 const auth = useAuthStore()
 const router = useRouter()
 
 function handleLogout() {
+  const slug = auth.user.collegeSlug
+
   auth.logout()
-  router.push('/login')
+
+  router.push(`/${slug}/login`)
 }
 
 const certificates = ref([])
 
-const profileTags = ['Computer Science', '1st Year', 'KNIT Sultanpur', 'Joined Jun 2026']
+const profileTags = ref([])
 
-const profileStats = [
-  { num: 3, label: 'Clubs' },
-  { num: 5, label: 'Events' },
-  { num: 2, label: 'Certs' }
-]
+const profileStats = computed(() => [
+  { num: '-', label: 'Clubs' },
+  { num: eventHistory.value.length, label: 'Events' },
+  { num: certificates.value.length, label: 'Certs' }
+])
 
 const eventHistory = ref([])
 
@@ -59,13 +63,19 @@ function toHistoryEntry(registration) {
 }
 
 onMounted(async function loadProfile() {
-  certificates.value = await getMyCertificates()
+  try {
+    certificates.value = await getMyCertificates()
+  } catch (error) {
+    console.error(error)
+    certificates.value = []
+  }
 
   try {
     const registrations = await getMyRegistrations()
+
     eventHistory.value = registrations.map(toHistoryEntry)
   } catch (error) {
-    console.error('Failed to load event history:', error)
+    console.error(error)
     eventHistory.value = []
   }
 })
@@ -84,7 +94,7 @@ onMounted(async function loadProfile() {
         <div class="profile-avatar-lg">{{ auth.user.initials }}</div>
         <div class="profile-hero-info">
           <p class="profile-name">{{ auth.user.name }}</p>
-          <div class="profile-tags">
+          <div v-if="profileTags.length" class="profile-tags">
             <span v-for="tag in profileTags" :key="tag" class="profile-tag">{{ tag }}</span>
           </div>
         </div>

@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
+import { useAuthStore } from '../stores/auth'
 import { ArrowLeft, Send, Save } from 'lucide-vue-next'
 import LeaderSidebar from '../components/layout/LeaderSidebar.vue'
 import { createEvent, publishEvent } from '../api/events'
@@ -9,6 +10,8 @@ import { toast } from '../composables/useToast'
 import { useFormValidation } from '../composables/useFormValidation'
 
 const router = useRouter()
+const route = useRoute()
+const auth = useAuthStore()
 const { allFieldsFilled } = useFormValidation()
 
 const club = ref(null)
@@ -51,7 +54,7 @@ const guideSteps = [
 ]
 
 function goBackToEvents() {
-  router.push('/leader/events')
+  router.push(`/${route.params.slug}/leader/events`)
 }
 
 // <input type="date"> and <input type="time"> give local wall-clock values; the API
@@ -115,7 +118,7 @@ async function saveDraft() {
   try {
     const created = await createEvent(payload)
     toast.success(`"${created.title}" saved as a draft.`)
-    router.push('/leader/events')
+    router.push(`/${route.params.slug}/leader/events`)
   } catch (error) {
     toast.error(error?.message || 'Unable to create event.')
   } finally {
@@ -141,7 +144,7 @@ async function publishNewEvent() {
 )
     }
 
-    router.push('/leader/events')
+    router.push(`/${route.params.slug}/leader/events`)
   } catch (error) {
     toast.error(error?.message || 'Unable to create event.')
   } finally {
@@ -155,14 +158,14 @@ onMounted(async function loadLeaderClub() {
 
     if (!ledClubs.length) {
       toast.error('You do not lead a club yet.')
-      router.push('/clubs')
+      router.push(`/${auth.user.collegeSlug}/clubs`)
       return
     }
 
     club.value = ledClubs[0]
   } catch (error) {
     toast.error(error?.message || 'Unable to load your club.')
-    router.push('/clubs')
+    router.push(`/${auth.user.collegeSlug}/clubs`)
   }
 })
 </script>

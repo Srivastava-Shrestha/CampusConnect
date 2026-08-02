@@ -27,9 +27,14 @@ const clubEvents = computed(function eventsForThisClub() {
 
 watch(
   () => route.params.id,
-  (id) => {
-    joinState.value = "none"
-    clubsStore.loadClub(id)
+  async (id) => {
+    joinState.value = 'none'
+
+    try {
+      await clubsStore.loadClub(id)
+    } catch (error) {
+      toast.error(error?.message || 'Failed to load club.')
+    }
   }
 )
 
@@ -41,12 +46,12 @@ async function handleJoinRequest() {
     joinState.value = 'pending'
     toast.success('Join request sent successfully.')
   } catch (error) {
-    toast.error(error.message || 'Failed to send join request.')
+    toast.error(error?.message || 'Failed to send join request.')
   }
 }
 
 function goBackToClubs() {
-  router.push('/clubs')
+  router.push(`/${route.params.slug}/clubs`)
 }
 
 function showRegisterHint() {
@@ -67,9 +72,15 @@ function categoryIcon(category) {
   return map[(category || "").toLowerCase()] || "robot"
 }
 
-onMounted(function loadProfile() {
-  clubsStore.loadClub(route.params.id)
-  eventsStore.loadEvents()
+onMounted(async function loadProfile() {
+  try {
+    await Promise.all([
+      clubsStore.loadClub(route.params.id),
+      eventsStore.loadEvents()
+    ])
+  } catch (error) {
+    toast.error(error?.message || 'Failed to load club details.')
+  }
 })
 </script>
 
@@ -169,6 +180,7 @@ onMounted(function loadProfile() {
 
   </div>
   <div v-else class="empty-state">
-  <p>Unable to load club details.</p>
+    <Users />
+      <p>Unable to load club details.</p>
 </div>
 </template>

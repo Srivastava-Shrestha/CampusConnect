@@ -40,10 +40,13 @@ const resultClasses = {
 }
 
 async function reloadEvent() {
-  await eventsStore.loadEvent(route.params.id)
-  await eventsStore.loadMyRegistrations()
-  // The browse list caches its normalized copies, so let it rebuild on the next visit.
-  eventsStore.loaded = false
+  try {
+    await eventsStore.loadEvent(route.params.id)
+    await eventsStore.loadMyRegistrations()
+    eventsStore.loaded = false
+  } catch (error) {
+    toast.error(error?.message || 'Failed to refresh event.')
+  }
 }
 
 async function handleRegister() {
@@ -55,7 +58,7 @@ async function handleRegister() {
     await loadMyResult()
     toast.success(confirmation.message)
   } catch (error) {
-    toast.error(error.message)
+    toast.error(error?.message || 'Something went wrong.')
   } finally {
     submitting.value = false
   }
@@ -70,7 +73,7 @@ async function handleUnregister() {
     await loadMyResult()
     toast.success(result.message)
   } catch (error) {
-    toast.error(error.message)
+    toast.error(error?.message || 'Something went wrong.')
   } finally {
     submitting.value = false
   }
@@ -97,12 +100,16 @@ async function loadMyResult() {
 }
 
 function goBackToEvents() {
-  router.push('/events')
+  router.push(`/${route.params.slug}/events`)
 }
 
 onMounted(async function loadDetail() {
-  await eventsStore.loadEvent(route.params.id)
-  await loadMyResult()
+  try {
+    await eventsStore.loadEvent(route.params.id)
+    await loadMyResult()
+  } catch (error) {
+    toast.error(error?.message || 'Failed to load event.')
+  }
 })
 </script>
 
@@ -225,4 +232,7 @@ onMounted(async function loadDetail() {
     </main>
 
   </div>
+  <div v-else class="empty-state">
+    <p>Event not found.</p>
+</div>
 </template>
