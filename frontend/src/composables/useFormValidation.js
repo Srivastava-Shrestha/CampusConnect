@@ -11,7 +11,7 @@ export function useFormValidation() {
   }
 
   function isStrongEnough(password) {
-    return String(password).length >= 6
+    return String(password).length >= 8
   }
 
   return { isValidEmail, allFieldsFilled, isStrongEnough }

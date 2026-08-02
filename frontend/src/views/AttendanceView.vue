@@ -80,7 +80,7 @@ async function submitAttendance() {
   }
 
   toast.success(`Attendance saved for ${presentCount.value} participants. Now set results on the Results page.`)
-  router.push('/leader/events/' + route.params.id + '/results')
+  router.push(`/${route.params.slug}/leader/events/${route.params.id}/results`)
 }
 
 async function loadParticipants() {
@@ -93,7 +93,7 @@ async function loadParticipants() {
 }
 
 function goBackToEvents() {
-  router.push('/leader/events')
+  router.push(`/${route.params.slug}/leader/events`)
 }
 
 onMounted(async function loadAttendancePage() {

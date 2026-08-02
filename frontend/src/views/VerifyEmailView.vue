@@ -4,10 +4,8 @@ import { useRouter } from 'vue-router'
 import { GraduationCap, CheckCircle2 } from 'lucide-vue-next'
 import { verifyEmailOtp, resendOtp } from '../api/auth'
 import { toast } from '../composables/useToast'
-import { useAuthStore } from '../stores/auth'
 
 const router = useRouter()
-const auth = useAuthStore()
 
 const otpDigits = ref(['', '', '', '', '', ''])
 const otpInputs = ref([])
@@ -46,7 +44,10 @@ function getOtpValue() {
 
 function clearOtpBoxes() {
   otpDigits.value = ['', '', '', '', '', '']
-  otpInputs.value[0].focus()
+
+  if (otpInputs.value[0]) {
+    otpInputs.value[0].focus()
+  }
 }
 
 async function handleVerify() {
@@ -57,17 +58,14 @@ async function handleVerify() {
     return
   }
 
-  await verifyEmailOtp(emailHint.value, otp)
+  try {
+    await verifyEmailOtp(emailHint.value, otp)
 
-  // A verified email means the account is active, so log the user in and send
-  // them to the right first screen. Admins skip the student onboarding.
-  const signupRole = sessionStorage.getItem('signupRole') || 'student'
-  auth.setRole(signupRole)
+    toast.success('Email verified successfully. Please sign in.')
 
-  if (signupRole === 'admin') {
-    router.push('/admin')
-  } else {
-    router.push('/onboard')
+    router.push(`/${route.params.slug}/login`)
+  } catch (error) {
+    toast.error(error.message)
   }
 }
 
@@ -75,7 +73,16 @@ async function handleResend() {
   resendLabel.value = 'Sent!'
   resendDisabled.value = true
   clearOtpBoxes()
-  await resendOtp(emailHint.value)
+
+  try {
+    await resendOtp(emailHint.value)
+  } catch (error) {
+    toast.error(error.message)
+
+    resendLabel.value = 'Resend'
+    resendDisabled.value = false
+    return
+  }
 
   setTimeout(function restoreResendLink() {
     resendLabel.value = 'Resend'
@@ -85,7 +92,10 @@ async function handleResend() {
 
 onMounted(function focusFirstBox() {
   showEmailHint()
-  otpInputs.value[0].focus()
+
+  if (otpInputs.value[0]) {
+    otpInputs.value[0].focus()
+  }
 })
 </script>
 
@@ -172,7 +182,7 @@ onMounted(function focusFirstBox() {
       </p>
 
       <p class="otp-back-link">
-        <span @click="router.push('/signup')">Back to sign up</span>
+        <span @click="router.push(`/${route.params.slug}/signup`)">Back to sign up</span>
       </p>
 
     </section>

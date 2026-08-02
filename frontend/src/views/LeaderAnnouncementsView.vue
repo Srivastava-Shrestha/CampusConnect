@@ -1,14 +1,16 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { Plus, Pin, PinOff, Trash2, Megaphone } from 'lucide-vue-next'
 import LeaderSidebar from '../components/layout/LeaderSidebar.vue'
 import Topbar from '../components/layout/Topbar.vue'
 import AnnounceCard from '../components/ui/AnnounceCard.vue'
 import FilterChips from '../components/ui/FilterChips.vue'
 import { getLeaderAnnouncements, togglePin, deleteAnnouncement } from '../api/announcements'
+import { toast } from '../composables/useToast'
 
 const router = useRouter()
+const route = useRoute()
 
 const posts = ref([])
 const activeFilter = ref('all')
@@ -36,30 +38,46 @@ const visiblePosts = computed(function filterPosts() {
 })
 
 async function handleTogglePin(post) {
-  const newPinnedState = !post.pinned
+  try {
+    const newPinnedState = !post.pinned
 
-  await togglePin(post.id, newPinnedState)
-  post.pinned = newPinnedState
+    await togglePin(post.id, newPinnedState)
+    post.pinned = newPinnedState
+  } catch (error) {
+    toast.error(error.message)
+  }
 }
 
 async function handleDelete(post) {
-  const confirmed = window.confirm('Delete this announcement? Members will no longer see it.')
+  const confirmed = window.confirm(
+    'Delete this announcement? Members will no longer see it.'
+  )
+
   if (!confirmed) {
     return
   }
 
-  await deleteAnnouncement(post.id)
-  posts.value = posts.value.filter(function keepOthers(item) {
-    return item.id !== post.id
-  })
+  try {
+    await deleteAnnouncement(post.id)
+
+    posts.value = posts.value.filter(function keepOthers(item) {
+      return item.id !== post.id
+    })
+  } catch (error) {
+    toast.error(error.message)
+  }
 }
 
 function goToPostAnnouncement() {
-  router.push('/leader/announcements/new')
+  router.push(`/${route.params.slug}/leader/announcements/new`)
 }
 
 onMounted(async function loadPosts() {
-  posts.value = await getLeaderAnnouncements()
+  try {
+    posts.value = await getLeaderAnnouncements()
+  } catch (error) {
+    toast.error(error.message)
+  }
 })
 </script>
 
@@ -68,7 +86,7 @@ onMounted(async function loadPosts() {
 
   <div class="main-content">
 
-    <Topbar title="Announcements" sub="Posted by Robotics & Automation Club">
+    <Topbar title="Announcements" :sub="club ? `Posted by ${club.name}` : 'Loading...'">
       <button class="btn-primary" @click="goToPostAnnouncement">
         <Plus /> Post Announcement
       </button>

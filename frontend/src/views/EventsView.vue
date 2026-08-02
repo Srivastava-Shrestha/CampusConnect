@@ -1,15 +1,17 @@
 <script setup>
 import { computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { CalendarX } from 'lucide-vue-next'
 import StudentSidebar from '../components/layout/StudentSidebar.vue'
 import Topbar from '../components/layout/Topbar.vue'
 import EventCard from '../components/ui/EventCard.vue'
 import FilterChips from '../components/ui/FilterChips.vue'
 import { useEventsStore } from '../stores/events'
+import { toast } from '../composables/useToast'
 import { useChipFilter } from '../composables/useChipFilter'
 
 const router = useRouter()
+const route = useRoute()
 const eventsStore = useEventsStore()
 
 const filterChips = [
@@ -26,11 +28,16 @@ const { activeFilter, filteredItems } = useChipFilter(eventsList, function match
 })
 
 function openEvent(eventId) {
-  router.push('/events/' + eventId)
+  router.push(`/${route.params.slug}/events/${eventId}`)
 }
 
 onMounted(async () => {
+  try {
     await eventsStore.loadEvents()
+  } catch (error) {
+    console.error(error)
+    toast.error(error?.message || 'Failed to load events.')
+  }
 })
 </script>
 
@@ -57,6 +64,8 @@ onMounted(async () => {
       <div v-if="eventsStore.loading" class="empty-state">
         <p>Loading events...</p>
       </div>
+
+      
 
       <div v-else-if="eventsStore.error" class="empty-state">
         <CalendarX />

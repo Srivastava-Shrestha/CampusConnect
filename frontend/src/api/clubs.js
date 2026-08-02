@@ -187,8 +187,8 @@ export async function handleMembershipRequest(
   ]
 }
 
-export async function getClubApprovals() {
-  return apiRequest("/clubs?status=PENDING")
+export async function getClubApprovals(status = "PENDING") {
+  return apiRequest(`/clubs?status=${status}`)
 }
 
 export async function approveClubRequest(clubId) {

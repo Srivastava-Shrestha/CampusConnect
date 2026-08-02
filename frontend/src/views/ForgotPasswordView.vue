@@ -1,12 +1,13 @@
 <script setup>
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { GraduationCap, Mail, Shield, Lock, Send, MailCheck, ArrowRight } from 'lucide-vue-next'
 import { sendResetLink } from '../api/auth'
 import { useFormValidation } from '../composables/useFormValidation'
 import { toast } from '../composables/useToast'
 
 const router = useRouter()
+const route = useRoute()
 const { isValidEmail } = useFormValidation()
 
 function goToHome() {
@@ -23,9 +24,13 @@ async function handleSendResetLink() {
     return
   }
 
-  await sendResetLink(resetEmail.value.trim())
-  sentEmail.value = resetEmail.value.trim()
-  linkSent.value = true
+  try {
+    await sendResetLink(resetEmail.value.trim())
+    sentEmail.value = resetEmail.value.trim()
+    linkSent.value = true
+} catch (error) {
+    toast.error(error?.message || 'Unable to send reset link.')
+}
 }
 
 function tryAgain() {
@@ -91,7 +96,7 @@ function tryAgain() {
 
         <p class="auth-switch-text">
           Remembered it?
-          <router-link to="/login" class="auth-switch-link">Back to sign in</router-link>
+          <router-link :to="`/login`" class="auth-switch-link">Back to sign in</router-link>
         </p>
 
       </div>
@@ -112,7 +117,7 @@ function tryAgain() {
 
         <p class="auth-form-sub">The link expires in 30 minutes. If you do not see it, check your spam folder.</p>
 
-        <router-link to="/login" custom v-slot="{ navigate }">
+        <router-link :to="`/${route.params.slug}/login`" custom v-slot="{ navigate }">
           <button class="btn-auth-submit" @click="navigate">
             <ArrowRight /> Back to Sign In
           </button>

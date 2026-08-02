@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
+import { useAuthStore } from '../stores/auth'
 import { Plus, Clock, MapPin, Users, CalendarX, ClipboardCheck, Trophy, Send, Ban } from 'lucide-vue-next'
 import LeaderSidebar from '../components/layout/LeaderSidebar.vue'
 import Topbar from '../components/layout/Topbar.vue'
@@ -10,6 +11,8 @@ import { getMyClubs } from '../api/clubs'
 import { toast } from '../composables/useToast'
 
 const router = useRouter()
+const route = useRoute()
+const auth = useAuthStore()
 
 const club = ref(null)
 const events = ref([])
@@ -68,19 +71,19 @@ function canSetResults(event) {
 }
 
 function goToAttendance(event) {
-  router.push('/leader/events/' + event.id + '/attend')
+  router.push(`/${route.params.slug}/leader/events/${event.id}/attend`)
 }
 
 function goToResults(event) {
-  router.push('/leader/events/' + event.id + '/results')
+  router.push(`/${route.params.slug}/leader/events/${event.id}/results`)
 }
 
 function goToCreateEvent() {
-  router.push('/leader/events/new')
+  router.push(`/${route.params.slug}/leader/events/new`)
 }
 
 function goToEditEvent(event) {
-  router.push('/leader/events/' + event.id + '/edit')
+  router.push(`/${route.params.slug}/leader/events/${event.id}/edit`)
 }
 
 async function publish(event) {
@@ -131,7 +134,7 @@ onMounted(async function loadLeaderEvents() {
 
     if (!ledClubs.length) {
       toast.error('You do not lead a club yet.')
-      router.push('/clubs')
+      router.push(`/${auth.user.collegeSlug}/clubs`)
       return
     }
 
@@ -139,6 +142,7 @@ onMounted(async function loadLeaderEvents() {
     await loadEvents()
   } catch (error) {
     toast.error(error?.message || 'Something went wrong.')
+    router.push(`/${auth.user.collegeSlug}/clubs`)
   } finally {
     loading.value = false
   }

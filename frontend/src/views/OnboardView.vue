@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '../stores/auth'
 import {
   GraduationCap, User, ArrowRight, ArrowLeft, Sparkles, Compass, Check,
   Code2, Network, Radio, Settings2, Building2, Zap, Briefcase, Pencil,
@@ -11,6 +12,7 @@ import { saveOnboarding } from '../api/auth'
 import { toast } from '../composables/useToast'
 
 const router = useRouter()
+const auth = useAuthStore()
 
 const totalSteps = 3
 const currentStep = ref(1)
@@ -153,7 +155,7 @@ async function finishOnboarding() {
 }
 
 function goExploreClubs() {
-  router.push('/clubs')
+  router.push(`/${auth.user.collegeSlug}/clubs`)
 }
 </script>
 

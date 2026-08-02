@@ -1,13 +1,15 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { Search, SearchX, Users } from 'lucide-vue-next'
 import StudentSidebar from '../components/layout/StudentSidebar.vue'
 import Topbar from '../components/layout/Topbar.vue'
 import ClubCard from '../components/ui/ClubCard.vue'
 import FilterChips from '../components/ui/FilterChips.vue'
 import { useClubsStore } from '../stores/clubs'
+import { toast } from '../composables/useToast'
 
+const route = useRoute()
 const router = useRouter()
 const clubsStore = useClubsStore()
 
@@ -29,20 +31,24 @@ const visibleClubs = computed(function filterClubs() {
   const search = searchText.value.toLowerCase().trim()
 
   return clubsStore.clubs.filter(function matchesClub(club) {
-    const categoryMatch = activeCategory.value === 'all' || club.category.toLowerCase() === activeCategory.value.toLowerCase()
-    const searchMatch = search === '' || club.name.toLowerCase().includes(search) || club.category.toLowerCase().includes(search)
-    return categoryMatch && searchMatch
-  })
+    const categoryMatch = activeCategory.value === 'all' || (club.category || '').toLowerCase() === activeCategory.value.toLowerCase()
+
+    const searchMatch = search === '' || club.name.toLowerCase().includes(search) || (club.category || '').toLowerCase().includes(search) 
+      return categoryMatch && searchMatch})
 })
 
 const myClubs = computed(() => clubsStore.joinedClubs)
 
 function openClub(clubId) {
-  router.push('/clubs/' + clubId)
+  router.push(`/${route.params.slug}/clubs/${clubId}`)
 }
 
-onMounted(function loadDirectory() {
-  clubsStore.loadClubs()
+onMounted(async function loadDirectory() {
+  try {
+    await clubsStore.loadClubs()
+  } catch (error) {
+    toast.error(error?.message || 'Failed to load clubs.')
+  }
 })
 </script>
 

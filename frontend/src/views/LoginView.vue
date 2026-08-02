@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { GraduationCap, Mail, Lock, Eye, EyeOff, Check, ArrowRight, Globe, School, Compass, ShieldCheck } from 'lucide-vue-next'
 import { loginUser } from '../api/auth'
 import { useAuthStore } from '../stores/auth'
@@ -12,6 +12,7 @@ import { jwtDecode } from 'jwt-decode'
 
 const router = useRouter()
 const auth = useAuthStore()
+const route = useRoute()
 const { isValidEmail } = useFormValidation()
 
 const email = ref('')
@@ -57,20 +58,19 @@ async function handleLogin() {
 
     const payload = jwtDecode(result.access_token)
 
-    console.log("JWT Payload:", payload)
-
     const role = payload.role?.toUpperCase()
 
     auth.setUser({
       name: payload.full_name,
       email: payload.email,
-      college: payload.college_slug,
+      collegeSlug: payload.college_slug,
+      collegeName: auth.user.collegeName,
       initials: payload.full_name
-      .split(" ")
-      .map(word => word[0])
-      .join("")
-      .toUpperCase()
-})
+        .split(" ")
+        .map(word => word[0])
+        .join("")
+        .toUpperCase()
+    })
     auth.setRole(
      role === "ADMIN" || role === "CAMPUS_ADMIN"
     ? "admin"
@@ -81,19 +81,30 @@ async function handleLogin() {
       try {
         const ledClubs = await getMyClubs({ role: "LEADER" })
         auth.setClubLeader(ledClubs.length > 0)
-    } catch (error) {
+    } catch {
         auth.setClubLeader(false)
     }
     }
 
-    if (auth.canManageClubs) {
-      router.push(`/leader/club`)
+    if (auth.role === 'admin') {
+  if (payload.college_slug) {
+    router.push(`/${payload.college_slug}/admin`)
   } else {
-      router.push(auth.homeRoute)
+    router.push('/admin/onboard')
   }
-  } catch (error) {
-    toast.error(error.message)
-  }
+  return
+}
+
+const slug = payload.college_slug
+
+if (auth.canManageClubs) {
+  router.push(`/${slug}/leader/club`)
+} else {
+  router.push(auth.homeRoute)
+}
+} catch (error) {
+  toast.error(error?.message || 'Unable to sign in.')
+}
 }
 </script>
 
@@ -145,7 +156,7 @@ async function handleLogin() {
 
       <h2>Sign in</h2>
       <p class="auth-form-subtitle">
-        New here? <span @click="router.push('/signup')">Create an account</span>
+        New here? <span @click="router.push(`/signup`)">Create an account</span>
       </p>
 
       

@@ -3,7 +3,8 @@ import { defineStore } from 'pinia'
 const defaultUser = {
   name: "",
   email: "",
-  college: "",
+  collegeSlug: "",
+  collegeName: "",
   initials: ""
 }
 
@@ -29,11 +30,17 @@ export const useAuthStore = defineStore('auth', {
   getters: {
     isLoggedIn: (state) => !!state.token,
     homeRoute: (state) => {
-  if (state.role === 'admin') {
-    return '/admin'
-  }
+      const slug = state.user.collegeSlug
 
-  return '/clubs'
+      if (!slug) {
+        return '/'
+      }
+
+      if (state.role === 'admin') {
+        return `/${slug}/admin`
+      }
+
+      return `/${slug}/clubs`
 },
     // A member who leads a club may open the club-leader tools.
     canManageClubs: (state) => state.role === 'student' && state.isClubLeader
@@ -66,7 +73,7 @@ export const useAuthStore = defineStore('auth', {
     logout() {
       this.role = "student"
       this.token = ""
-      this.user = defaultUser
+      this.user = { ...defaultUser }
       this.isClubLeader = false
 
       localStorage.removeItem("cc_role")

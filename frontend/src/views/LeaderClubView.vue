@@ -1,15 +1,17 @@
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useAuthStore } from '../stores/auth'
 import { Pencil, MapPin, Users, Calendar, CalendarPlus, Megaphone, UsersRound } from 'lucide-vue-next'
 import LeaderSidebar from '../components/layout/LeaderSidebar.vue'
 import ClubIcon from '../components/ui/ClubIcon.vue'
 import { getClubById, getMyClubs, updateClub, deleteClub } from '../api/clubs'
 import { getEvents, normalizeEvent } from '../api/events'
 import { toast } from '../composables/useToast'
-import CustomSelect from '../components/ui/CustomSelect.vue'
 
 const router = useRouter()
+const route = useRoute()
+const auth = useAuthStore()
 
 const club = ref(null)
 const upcomingEvents = ref([])
@@ -36,29 +38,29 @@ const editForm = ref({
 
 const clubStats = ref([])
 
-const quickActions = [
+const quickActions = computed(() => [
   {
     label: 'Create Event',
     desc: 'Schedule a new workshop, competition, or meet',
     icon: CalendarPlus,
     iconClass: 'green',
-    to: '/leader/events/new'
+    to: `/${auth.user.collegeSlug}/leader/events/new`
   },
   {
     label: 'Post Announcement',
     desc: 'Broadcast an update to all club members',
     icon: Megaphone,
     iconClass: 'orange',
-    to: '/leader/announcements/new'
+    to: `/${auth.user.collegeSlug}/leader/announcements/new`
   },
   {
     label: 'Manage Members',
     desc: 'Review join requests and manage your roster',
     icon: UsersRound,
     iconClass: 'blue',
-    to: '/leader/members'
+    to: `/${auth.user.collegeSlug}/leader/members`
   }
-]
+])
 
 function buildStats(loadedClub) {
   return [
@@ -76,9 +78,9 @@ function manageEvent(event) {
   // Attendance only opens once the event has started; until then the events page
   // carries the publish and cancel actions.
   if (new Date(event.starts_at) <= new Date()) {
-    router.push('/leader/events/' + event.id + '/attend')
+    router.push(`/${route.params.slug}/leader/events/${event.id}/attend`)
   } else {
-    router.push('/leader/events')
+    router.push(`/${route.params.slug}/leader/events`)
   }
 }
 
@@ -160,7 +162,7 @@ async function deleteCurrentClub() {
 
     toast.success('Club deleted successfully.')
 
-    router.push('/clubs')
+    router.push(`/${auth.user.collegeSlug}/clubs`)
 
   } catch (error) {
 
@@ -176,6 +178,7 @@ onMounted(async function loadDashboard() {
 
     if (!myClubs.length) {
       toast.error('No club assigned.')
+      router.push(`/${auth.user.collegeSlug}/clubs`)
       return
     }
 

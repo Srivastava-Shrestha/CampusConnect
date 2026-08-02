@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useAuthStore } from '../stores/auth'
 import { Clock, CheckCircle2, XCircle } from 'lucide-vue-next'
 import AdminSidebar from '../components/layout/AdminSidebar.vue'
 import Topbar from '../components/layout/Topbar.vue'
@@ -11,13 +12,16 @@ import { getClubApprovals, approveClubRequest, rejectClubRequest } from '../api/
 const approvals = ref([])
 const activeFilter = ref('all')
 
-const approvedBase = 18
-const rejectedBase = 2
+const approvedCount = ref(0)
+const rejectedCount = ref(0)
+
+const auth = useAuthStore()
+
 
 const filterChips = [
   { id: 'all', label: 'All' },
   { id: 'pending', label: 'Pending' },
-  { id: 'approved', label: 'Approved' },
+  { id: 'active', label: 'Approved' },
   { id: 'rejected', label: 'Rejected' }
 ]
 
@@ -30,6 +34,10 @@ const visibleApprovals = computed(function filterApprovals() {
     return approval.status === activeFilter.value
   })
 })
+
+const collegeTitle = computed(() =>
+  auth.user.collegeName || auth.user.collegeSlug
+)
 
 const pendingCount = computed(function countPending() {
   return approvals.value.filter(function isPending(approval) {
@@ -64,17 +72,38 @@ async function handleReject(approval) {
 
 onMounted(async () => {
   try {
-    const data = await getClubApprovals()
+    const [pending, approved, rejected] = await Promise.all([
+      getClubApprovals("PENDING"),
+      getClubApprovals("ACTIVE"),
+      getClubApprovals("REJECTED")
 
-    approvals.value = data.map((approval) => ({
+    ])
+
+    console.log("Pending:", pending)
+    console.log("Approved:", approved)
+    console.log("Rejected:", rejected)
+
+    approvals.value = [
+      ...pending,
+      ...approved,
+      ...rejected
+    ].map(approval => ({
       ...approval,
       status: approval.status.toLowerCase()
     }))
+
+    approvedCount.value = approved.length
+    rejectedCount.value = rejected.length
+
   } catch (error) {
     console.error(error)
+
     approvals.value = []
+    approvedCount.value = 0
+    rejectedCount.value = 0
   }
 })
+
 </script>
 
 <template>
@@ -82,14 +111,14 @@ onMounted(async () => {
 
   <div class="main-content">
 
-    <Topbar title="Club Approvals" sub="KNIT Sultanpur · All club registration requests" />
+    <Topbar title="Club Approvals" :sub="`${collegeTitle} · All club registration requests`"/>
 
     <main class="content-body custom-scrollbar">
 
       <div class="stats-grid">
         <StatCard :num="pendingCount" label="Pending Review" :icon="Clock" color-class="blue-stat" />
-        <StatCard :num="approvedBase" label="Approved" :icon="CheckCircle2" color-class="green-stat" />
-        <StatCard :num="rejectedBase" label="Rejected" :icon="XCircle" color-class="pink-stat" />
+        <StatCard :num="approvedCount" label="Approved" :icon="CheckCircle2" color-class="green-stat"/>
+        <StatCard :num="rejectedCount" label="Rejected" :icon="XCircle" color-class="pink-stat"/>
       </div>
 
       <FilterChips :chips="filterChips" v-model="activeFilter" />
