@@ -7,12 +7,13 @@ import LeaderSidebar from '../components/layout/LeaderSidebar.vue'
 import Topbar from '../components/layout/Topbar.vue'
 import FilterChips from '../components/ui/FilterChips.vue'
 import { getEvents, publishEvent, cancelEvent, normalizeEvent } from '../api/events'
-import { getMyClubs } from '../api/clubs'
+import { useClubsStore } from '../stores/clubs'
 import { toast } from '../composables/useToast'
 
 const router = useRouter()
 const route = useRoute()
 const auth = useAuthStore()
+const clubsStore = useClubsStore()
 
 const club = ref(null)
 const events = ref([])
@@ -87,6 +88,7 @@ function goToEditEvent(event) {
 }
 
 async function publish(event) {
+  if (!event?.id) return
   try {
     const result = await publishEvent(event.id)
     toast.success(result.message)
@@ -97,6 +99,7 @@ async function publish(event) {
 }
 
 async function cancel(event) {
+  if (!event?.id) return
   const confirmed = window.confirm(
     `Cancel "${event.title}"?\n\nRegistered members keep their registration but the event is closed.`
   )
@@ -128,18 +131,20 @@ async function loadEvents() {
   }
 }
 
-onMounted(async function loadLeaderEvents() {
+onMounted(async () => {
   try {
-    const ledClubs = await getMyClubs({ role: 'LEADER' })
+    await clubsStore.loadLeaderClubs()
 
-    if (!ledClubs.length) {
-      toast.error('You do not lead a club yet.')
+    if (!clubsStore.selectedLeaderClub) {
+      toast.error('No active club selected.')
       router.push(`/${auth.user.collegeSlug}/clubs`)
       return
     }
 
-    club.value = ledClubs[0]
+    club.value = clubsStore.selectedLeaderClub
+
     await loadEvents()
+
   } catch (error) {
     toast.error(error?.message || 'Something went wrong.')
     router.push(`/${auth.user.collegeSlug}/clubs`)

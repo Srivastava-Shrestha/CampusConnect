@@ -69,7 +69,7 @@ onBeforeUnmount(function detachListeners() {
       type="button"
       class="cc-select-trigger"
       :class="{ 'is-placeholder': !selectedLabel }"
-      @click="toggle"
+      @click.stop="toggle"
     >
       <span class="cc-select-value">{{ selectedLabel || placeholder }}</span>
       <ChevronDown class="cc-select-caret" />
