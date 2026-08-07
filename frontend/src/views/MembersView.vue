@@ -7,21 +7,27 @@ import Topbar from '../components/layout/Topbar.vue'
 import StatCard from '../components/ui/StatCard.vue'
 import StatusPill from '../components/ui/StatusPill.vue'
 import MemberRow from '../components/ui/MemberRow.vue'
+import CustomSelect from '../components/ui/CustomSelect.vue'
 
 import {
-  getMyClubs,
   getClubMembers,
   getPendingRequests,
   handleMembershipRequest
 } from '../api/clubs'
 
+import { useClubsStore } from '../stores/clubs'
 import { toast } from '../composables/useToast'
 
 const clubId = ref(null)
-const clubName = ref('Your Club')
 
 const members = ref([])
 const requests = ref([])
+const clubsStore = useClubsStore()
+
+const selectedClubId = computed({
+  get: () => clubsStore.selectedLeaderClub?.id ?? null,
+  set: (clubId) => changeClub(clubId)
+})
 
 const totalMembers = computed(() => members.value.length)
 
@@ -41,7 +47,7 @@ async function approveRequest(request) {
       'APPROVED'
     )
 
-    request.decision = 'approved'
+    await loadMembers(clubsStore.selectedLeaderClub)
     toast.success('Request approved.')
   } catch (error) {
     console.error(error)
@@ -57,7 +63,7 @@ async function rejectRequest(request) {
       'REJECTED'
     )
 
-    request.decision = 'rejected'
+    await loadMembers(clubsStore.selectedLeaderClub)
     toast.success('Request rejected.')
   } catch (error) {
     console.error(error)
@@ -69,67 +75,74 @@ function handleRemoveMember() {
   toast.info('Removing members is not supported yet.')
 }
 
+
+async function loadMembers(club) {
+  clubId.value = club.id
+
+  const rawMembers = await getClubMembers(club.id)
+  const rawRequests = await getPendingRequests(club.id)
+
+  members.value = rawMembers.map(item => ({
+    id: item.id,
+    name: item.full_name,
+    initials: item.full_name
+      .split(' ')
+      .map(word => word[0])
+      .join('')
+      .slice(0, 2)
+      .toUpperCase(),
+    sub: `Student ID: ${item.student_id}`,
+    role: item.role === 'LEADER' ? 'officer' : 'member',
+    roleLabel:
+      item.role.charAt(0) +
+      item.role.slice(1).toLowerCase()
+  }))
+
+  requests.value = rawRequests.map(item => ({
+    id: item.id,
+    name: item.full_name,
+    initials: item.full_name
+      .split(' ')
+      .map(word => word[0])
+      .join('')
+      .slice(0, 2)
+      .toUpperCase(),
+    sub: `Student ID: ${item.student_id}`,
+    role: item.role,
+    status: item.status,
+    decision:
+      item.status === 'APPROVED'
+        ? 'approved'
+        : item.status === 'REJECTED'
+          ? 'rejected'
+          : null
+  }))
+}
+
+async function changeClub(clubId) {
+  clubsStore.selectLeaderClub(clubId)
+
+  if (!clubsStore.selectedLeaderClub) return
+  await loadMembers(clubsStore.selectedLeaderClub)
+}
+
 onMounted(async () => {
   try {
+    await clubsStore.loadLeaderClubs()
 
-    const myClubs = await getMyClubs({
-      role: 'LEADER'
-    })
-
-    console.log('Leader clubs:', myClubs)
-
-    if (!Array.isArray(myClubs) || myClubs.length === 0) {
-      toast.error('No club assigned.')
+    if (!clubsStore.selectedLeaderClub) {
+      toast.error('No active club selected.')
       return
     }
 
-    clubId.value = myClubs[0].id
-    clubName.value = myClubs[0].name
-
-    const rawMembers = await getClubMembers(clubId.value)
-    const rawRequests = await getPendingRequests(clubId.value)
-
-    members.value = rawMembers.map(item => ({
-      id: item.id,
-      name: item.full_name,
-      initials: item.full_name
-        .split(' ')
-        .map(word => word[0])
-        .join('')
-        .slice(0, 2)
-        .toUpperCase(),
-      sub: `Student ID: ${item.student_id}`,
-      role: item.role === 'LEADER' ? 'officer' : 'member',
-      roleLabel:
-        item.role.charAt(0) +
-        item.role.slice(1).toLowerCase()
-    }))
-
-    requests.value = rawRequests.map(item => ({
-      id: item.id,
-      name: item.full_name,
-      initials: item.full_name
-        .split(' ')
-        .map(word => word[0])
-        .join('')
-        .slice(0, 2)
-        .toUpperCase(),
-      sub: `Student ID: ${item.student_id}`,
-      role: item.role,
-      status: item.status,
-      decision:
-        item.status === 'APPROVED'
-          ? 'approved'
-          : item.status === 'REJECTED'
-            ? 'rejected'
-            : null
-    }))
+    await loadMembers(clubsStore.selectedLeaderClub)
 
   } catch (error) {
     console.error(error)
     toast.error('Failed to load members.')
   }
 })
+
 </script>
 
 <template>
@@ -139,9 +152,21 @@ onMounted(async () => {
 
     <Topbar
       title="Members"
-      :sub="clubName"
       :show-bell="false"
-    />
+    >
+      <template #subtitle>
+        <CustomSelect
+          v-model="selectedClubId"
+          :options="
+            clubsStore.leaderClubs.map(c => ({
+              value: c.id,
+              label: c.name
+            }))
+          "
+          placeholder="Select Club"
+         />
+      </template>
+    </Topbar>
 
     <main class="content-body custom-scrollbar">
 

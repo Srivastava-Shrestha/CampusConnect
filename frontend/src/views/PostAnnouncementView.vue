@@ -7,8 +7,8 @@ import LeaderSidebar from '../components/layout/LeaderSidebar.vue'
 import CustomSelect from '../components/ui/CustomSelect.vue'
 import { postAnnouncement } from '../api/announcements'
 import { toast } from '../composables/useToast'
-import { getMyClubs } from '../api/clubs'
 import { useFormValidation } from '../composables/useFormValidation'
+import { useClubsStore } from '../stores/clubs'
 
 const router = useRouter()
 const route = useRoute()
@@ -16,6 +16,8 @@ const auth = useAuthStore()
 const { allFieldsFilled } = useFormValidation()
 
 const clubName = ref('')
+const clubId = ref(null)
+const clubsStore = useClubsStore()
 
 const announcementTitle = ref('')
 const announcementCategory = ref('')
@@ -23,11 +25,11 @@ const announcementBody = ref('')
 const isPinned = ref(false)
 
 const categoryOptions = [
-  { value: 'general', label: 'General' },
-  { value: 'event', label: 'Event Update' },
-  { value: 'resource', label: 'Resource / Lab' },
-  { value: 'achievement', label: 'Achievement' },
-  { value: 'urgent', label: 'Urgent' }
+  { value: 'GENERAL', label: 'General' },
+  { value: 'EVENT_UPDATE', label: 'Event Update' },
+  { value: 'RESOURCE', label: 'Resource / Lab' },
+  { value: 'ACHIEVEMENT', label: 'Achievement' },
+  { value: 'URGENT', label: 'Urgent' }
 ]
 
 const guideSteps = [
@@ -49,7 +51,7 @@ const guideSteps = [
   },
   {
     num: '5',
-    text: 'All 84 members of your club will see this in their Announcements feed immediately.'
+    text: 'All members of your club will see this in their Announcements feed immediately.'
   },
   {
     num: '!',
@@ -67,6 +69,11 @@ function goBackToFeed() {
 }
 
 async function handlePostAnnouncement() {
+  
+  if (!clubId.value) {
+    toast.error('No club selected.')
+    return
+  }
   const fields = {
     title: announcementTitle.value,
     category: announcementCategory.value,
@@ -79,38 +86,44 @@ async function handlePostAnnouncement() {
   }
 
   try {
-  await postAnnouncement({
-    title: announcementTitle.value.trim(),
-    category: announcementCategory.value,
-    body: announcementBody.value.trim(),
-    pinned: isPinned.value
-  })
+    await postAnnouncement({
+      club_id: clubId.value,
+      title: announcementTitle.value.trim(),
+      body: announcementBody.value.trim(),
+      category: announcementCategory.value,
+      is_pinned: isPinned.value
+    })
 
-  let message = 'Announcement posted to 84 members.'
+    toast.success(
+      isPinned.value
+        ? 'Announcement posted and pinned successfully.'
+        : 'Announcement posted successfully.'
+    )
 
-  if (isPinned.value) {
-    message += ' It is pinned at the top of the feed.'
+    router.push(`/${route.params.slug}/leader/announcements`)
+  } catch (error) {
+    toast.error(error.message)
   }
-
-  toast.success(message)
-
-  router.push(`/${route.params.slug}/leader/announcements`)
-} catch (error) {
-  toast.error(error.message)
-}
 }
 
-onMounted(async function loadClub() {
+onMounted(async () => {
   try {
-    const clubs = await getMyClubs({ role: 'LEADER' })
+    await clubsStore.loadLeaderClubs()
 
-    if (clubs.length) {
-      clubName.value = clubs[0].name
+    if (!clubsStore.selectedLeaderClub) {
+      toast.error('No active club selected.')
+      router.push(`/${route.params.slug}/leader/club`)
+      return
     }
+
+    clubId.value = clubsStore.selectedLeaderClub.id
+    clubName.value = clubsStore.selectedLeaderClub.name
+
   } catch (error) {
     toast.error(error.message)
   }
 })
+
 </script>
 
 <template>

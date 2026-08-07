@@ -8,19 +8,24 @@ import AnnounceCard from '../components/ui/AnnounceCard.vue'
 import FilterChips from '../components/ui/FilterChips.vue'
 import { getLeaderAnnouncements, togglePin, deleteAnnouncement } from '../api/announcements'
 import { toast } from '../composables/useToast'
+import { useClubsStore } from '../stores/clubs'
 
 const router = useRouter()
 const route = useRoute()
 
 const posts = ref([])
+const clubsStore = useClubsStore()
 const activeFilter = ref('all')
+const loading = ref(true)
 
 const filterChips = [
   { id: 'all', label: 'All' },
   { id: 'pinned', label: 'Pinned' },
-  { id: 'tech', label: 'Tech' },
-  { id: 'culture', label: 'Culture' },
-  { id: 'event', label: 'Events' }
+  { id: 'general', label: 'General' },
+  { id: 'event_update', label: 'Event Updates' },
+  { id: 'resource', label: 'Resources' },
+  { id: 'achievement', label: 'Achievements' },
+  { id: 'urgent', label: 'Urgent' }
 ]
 
 const visiblePosts = computed(function filterPosts() {
@@ -42,9 +47,16 @@ async function handleTogglePin(post) {
     const newPinnedState = !post.pinned
 
     await togglePin(post.id, newPinnedState)
-    post.pinned = newPinnedState
+
+    await loadAnnouncements()
+
+    toast.success(
+      newPinnedState
+        ? 'Announcement pinned.'
+        : 'Announcement unpinned.'
+    )
   } catch (error) {
-    toast.error(error.message)
+    toast.error(error?.message || 'Something went wrong.')
   }
 }
 
@@ -53,18 +65,38 @@ async function handleDelete(post) {
     'Delete this announcement? Members will no longer see it.'
   )
 
-  if (!confirmed) {
-    return
-  }
+  if (!confirmed) return
 
   try {
     await deleteAnnouncement(post.id)
 
-    posts.value = posts.value.filter(function keepOthers(item) {
-      return item.id !== post.id
-    })
+    await loadAnnouncements()
+
+    toast.success('Announcement deleted.')
   } catch (error) {
-    toast.error(error.message)
+    toast.error(error?.message || 'Something went wrong.')
+  }
+}
+
+async function loadAnnouncements() {
+  if (!clubsStore.selectedLeaderClub) return
+
+  loading.value = true
+
+  try {
+    const data = await getLeaderAnnouncements({
+      club_id: clubsStore.selectedLeaderClub.id
+    })
+
+    posts.value = data.map(post => ({
+      ...post,
+      pinned: post.is_pinned,
+      category: post.category.toLowerCase()
+    }))
+  } catch (error) {
+    toast.error(error?.message || 'Something went wrong.')
+  } finally {
+    loading.value = false
   }
 }
 
@@ -72,13 +104,22 @@ function goToPostAnnouncement() {
   router.push(`/${route.params.slug}/leader/announcements/new`)
 }
 
-onMounted(async function loadPosts() {
+onMounted(async () => {
   try {
-    posts.value = await getLeaderAnnouncements()
+    await clubsStore.loadLeaderClubs()
+
+    if (!clubsStore.selectedLeaderClub) {
+      toast.error('No active club selected.')
+      router.push(`/${route.params.slug}/leader/club`)
+      return
+    }
+
+    await loadAnnouncements()
   } catch (error) {
-    toast.error(error.message)
+    toast.error(error?.message || 'Something went wrong.')
   }
 })
+
 </script>
 
 <template>
@@ -86,7 +127,7 @@ onMounted(async function loadPosts() {
 
   <div class="main-content">
 
-    <Topbar title="Announcements" :sub="club ? `Posted by ${club.name}` : 'Loading...'">
+    <Topbar title="Announcements" sub="Create and manage announcements">
       <button class="btn-primary" @click="goToPostAnnouncement">
         <Plus /> Post Announcement
       </button>
@@ -98,32 +139,41 @@ onMounted(async function loadPosts() {
         <div>
 
           <FilterChips :chips="filterChips" v-model="activeFilter" />
-
-          <div class="announce-feed">
-            <AnnounceCard
-              v-for="post in visiblePosts"
-              :key="post.id"
-              :announcement="post"
-            >
-              <template #actions>
-                <div class="announce-manage-row">
-                  <button class="announce-action-btn" @click="handleTogglePin(post)">
-                    <PinOff v-if="post.pinned" />
-                    <Pin v-else />
-                    {{ post.pinned ? 'Unpin' : 'Pin' }}
-                  </button>
-                  <button class="announce-action-btn delete" @click="handleDelete(post)">
-                    <Trash2 /> Delete
-                  </button>
-                </div>
-              </template>
-            </AnnounceCard>
+          
+          <div v-if="loading" class="empty-state">
+            <p>Loading announcements...</p>
           </div>
 
-          <div v-if="visiblePosts.length === 0" class="empty-state">
+          <div v-else-if="visiblePosts.length === 0" class="empty-state">
             <Megaphone />
-            <p>No announcements match this filter.</p>
+              <p>No announcements match this filter.</p>
           </div>
+
+          <div v-else class="announce-feed">
+            <AnnounceCard
+               v-for="post in visiblePosts"
+                :key="post.id"
+                :announcement="post"
+            >
+            <template #actions>
+              <div class="announce-manage-row">
+                <button class="announce-action-btn" @click="handleTogglePin(post)">
+                <PinOff v-if="post.pinned" />
+                  <Pin v-else />
+                    {{ post.pinned ? 'Unpin' : 'Pin' }}
+                </button>
+
+                <button
+                  class="announce-action-btn delete"
+                  @click="handleDelete(post)"
+                >
+                  <Trash2 />
+                  Delete
+                </button>
+              </div>
+            </template>
+            </AnnounceCard>
+        </div>
 
         </div>
       </div>

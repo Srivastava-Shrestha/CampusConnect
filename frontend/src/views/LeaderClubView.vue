@@ -2,16 +2,19 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { useClubsStore } from '../stores/clubs'
 import { Pencil, MapPin, Users, Calendar, CalendarPlus, Megaphone, UsersRound } from 'lucide-vue-next'
 import LeaderSidebar from '../components/layout/LeaderSidebar.vue'
 import ClubIcon from '../components/ui/ClubIcon.vue'
-import { getClubById, getMyClubs, updateClub, deleteClub } from '../api/clubs'
+import { getClubById, updateClub, deleteClub } from '../api/clubs'
 import { getEvents, normalizeEvent } from '../api/events'
 import { toast } from '../composables/useToast'
+import CustomSelect from '../components/ui/CustomSelect.vue'
 
 const router = useRouter()
 const route = useRoute()
 const auth = useAuthStore()
+const clubsStore = useClubsStore()
 
 const club = ref(null)
 const upcomingEvents = ref([])
@@ -29,6 +32,7 @@ const categoryOptions = [
 
 const editing = ref(false)
 const saving = ref(false)
+const clubStats = ref([])
 
 const editForm = ref({
   description: '',
@@ -36,7 +40,12 @@ const editForm = ref({
   image_url: ''
 })
 
-const clubStats = ref([])
+const selectedClubId = computed({
+  get: () => clubsStore.selectedLeaderClub?.id ?? null,
+  set: (clubId) => changeClub(clubId)
+})
+
+
 
 const quickActions = computed(() => [
   {
@@ -85,7 +94,6 @@ function manageEvent(event) {
 }
 
 function startEditing() {
-  alert("Edit button clicked!")
 
   editForm.value = {
     description: club.value.description,
@@ -94,8 +102,6 @@ function startEditing() {
   }
 
   editing.value = true
-
-  console.log("editing =", editing.value)
 }
 
 async function saveClubEdits() {
@@ -171,42 +177,49 @@ async function deleteCurrentClub() {
   }
 
 }
-onMounted(async function loadDashboard() {
 
+async function changeClub(clubId) {
+  clubsStore.selectLeaderClub(clubId)
+  await loadClubData(clubId)
+}
+
+async function loadClubData(clubId) {
   try {
-    const myClubs = await getMyClubs({ role: 'LEADER' })
+    club.value = await getClubById(clubId)
 
-    if (!myClubs.length) {
-      toast.error('No club assigned.')
-      router.push(`/${auth.user.collegeSlug}/clubs`)
-      return
-    }
-
-    club.value = await getClubById(myClubs[0].id)
-    console.log("Club Details:", club.value)
     clubStats.value = buildStats(club.value)
 
-  } catch (error) {
-    console.error(error)
-    toast.error('Failed to load club information.')
-    return
-  }
-  try {
-
     const rows = await getEvents({
-      club_id: club.value.id,
+      club_id: clubId,
       upcoming_only: true
     })
 
     upcomingEvents.value = rows
-      .map(row => normalizeEvent(row))
+      .map(normalizeEvent)
       .filter(event => event.status !== 'cancelled')
 
   } catch (error) {
-    console.error('Failed to load club events:', error)
-    upcomingEvents.value = []
+    console.error(error)
+    toast.error('Failed to load club details.')
   }
+}
 
+onMounted(async () => {
+  try {
+    await clubsStore.loadLeaderClubs()
+
+    if (!clubsStore.leaderClubs.length) {
+      toast.error('No active club assigned.')
+      router.push(`/${auth.user.collegeSlug}/clubs`)
+      return
+    }
+
+    await loadClubData(clubsStore.selectedLeaderClub.id)
+
+  } catch (error) {
+    console.error(error)
+    toast.error('Failed to load club information.')
+  }
 })
 </script>
 
@@ -218,7 +231,16 @@ onMounted(async function loadDashboard() {
     <header class="topbar">
       <div class="title-block">
         <h1 class="page-title">My Club</h1>
-        <p class="page-sub">{{ club.name }}</p>
+
+        <CustomSelect
+           v-model="selectedClubId" 
+           :options="
+            clubsStore.leaderClubs.map(c => ({ 
+              value: c.id, 
+              label: c.name 
+              }))
+            "
+            placeholder="Select Club"/>
       </div>
       <div class="topbar-spacer"></div>
       <div style="display:flex;gap:12px;">

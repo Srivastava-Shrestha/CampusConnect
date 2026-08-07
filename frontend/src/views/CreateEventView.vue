@@ -5,13 +5,14 @@ import { useAuthStore } from '../stores/auth'
 import { ArrowLeft, Send, Save } from 'lucide-vue-next'
 import LeaderSidebar from '../components/layout/LeaderSidebar.vue'
 import { createEvent, publishEvent } from '../api/events'
-import { getMyClubs } from '../api/clubs'
+import { useClubsStore } from '../stores/clubs'
 import { toast } from '../composables/useToast'
 import { useFormValidation } from '../composables/useFormValidation'
 
 const router = useRouter()
 const route = useRoute()
 const auth = useAuthStore()
+const clubsStore = useClubsStore()
 const { allFieldsFilled } = useFormValidation()
 
 const club = ref(null)
@@ -64,6 +65,10 @@ function toIsoInstant(date, time) {
 }
 
 function buildPayload() {
+  if (!club.value) {
+    toast.error('No club selected.')
+    return null
+  }
   const requiredFields = {
     title: eventTitle.value,
     desc: eventDesc.value,
@@ -152,17 +157,18 @@ async function publishNewEvent() {
   }
 }
 
-onMounted(async function loadLeaderClub() {
+onMounted(async () => {
   try {
-    const ledClubs = await getMyClubs({ role: 'LEADER' })
+    await clubsStore.loadLeaderClubs()
 
-    if (!ledClubs.length) {
-      toast.error('You do not lead a club yet.')
+    if (!clubsStore.selectedLeaderClub) {
+      toast.error('No active club selected.')
       router.push(`/${auth.user.collegeSlug}/clubs`)
       return
     }
 
-    club.value = ledClubs[0]
+    club.value = clubsStore.selectedLeaderClub
+
   } catch (error) {
     toast.error(error?.message || 'Unable to load your club.')
     router.push(`/${auth.user.collegeSlug}/clubs`)

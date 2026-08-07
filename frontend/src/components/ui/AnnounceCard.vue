@@ -6,31 +6,90 @@ const props = defineProps({
   announcement: { type: Object, required: true }
 })
 
-// Opening an announcement clears its unread marker.
-function markRead() {
-  props.announcement.unread = false
+function formatTime(dateString) {
+  return new Date(dateString).toLocaleString([], {
+    dateStyle: 'medium',
+    timeStyle: 'short'
+  })
 }
+
+function labelForCategory(category) {
+  switch (category) {
+    case 'GENERAL':
+    case 'general':
+      return 'General'
+
+    case 'EVENT_UPDATE':
+    case 'event_update':
+      return 'Event Update'
+
+    case 'RESOURCE':
+    case 'resource':
+      return 'Resource'
+
+    case 'ACHIEVEMENT':
+    case 'achievement':
+      return 'Achievement'
+
+    case 'URGENT':
+    case 'urgent':
+      return 'Urgent'
+
+    default:
+      return category
+  }
+}
+
+function iconForCategory(category) {
+  switch (category) {
+    case 'GENERAL':
+    case 'general':
+      return 'megaphone'
+
+    case 'EVENT_UPDATE':
+    case 'event_update':
+      return 'calendar'
+
+    case 'RESOURCE':
+    case 'resource':
+      return 'book'
+
+    case 'ACHIEVEMENT':
+    case 'achievement':
+      return 'trophy'
+
+    case 'URGENT':
+    case 'urgent':
+      return 'alert-circle'
+
+    default:
+      return 'megaphone'
+  }
+}
+
 </script>
 
 <template>
-  <div class="announce-card" :class="{ pinned: announcement.pinned }" @click="markRead">
+  <div class="announce-card" :class="{ pinned: announcement.pinned }">
     <span v-if="announcement.pinned" class="announce-pin-mark">
       <Pin />
     </span>
     <div v-else-if="announcement.unread" class="announce-unread-dot"></div>
     <div class="announce-club-row">
-      <div class="announce-dot" :class="announcement.dot">
-        <ClubIcon :name="announcement.icon" />
+      <div class="announce-dot banner-blue">
+        <ClubIcon :name="iconForCategory(announcement.category)" />
       </div>
       <div class="announce-club-info">
-        <p class="announce-club-name">{{ announcement.club }}</p>
-        <p class="announce-time">{{ announcement.time }}</p>
+        <p class="announce-club-name">{{ announcement.club_name }}</p>
+        <p class="announce-time">{{ formatTime(announcement.created_at) }}</p>
       </div>
     </div>
     <p class="announce-title">{{ announcement.title }}</p>
     <p class="announce-body">{{ announcement.body }}</p>
     <div class="announce-footer">
-      <span v-for="tag in announcement.tags" :key="tag" class="announce-tag">{{ tag }}</span>
+      <span class="announce-tag">
+        {{ labelForCategory(announcement.category) }}
+      </span>
     </div>
     <slot name="actions"></slot>
   </div>

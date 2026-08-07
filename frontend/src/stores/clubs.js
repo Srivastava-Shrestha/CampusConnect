@@ -3,11 +3,15 @@ import { getClubs, getMyClubs, getClubById } from "../api/clubs"
 
 export const useClubsStore = defineStore('clubs', {
   state: () => ({
-    clubs: [],
-    joinedClubs: [],
-    currentClub: null,
-    loaded: false
-  }),
+  clubs: [],
+  joinedClubs: [],
+  currentClub: null,
+
+  leaderClubs: [],
+  selectedLeaderClub: null,
+
+  loaded: false
+}),
 
   getters: {
     recommendedClubs: (state) => {
@@ -55,6 +59,34 @@ export const useClubsStore = defineStore('clubs', {
     console.error("Failed to load club:", error)
     this.currentClub = null
   }
+},
+  async loadLeaderClubs() {
+    try {
+      const clubs = await getMyClubs({ role: 'LEADER' })
+
+      this.leaderClubs = Array.isArray(clubs)
+        ? clubs.filter(club => club.status === 'ACTIVE')
+        : []
+
+      const stillExists = this.leaderClubs.some(
+       club => club.id === this.selectedLeaderClub?.id
+      )
+
+      if (!stillExists) {
+        this.selectedLeaderClub =
+          this.leaderClubs.length
+            ? this.leaderClubs[0]
+            : null
+      }
+    } catch (error) {
+      console.error("Failed to load leader clubs:", error)
+       this.leaderClubs = []
+      this.selectedLeaderClub = null
+    }
+},
+  selectLeaderClub(clubId) {
+  this.selectedLeaderClub =
+    this.leaderClubs.find(c => c.id === clubId) ?? null
 }
   }
 })

@@ -1,7 +1,25 @@
 <script setup>
 import {
-  Bot, Laptop, Camera, Music, Drama, Briefcase, Telescope, Volleyball,
-  PersonStanding, Puzzle, Microscope, Palette, BookOpen, School, Cog, Medal
+  Bot,
+  Laptop,
+  Camera,
+  Music,
+  Drama,
+  Briefcase,
+  Telescope,
+  Volleyball,
+  PersonStanding,
+  Puzzle,
+  Microscope,
+  Palette,
+  BookOpen,
+  School,
+  Cog,
+  Medal,
+  Megaphone,
+  Calendar,
+  Trophy,
+  AlertCircle
 } from 'lucide-vue-next'
 
 const props = defineProps({
@@ -24,7 +42,12 @@ const iconMap = {
   book: BookOpen,
   school: School,
   gear: Cog,
-  medal: Medal
+  medal: Medal,
+
+  megaphone: Megaphone,
+  calendar: Calendar,
+  trophy: Trophy,
+  'alert-circle': AlertCircle
 }
 
 function pickIcon(name) {
