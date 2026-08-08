@@ -1,5 +1,7 @@
 from datetime import datetime, timezone
+from fastapi import BackgroundTasks
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.repository import (
     EventRegistrationRepository, EventRepository, ClubRepository,
     MembershipRepository, StudentRepository, UserRepository, NotificationRepository
@@ -7,22 +9,24 @@ from app.repository import (
 from app.models import EventStatus, MembershipStatus, RegistrationResult, NotificationType
 from app.schemas import (
     RegistrationConfirmation, UnregisterResponse, ParticipantItem, MarkAttendanceRequest,
-    AttendanceResponse, SetResultRequest, ResultResponse, MyRegistrationItem, MyResultItem
+    AttendanceResponse, DeclareResultsRequest, DeclaredResultItem, DeclareResultsResponse,
+    MyRegistrationItem, MyResultItem
 )
 from app.exceptions import (
     EventNotFoundError, EventNotPublishedError, EventFullError, AlreadyRegisteredError,
     RegistrationNotFoundError, RegistrationClosedError, NotClubMemberError,
     AttendanceNotAllowedError, NotCheckedInError, NotClubLeaderError,
-    StudentNotFoundError, CollegeNotFoundError
+    StudentNotFoundError, CollegeNotFoundError, ResultsAlreadyDeclaredError
 )
 from app.core.messages import RegistrationMessages, NotificationMessages
+from app.services.certificate import issue_certificate_job
 
 
 class EventRegistrationService:
     def __init__(self, registration_repo: EventRegistrationRepository, event_repo: EventRepository,
                  club_repo: ClubRepository, membership_repo: MembershipRepository,
                  student_repo: StudentRepository, user_repo: UserRepository,
-                 notification_repo: NotificationRepository):
+                 notification_repo: NotificationRepository, db: AsyncSession):
         self.registration_repo = registration_repo
         self.event_repo = event_repo
         self.club_repo = club_repo
@@ -30,6 +34,7 @@ class EventRegistrationService:
         self.student_repo = student_repo
         self.user_repo = user_repo
         self.notification_repo = notification_repo
+        self.db = db
 
     async def register(self, payload: dict, event_id: int) -> RegistrationConfirmation:
         student = await self._get_student(payload)
@@ -119,12 +124,16 @@ class EventRegistrationService:
         event = await self._managed_event(payload, event_id)
         if event.starts_at > self._now():
             raise AttendanceNotAllowedError()
+        if await self.registration_repo.results_declared(event_id):
+            raise ResultsAlreadyDeclaredError()
 
         registration = await self._registration_of_event(registration_id, event_id)
         await self.registration_repo.set_attendance(registration, data.checked_in)
 
-        if not data.checked_in and registration.result != RegistrationResult.REGISTRANT:
-            await self.registration_repo.set_result(registration, RegistrationResult.REGISTRANT)
+        await self.registration_repo.set_result(
+            registration,
+            RegistrationResult.PARTICIPANT if data.checked_in else RegistrationResult.REGISTRANT,
+        )
 
         message = (
             RegistrationMessages.CHECKED_IN if data.checked_in
@@ -139,17 +148,19 @@ class EventRegistrationService:
             message=message,
         )
 
-    async def set_result(self, payload: dict, event_id: int, registration_id: int,
-                         data: SetResultRequest) -> ResultResponse:
+    async def declare_results(self, payload: dict, event_id: int, data: DeclareResultsRequest,
+                              background: BackgroundTasks | None = None) -> DeclareResultsResponse:
         event = await self._managed_event(payload, event_id)
-        registration = await self._registration_of_event(registration_id, event_id)
-        if not registration.checked_in:
-            raise NotCheckedInError()
+        if await self.registration_repo.results_declared(event_id):
+            raise ResultsAlreadyDeclaredError()
 
-        await self.registration_repo.set_result(registration, data.result)
+        winner = await self._attendee(data.winner_registration_id, event_id)
+        runner_up = await self._attendee(data.runner_up_registration_id, event_id)
+        await self.registration_repo.set_result(winner, RegistrationResult.WINNER)
+        await self.registration_repo.set_result(runner_up, RegistrationResult.RUNNER_UP)
 
-        # REGISTRANT is the default on sign-up, not an outcome worth notifying about
-        if data.result != RegistrationResult.REGISTRANT:
+        attendees = await self.registration_repo.list_checked_in(event_id)
+        for registration in attendees:
             await self.notification_repo.create_notification(
                 student_id=registration.student_id,
                 type=NotificationType.RESULT_POSTED,
@@ -158,12 +169,19 @@ class EventRegistrationService:
                 event_id=event.id,
             )
 
-        return ResultResponse(
-            registration_id=registration.id,
-            student_id=registration.student_id,
-            full_name=await self._student_name(registration.student_id),
-            result=registration.result,
-            message=RegistrationMessages.RESULT_SET,
+        await self.db.commit()
+
+        if background is not None:
+            for registration in attendees:
+                background.add_task(issue_certificate_job, registration.id)
+
+        return DeclareResultsResponse(
+            event_id=event.id,
+            winner=await self._declared_item(winner),
+            runner_up=await self._declared_item(runner_up),
+            participants=len(attendees) - 2,
+            certificates_queued=len(attendees),
+            message=RegistrationMessages.RESULTS_DECLARED,
         )
 
     async def my_registrations(self, payload: dict) -> list[MyRegistrationItem]:
@@ -238,3 +256,17 @@ class EventRegistrationService:
         if not registration or registration.event_id != event_id:
             raise RegistrationNotFoundError()
         return registration
+
+    async def _attendee(self, registration_id: int, event_id: int):
+        registration = await self._registration_of_event(registration_id, event_id)
+        if not registration.checked_in:
+            raise NotCheckedInError()
+        return registration
+
+    async def _declared_item(self, registration) -> DeclaredResultItem:
+        return DeclaredResultItem(
+            registration_id=registration.id,
+            student_id=registration.student_id,
+            full_name=await self._student_name(registration.student_id),
+            result=registration.result,
+        )
