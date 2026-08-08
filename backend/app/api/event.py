@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Depends, Query, Security
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, Security
 from app.schemas import (
     CreateEventRequest, UpdateEventRequest, CreateEventResponse, EventStatusResponse,
     EventListItem, EventDetailResponse, RegistrationConfirmation, UnregisterResponse,
-    ParticipantItem, MarkAttendanceRequest, AttendanceResponse, SetResultRequest,
-    ResultResponse, MyRegistrationItem, MyResultItem
+    ParticipantItem, MarkAttendanceRequest, AttendanceResponse, DeclareResultsRequest,
+    DeclareResultsResponse, MyRegistrationItem, MyResultItem
 )
 from app.services import EventService, EventRegistrationService
 from app.core.di import get_event_service, get_event_registration_service, get_user_info
@@ -126,13 +126,16 @@ async def mark_attendance(
     return await service.mark_attendance(payload, event_id, registration_id, data)
 
 
-@event_router.patch("/{event_id}/registrations/{registration_id}/result",
-                    response_model=ResultResponse)
-async def set_result(
+@event_router.patch("/{event_id}/results", response_model=DeclareResultsResponse,
+                    description="Declares the winner and runner up in one call. Every other "
+                                "checked-in attendee stays a PARTICIPANT, and certificates are "
+                                "generated for all of them in the background. Results and "
+                                "attendance are frozen afterwards.")
+async def declare_results(
     event_id: int,
-    registration_id: int,
-    data: SetResultRequest,
+    data: DeclareResultsRequest,
+    background: BackgroundTasks,
     payload: dict = Security(get_user_info, scopes=["STUDENT"]),
     service: EventRegistrationService = Depends(get_event_registration_service),
 ):
-    return await service.set_result(payload, event_id, registration_id, data)
+    return await service.declare_results(payload, event_id, data, background)
