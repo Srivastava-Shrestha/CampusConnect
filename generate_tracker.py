@@ -1,7 +1,7 @@
 import os
 import json
 import urllib.request
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 REPO = "Srivastava-Shrestha/MAY2026-Team-003"
 TOKEN = os.environ["GH_TOKEN"]
@@ -44,7 +44,8 @@ closed_prs = [p for p in prs if p["state"] == "closed" and not p.get("merged_at"
 open_issues   = [i for i in issues if i["state"] == "open"]
 closed_issues = [i for i in issues if i["state"] == "closed"]
 
-now = datetime.now(timezone.utc).strftime("%d %b %Y %H:%M UTC")
+IST = timezone(timedelta(hours=5, minutes=30))
+now = datetime.now(IST).strftime("%d %b %Y %H:%M IST")
 
 lines = []
 lines.append(f"# 🔗 GitHub Tracker — Campus Connect")
