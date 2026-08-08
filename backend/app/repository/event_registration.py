@@ -78,6 +78,30 @@ class EventRegistrationRepository:
         )
         return result.all()
 
+    async def list_checked_in(self, event_id: int) -> list[EventRegistration]:
+        result = await self.db.execute(
+            select(EventRegistration)
+            .where(
+                EventRegistration.event_id == event_id,
+                EventRegistration.checked_in.is_(True),
+            )
+            .order_by(EventRegistration.id.asc())
+        )
+        return list(result.scalars().all())
+
+    async def results_declared(self, event_id: int) -> bool:
+        result = await self.db.execute(
+            select(EventRegistration.id)
+            .where(
+                EventRegistration.event_id == event_id,
+                EventRegistration.result.in_(
+                    (RegistrationResult.WINNER, RegistrationResult.RUNNER_UP)
+                ),
+            )
+            .limit(1)
+        )
+        return result.first() is not None
+
     async def set_attendance(self, registration: EventRegistration, checked_in: bool) -> EventRegistration:
         registration.checked_in = checked_in
         registration.checked_in_at = datetime.now(timezone.utc) if checked_in else None

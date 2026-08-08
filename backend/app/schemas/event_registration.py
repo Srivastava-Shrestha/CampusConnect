@@ -44,21 +44,30 @@ class AttendanceResponse(BaseModel):
     message: str
 
 
-class SetResultRequest(BaseModel):
-    result: RegistrationResult
+class DeclareResultsRequest(BaseModel):
+    winner_registration_id: int
+    runner_up_registration_id: int
 
     @model_validator(mode="after")
-    def valid_result(self):
-        if self.result == RegistrationResult.REGISTRANT:
-            raise ValueError("result must be WINNER, RUNNER_UP or PARTICIPANT")
+    def distinct_winners(self):
+        if self.winner_registration_id == self.runner_up_registration_id:
+            raise ValueError("winner and runner up must be two different registrations")
         return self
 
 
-class ResultResponse(BaseModel):
+class DeclaredResultItem(BaseModel):
     registration_id: int
     student_id: int
     full_name: str
     result: RegistrationResult
+
+
+class DeclareResultsResponse(BaseModel):
+    event_id: int
+    winner: DeclaredResultItem
+    runner_up: DeclaredResultItem
+    participants: int
+    certificates_queued: int
     message: str
 
 

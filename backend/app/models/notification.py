@@ -1,8 +1,8 @@
 import enum
 from datetime import datetime
-from sqlalchemy import ForeignKey, Enum, Index, func, text
+from sqlalchemy import ForeignKey, Enum, DateTime, Index, func, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from app.core import Base
+from app.core import Base, utcnow
 
 
 class NotificationType(str, enum.Enum):
@@ -29,6 +29,8 @@ class Notification(Base):
     club_id: Mapped[int | None] = mapped_column(ForeignKey("clubs.id"))
     event_id: Mapped[int | None] = mapped_column(ForeignKey("events.id"))
     is_read: Mapped[bool] = mapped_column(default=False, server_default=text("false"))
-    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True),
+                                                 default=utcnow,
+                                                 server_default=func.now())
 
     student: Mapped["Student"] = relationship(back_populates="notifications")

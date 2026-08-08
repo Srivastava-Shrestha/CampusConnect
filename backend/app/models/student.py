@@ -1,8 +1,8 @@
 from datetime import datetime
-from sqlalchemy import Text, ForeignKey, func
+from sqlalchemy import Text, ForeignKey, DateTime, func
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from app.core import Base
+from app.core import Base, utcnow
 
 
 
@@ -17,8 +17,10 @@ class Student(Base):
     roll_no: Mapped[str | None] = mapped_column()
     branch: Mapped[str | None] = mapped_column()
     year: Mapped[int | None] = mapped_column()
-    announcements_seen_at: Mapped[datetime | None] = mapped_column()
-    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    announcements_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True),
+                                                 default=utcnow,
+                                                 server_default=func.now())
 
     user: Mapped["User"] = relationship(back_populates="student")
     headed_clubs: Mapped[list["Club"]] = relationship(back_populates="head")

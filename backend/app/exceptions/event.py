@@ -49,3 +49,8 @@ class AttendanceNotAllowedError(AppException):
 class NotCheckedInError(AppException):
     status_code = 400
     message = "Result can only be set for attendees who were checked in"
+
+
+class ResultsAlreadyDeclaredError(AppException):
+    status_code = 409
+    message = "Results for this event have already been declared and can no longer be changed"

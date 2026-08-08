@@ -4,15 +4,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.repository import (
     UserRepository, CollegeRepository, StudentRepository, ClubRepository, MembershipRepository,
     EventRepository, EventRegistrationRepository, AnnouncementRepository, IssueRepository,
-    NotificationRepository
+    NotificationRepository, CertificateRepository
 )
 from app.services import (
     UserService, CollegeService, ClubService, MembershipService,
     EventService, EventRegistrationService, AnnouncementService, IssueService,
-    NotificationService
+    NotificationService, CertificateService
 )
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials, SecurityScopes
 from app.core.token import decode_token
+from app.core.storage import Storage, storage
 from app.exceptions import AuthorizationError
 
 def get_user_service(db: AsyncSession = Depends(get_db)):
@@ -65,7 +66,7 @@ def get_event_registration_service(db: AsyncSession = Depends(get_db)):
     user_repo = UserRepository(db)
     notification_repo = NotificationRepository(db)
     return EventRegistrationService(registration_repo, event_repo, club_repo, membership_repo,
-                                    student_repo, user_repo, notification_repo)
+                                    student_repo, user_repo, notification_repo, db)
 
 def get_announcement_service(db: AsyncSession = Depends(get_db)):
     announcement_repo = AnnouncementRepository(db)
@@ -90,6 +91,16 @@ def get_notification_service(db: AsyncSession = Depends(get_db)):
     notification_repo = NotificationRepository(db)
     student_repo = StudentRepository(db)
     return NotificationService(notification_repo, student_repo)
+
+def get_storage() -> Storage:
+    return storage
+
+def get_certificate_service(db: AsyncSession = Depends(get_db),
+                            storage: Storage = Depends(get_storage)):
+    certificate_repo = CertificateRepository(db)
+    student_repo = StudentRepository(db)
+    notification_repo = NotificationRepository(db)
+    return CertificateService(certificate_repo, student_repo, notification_repo, storage)
 
 
     

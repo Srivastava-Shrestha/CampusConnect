@@ -2,7 +2,7 @@ import enum
 from datetime import datetime
 from sqlalchemy import ForeignKey, Enum, DateTime, UniqueConstraint, func, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from app.core import Base
+from app.core import Base, utcnow
 
 
 class RegistrationResult(str, enum.Enum):
@@ -24,7 +24,10 @@ class EventRegistration(Base):
     checked_in: Mapped[bool] = mapped_column(default=False, server_default=text("false"))
     checked_in_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     result: Mapped[RegistrationResult] = mapped_column(Enum(RegistrationResult))
-    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True),
+                                                 default=utcnow,
+                                                 server_default=func.now())
 
     event: Mapped["Event"] = relationship(back_populates="registrations")
     student: Mapped["Student"] = relationship(back_populates="event_registrations")
+    certificate: Mapped["Certificate | None"] = relationship(back_populates="registration")
