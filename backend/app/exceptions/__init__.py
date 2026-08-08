@@ -11,8 +11,15 @@ from app.exceptions.club import (
 from app.exceptions.event import (
     EventNotFoundError, EventActionNotAllowedError, EventNotPublishedError, EventFullError,
     RegistrationClosedError, AlreadyRegisteredError, RegistrationNotFoundError,
-    NotClubMemberError, AttendanceNotAllowedError, NotCheckedInError
+    NotClubMemberError, AttendanceNotAllowedError, NotCheckedInError,
+    ResultsAlreadyDeclaredError
 )
 from app.exceptions.announcement import AnnouncementNotFoundError
 from app.exceptions.issue import IssueNotFoundError, IssueActionNotAllowedError
 from app.exceptions.notification import NotificationNotFoundError
+from app.exceptions.storage import (
+    StorageError, StorageNotConfiguredError, InvalidFileTypeError
+)
+from app.exceptions.certificate import (
+    CertificateNotFoundError, CertificateNotEarnedError, CertificateGenerationError
+)
