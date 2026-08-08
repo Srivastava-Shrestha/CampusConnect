@@ -38,7 +38,7 @@ class RegistrationMessages:
     UNREGISTERED = "Registration cancelled"
     CHECKED_IN = "Attendance marked"
     CHECK_IN_UNDONE = "Attendance unmarked"
-    RESULT_SET = "Result recorded"
+    RESULTS_DECLARED = "Results declared, certificates are being generated"
 
 
 class AnnouncementMessages:
@@ -74,3 +74,7 @@ class NotificationMessages:
     @staticmethod
     def result_posted(event_title: str, result: str) -> str:
         return f"Your result for {event_title} is now available: {result}"
+
+    @staticmethod
+    def certificate_issued(event_title: str) -> str:
+        return f"Your certificate for {event_title} is ready to download"
