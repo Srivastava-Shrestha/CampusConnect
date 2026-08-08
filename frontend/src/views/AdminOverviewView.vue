@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { Clock, CheckCircle2, XCircle } from 'lucide-vue-next'
+import { Clock, CheckCircle2, XCircle, ClipboardCheck } from 'lucide-vue-next'
 import AdminSidebar from '../components/layout/AdminSidebar.vue'
 import Topbar from '../components/layout/Topbar.vue'
 import StatCard from '../components/ui/StatCard.vue'
@@ -14,6 +14,11 @@ const pendingList = ref([])
 
 const approvedTotal = ref(0)
 const rejectedTotal = ref(0)
+
+// Stays false until the first load attempt has finished, so the empty-state
+// message below only shows once we actually know there is nothing pending -
+// not for the brief moment before the page has loaded anything at all.
+const hasLoaded = ref(false)
 
 const auth = useAuthStore()
 
@@ -38,21 +43,40 @@ async function handleReject(approval) {
   approval.status = 'rejected'
 }
 
-onMounted(async () => {
+// Each status is fetched independently, on purpose. The three calls used to
+// run through a single Promise.all(), so if any one of them failed the whole
+// dashboard was left showing zeroes and an empty list with no explanation -
+// which is exactly what issue #46 reported as "completely empty". Loading
+// them separately means one failing call only blanks its own number.
+async function loadPending() {
   try {
-    const [pending, active, rejected] = await Promise.all([
-      getClubApprovals("PENDING"),
-      getClubApprovals("ACTIVE"),
-      getClubApprovals("REJECTED")
-    ])
-
-    pendingList.value = pending
-    approvedTotal.value = active.length
-    rejectedTotal.value = rejected.length
-
+    pendingList.value = await getClubApprovals("PENDING")
   } catch (error) {
-    toast.error(error.message)
+    toast.error('Could not load pending approvals: ' + error.message)
   }
+}
+
+async function loadApprovedTotal() {
+  try {
+    const active = await getClubApprovals("ACTIVE")
+    approvedTotal.value = active.length
+  } catch (error) {
+    toast.error('Could not load approved clubs: ' + error.message)
+  }
+}
+
+async function loadRejectedTotal() {
+  try {
+    const rejected = await getClubApprovals("REJECTED")
+    rejectedTotal.value = rejected.length
+  } catch (error) {
+    toast.error('Could not load rejected clubs: ' + error.message)
+  }
+}
+
+onMounted(async () => {
+  await Promise.all([loadPending(), loadApprovedTotal(), loadRejectedTotal()])
+  hasLoaded.value = true
 })
 </script>
 
@@ -77,7 +101,12 @@ onMounted(async () => {
           <StatusPill status="pending" :label="pendingCount + ' pending'" />
         </div>
 
-        <div class="approval-list">
+        <div v-if="hasLoaded && pendingList.length === 0" class="empty-state">
+          <ClipboardCheck />
+          <p>No club approvals are waiting on you right now.</p>
+        </div>
+
+        <div v-else class="approval-list">
           <ApprovalCard
             v-for="approval in pendingList"
             :key="approval.id"

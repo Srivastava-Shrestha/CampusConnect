@@ -204,21 +204,31 @@ async function loadClubData(clubId) {
   }
 }
 
+// Having no club yet is a normal starting state, not an error. This page used
+// to toast "No active club assigned" and redirect to /clubs, which left the
+// leader with no explanation and no route to creating one. We now stay put and
+// render the empty state below instead.
+const hasLoaded = ref(false)
+
+const hasNoClub = computed(() => hasLoaded.value && clubsStore.leaderClubs.length === 0)
+
+function goToCreateClub() {
+  router.push(`/${auth.user.collegeSlug}/clubs/propose`)
+}
+
 onMounted(async () => {
   try {
     await clubsStore.loadLeaderClubs()
 
-    if (!clubsStore.leaderClubs.length) {
-      toast.error('No active club assigned.')
-      router.push(`/${auth.user.collegeSlug}/clubs`)
-      return
+    if (clubsStore.leaderClubs.length) {
+      await loadClubData(clubsStore.selectedLeaderClub.id)
     }
-
-    await loadClubData(clubsStore.selectedLeaderClub.id)
 
   } catch (error) {
     console.error(error)
     toast.error('Failed to load club information.')
+  } finally {
+    hasLoaded.value = true
   }
 })
 </script>
@@ -226,7 +236,31 @@ onMounted(async () => {
 <template>
   <LeaderSidebar />
 
-  <div class="main-content" v-if="club">
+  <div class="main-content" v-if="hasNoClub">
+
+    <header class="topbar">
+      <div class="title-block">
+        <h1 class="page-title">My Club</h1>
+        <p class="page-sub">You do not lead a club yet</p>
+      </div>
+    </header>
+
+    <main class="content-body custom-scrollbar">
+      <div class="empty-state">
+        <UsersRound />
+        <p>
+          You are not leading a club yet. Start one and it will show up here,
+          along with its members, events and announcements.
+        </p>
+        <button class="btn-primary" @click="goToCreateClub">
+          <CalendarPlus /> Start a new club
+        </button>
+      </div>
+    </main>
+
+  </div>
+
+  <div class="main-content" v-else-if="club">
 
     <header class="topbar">
       <div class="title-block">

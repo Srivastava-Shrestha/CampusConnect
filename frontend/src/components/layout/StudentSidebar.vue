@@ -48,13 +48,34 @@ const mobileItems = computed(function buildMobileMenu() {
   return base
 })
 
+// Among every menu item whose path is a prefix of the current route, only
+// the longest one should be treated as active. Without this, being on
+// "/clubs/propose" would light up both "Clubs" and "Propose Club" at once,
+// since "/clubs/propose" also starts with "/clubs/".
+const bestMatchPath = computed(function findBestMatch() {
+  const candidatePaths = menuItems.value
+    .map(function getPath(item) { return item.to })
+    .filter(function matchesCurrentRoute(path) {
+      return route.path === path || route.path.startsWith(path + '/')
+    })
+
+  if (candidatePaths.length === 0) {
+    return null
+  }
+
+  return candidatePaths.reduce(function pickLongest(longestSoFar, path) {
+    return path.length > longestSoFar.length ? path : longestSoFar
+  })
+})
+
 function isActive(itemPath) {
-  // The Manage Clubs entry stays highlighted across every leader page.
-  // Require the trailing slash so /leaderboard does not match /leader.
+  // The Manage Clubs entry stays highlighted across every leader page, not
+  // just its own exact route, so it needs its own rule instead of the
+  // longest-match one above.
   if (itemPath.endsWith('/leader/club')) {
     return route.path.startsWith(`/${slug.value}/leader/`)
   }
-  return route.path === itemPath || route.path.startsWith(itemPath + '/')
+  return itemPath === bestMatchPath.value
 }
 
 function logout() {
