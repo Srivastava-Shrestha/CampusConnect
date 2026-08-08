@@ -13,7 +13,8 @@ from app.schemas.event import (
 )
 from app.schemas.event_registration import (
     RegistrationConfirmation, UnregisterResponse, ParticipantItem, MarkAttendanceRequest,
-    AttendanceResponse, SetResultRequest, ResultResponse, MyRegistrationItem, MyResultItem
+    AttendanceResponse, DeclareResultsRequest, DeclaredResultItem, DeclareResultsResponse,
+    MyRegistrationItem, MyResultItem
 )
 from app.schemas.announcement import (
     CreateAnnouncementRequest, PinAnnouncementRequest, CreateAnnouncementResponse,
@@ -27,4 +28,7 @@ from app.schemas.issue import (
 from app.schemas.notification import (
     NotificationItem, NotificationCountResponse, NotificationReadResponse,
     MarkAllNotificationsReadResponse
+)
+from app.schemas.certificate import (
+    MyCertificateItem, CertificateDownloadResponse, CertificateVerification
 )
