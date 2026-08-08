@@ -112,6 +112,7 @@ by label rather than trusting the number order.
 | 52      | Custom select (replaces native dropdowns)                       |
 | 53      | Mobile fixes for auth/verify pages                              |
 | 54      | Auth layout fixes (signup scroll, login sidebar alignment)      |
+| 55      | Workspace theme (neutral palette for admin + club-leader tools) |
 
 ## Conventions
 

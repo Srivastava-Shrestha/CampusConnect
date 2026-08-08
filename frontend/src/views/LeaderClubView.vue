@@ -246,9 +246,11 @@ onMounted(async () => {
     </header>
 
     <main class="content-body custom-scrollbar">
-      <div class="empty-state">
-        <UsersRound />
-        <p>
+      <div class="empty-state empty-state-cta">
+        <div class="empty-state-icon-tile">
+          <UsersRound />
+        </div>
+        <p class="empty-state-message">
           You are not leading a club yet. Start one and it will show up here,
           along with its members, events and announcements.
         </p>

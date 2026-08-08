@@ -10,12 +10,29 @@ const route = useRoute()
 const shellClass = computed(function pickShellClass() {
   return route.meta.bodyClass || 'portal-body'
 })
+
+// Admin and club-leader tools use a calmer, more neutral palette than the
+// public and student-facing pages, which keep the warm Campus Connect colours.
+// The class below scopes that palette; section 55 of style.css redefines the
+// design tokens inside it. bodyClass cannot do this job because 'portal-body'
+// is shared by student, leader and admin pages alike.
+const themeClass = computed(function pickThemeClass() {
+  if (route.meta.role === 'admin') {
+    return 'theme-workspace'
+  }
+
+  if (route.meta.role === 'leader') {
+    return 'theme-workspace'
+  }
+
+  return ''
+})
 </script>
 
 <template>
   <LoadingBar />
   <ToastContainer />
-  <div :class="shellClass">
+  <div :class="[shellClass, themeClass]">
     <router-view />
   </div>
 </template>
