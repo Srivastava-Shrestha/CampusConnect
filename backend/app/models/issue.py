@@ -2,7 +2,7 @@ import enum
 from datetime import datetime
 from sqlalchemy import Text, ForeignKey, Enum, DateTime, Index, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from app.core import Base
+from app.core import Base, utcnow
 
 
 class IssueCategory(str, enum.Enum):
@@ -40,7 +40,9 @@ class Issue(Base):
     responded_by: Mapped[int | None] = mapped_column(ForeignKey("students.id"))
     responded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True),
+                                                 default=utcnow,
+                                                 server_default=func.now())
 
     student: Mapped["Student"] = relationship(foreign_keys=[student_id],
                                               back_populates="issues")

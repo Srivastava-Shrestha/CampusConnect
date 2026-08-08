@@ -1,8 +1,8 @@
 import enum
 from datetime import datetime
-from sqlalchemy import Text, ForeignKey, Enum, func
+from sqlalchemy import Text, ForeignKey, Enum, DateTime, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from app.core import Base
+from app.core import Base, utcnow
 
 
 class ClubType(str, enum.Enum):
@@ -29,7 +29,9 @@ class Club(Base):
     type: Mapped[ClubType] = mapped_column(Enum(ClubType))
     status: Mapped[ClubStatus] = mapped_column(Enum(ClubStatus))
     image_url: Mapped[str | None] = mapped_column()
-    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True),
+                                                 default=utcnow,
+                                                 server_default=func.now())
 
     college: Mapped["College"] = relationship(back_populates="clubs")
     head: Mapped["Student"] = relationship(back_populates="headed_clubs")
