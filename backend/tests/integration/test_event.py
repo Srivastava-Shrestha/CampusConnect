@@ -164,6 +164,62 @@ async def two_checked_in(client, db_session, leader, member, second_member):
     )
 
     return leader_headers, event_id, first_registration_id, second_registration_id
+
+
+@pytest.fixture
+async def three_checked_in(client, db_session, leader, member, second_member):
+    """Three students registered and checked in, for testing participants count math."""
+    from app.models import Event
+
+    leader_headers, club_id = leader
+    third_payload = {
+        "email": "third@knit.edu.in",
+        "full_name": "Third Member",
+        "password": "Test@1234",
+        "confirm_password": "Test@1234",
+        "role": "STUDENT",
+    }
+    signup = await client.post("/auth/signup", json=third_payload)
+    third_headers = {"Authorization": f"Bearer {signup.json()['access_token']}"}
+    join = await client.post(f"/clubs/{club_id}/join", headers=third_headers)
+    await client.patch(
+        f"/clubs/{club_id}/requests/{join.json()['id']}",
+        headers=leader_headers,
+        json={"action": "APPROVED"},
+    )
+
+    payload = {
+        "club_id": club_id,
+        "title": "Three Person Event",
+        "description": "An event with three checked-in attendees",
+        "venue": "Lab 204",
+        "starts_at": future_time(2),
+        "ends_at": future_time(4),
+    }
+    create = await client.post("/events", headers=leader_headers, json=payload)
+    event_id = create.json()["id"]
+    await client.patch(f"/events/{event_id}/publish", headers=leader_headers)
+
+    r1 = await client.post(f"/events/{event_id}/register", headers=member)
+    r2 = await client.post(f"/events/{event_id}/register", headers=second_member)
+    r3 = await client.post(f"/events/{event_id}/register", headers=third_headers)
+    ids = [r1.json()["registration_id"], r2.json()["registration_id"], r3.json()["registration_id"]]
+
+    event = await db_session.get(Event, event_id)
+    event.starts_at = datetime.now(timezone.utc) - timedelta(hours=1)
+    event.ends_at = datetime.now(timezone.utc) + timedelta(hours=1)
+    await db_session.flush()
+
+    for reg_id in ids:
+        await client.patch(
+            f"/events/{event_id}/registrations/{reg_id}/attendance",
+            headers=leader_headers,
+            json={"checked_in": True},
+        )
+
+    return leader_headers, event_id, ids
+
+
 # ==== create event ====
 
 @pytest.mark.asyncio
@@ -1759,47 +1815,6 @@ async def test_declare_results_registration_from_different_event_fails(client, t
     response = await client.patch(f"/events/{other_event_id}/results", headers=leader_headers, json=payload)
     assert response.status_code == 404
     assert response.json()["message"] == "Registration not found"
-
-@pytest.fixture
-async def three_checked_in(client, db_session, leader, member, second_member):
-    """Three students registered and checked in, for testing participants count math."""
-    from app.models import Event
-
-    leader_headers, club_id = leader
-    third_payload = {
-        "email": "third@knit.edu.in", "full_name": "Third Member",
-        "password": "Test@1234", "confirm_password": "Test@1234", "role": "STUDENT",
-    }
-    signup = await client.post("/auth/signup", json=third_payload)
-    third_headers = {"Authorization": f"Bearer {signup.json()['access_token']}"}
-    join = await client.post(f"/clubs/{club_id}/join", headers=third_headers)
-    await client.patch(f"/clubs/{club_id}/requests/{join.json()['id']}",
-                       headers=leader_headers, json={"action": "APPROVED"})
-
-    payload = {
-        "club_id": club_id, "title": "Three Person Event",
-        "description": "An event with three checked-in attendees",
-        "venue": "Lab 204", "starts_at": future_time(2), "ends_at": future_time(4),
-    }
-    create = await client.post("/events", headers=leader_headers, json=payload)
-    event_id = create.json()["id"]
-    await client.patch(f"/events/{event_id}/publish", headers=leader_headers)
-
-    r1 = await client.post(f"/events/{event_id}/register", headers=member)
-    r2 = await client.post(f"/events/{event_id}/register", headers=second_member)
-    r3 = await client.post(f"/events/{event_id}/register", headers=third_headers)
-    ids = [r1.json()["registration_id"], r2.json()["registration_id"], r3.json()["registration_id"]]
-
-    event = await db_session.get(Event, event_id)
-    event.starts_at = datetime.now(timezone.utc) - timedelta(hours=1)
-    event.ends_at = datetime.now(timezone.utc) + timedelta(hours=1)
-    await db_session.flush()
-
-    for reg_id in ids:
-        await client.patch(f"/events/{event_id}/registrations/{reg_id}/attendance",
-                           headers=leader_headers, json={"checked_in": True})
-
-    return leader_headers, event_id, ids
 
 
 @pytest.mark.asyncio
