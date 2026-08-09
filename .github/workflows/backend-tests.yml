@@ -51,4 +51,8 @@ jobs:
           JWT_SECRET_KEY: test-secret-key
           JWT_ALGORITHM: HS256
           FRONTEND_URL: http://localhost:5173
+          AWS_REGION: ap-south-1
+          S3_BUCKET_NAME: test-bucket
+          AWS_ACCESS_KEY_ID: test-access-key
+          AWS_SECRET_ACCESS_KEY: test-secret-key
         run: uv run pytest tests/ -v
