@@ -121,6 +121,48 @@ async def started_event(client, db_session, leader, member):
     return leader_headers, event_id, registration_id
 
 
+@pytest.fixture
+async def two_checked_in(client, db_session, leader, member, second_member):
+    """Two students registered and checked in, event already started."""
+    from app.models import Event
+
+    leader_headers, club_id = leader
+    payload = {
+        "club_id": club_id,
+        "title": "Line Follower Workshop",
+        "description": "Hands-on session on building a line follower bot",
+        "venue": "Lab 204, Main Block",
+        "starts_at": future_time(2),
+        "ends_at": future_time(4),
+    }
+    create = await client.post("/events", headers=leader_headers, json=payload)
+    event_id = create.json()["id"]
+    await client.patch(f"/events/{event_id}/publish", headers=leader_headers)
+
+    first = await client.post(f"/events/{event_id}/register", headers=member)
+    first_registration_id = first.json()["registration_id"]
+    second = await client.post(f"/events/{event_id}/register", headers=second_member)
+    second_registration_id = second.json()["registration_id"]
+
+    event = await db_session.get(Event, event_id)
+    event.starts_at = datetime.now(timezone.utc) - timedelta(hours=1)
+    event.ends_at = datetime.now(timezone.utc) + timedelta(hours=1)
+    await db_session.flush()
+
+    attendance_payload = {"checked_in": True}
+    await client.patch(
+        f"/events/{event_id}/registrations/{first_registration_id}/attendance",
+        headers=leader_headers,
+        json=attendance_payload,
+    )
+    await client.patch(
+        f"/events/{event_id}/registrations/{second_registration_id}/attendance",
+        headers=leader_headers,
+        json=attendance_payload,
+    )
+    return leader_headers, event_id, first_registration_id, second_registration_id
+
+
 # ==== list notifications ====
 
 @pytest.mark.asyncio
@@ -580,26 +622,12 @@ async def test_registration_creates_notification(client, leader, member):
 # ==== RESULT_POSTED trigger ====
 
 @pytest.mark.asyncio
-async def test_result_posted_notification_visible_to_registrant(client, leader, member, second_member, started_event):
+async def test_result_posted_notification_visible_to_registrant(client, member, two_checked_in):
     """Verify that the RESULT_POSTED notification appears for the participant who received the result"""
-    leader_headers, event_id, registration_id = started_event
-    attendance_payload = {"checked_in": True}
-    await client.patch(
-        f"/events/{event_id}/registrations/{registration_id}/attendance",
-        headers=leader_headers,
-        json=attendance_payload,
-    )
-    second_registration = await client.post(f"/events/{event_id}/register", headers=second_member)
-    second_registration_id = second_registration.json()["registration_id"]
-    await client.patch(
-        f"/events/{event_id}/registrations/{second_registration_id}/attendance",
-        headers=leader_headers,
-        json=attendance_payload,
-    )
-
+    leader_headers, event_id, winner_reg_id, runner_up_reg_id = two_checked_in
     result_payload = {
-        "winner_registration_id": registration_id,
-        "runner_up_registration_id": second_registration_id,
+        "winner_registration_id": winner_reg_id,
+        "runner_up_registration_id": runner_up_reg_id,
     }
     await client.patch(f"/events/{event_id}/results", headers=leader_headers, json=result_payload)
 
@@ -614,26 +642,12 @@ async def test_result_posted_notification_visible_to_registrant(client, leader, 
 
 
 @pytest.mark.asyncio
-async def test_result_registrant_value_does_not_create_notification(client, leader, member, second_member, started_event):
-    """Confirm that a registration never checked in receives no RESULT_POSTED notification"""
-    leader_headers, event_id, registration_id = started_event
-    attendance_payload = {"checked_in": True}
-    await client.patch(
-        f"/events/{event_id}/registrations/{registration_id}/attendance",
-        headers=leader_headers,
-        json=attendance_payload,
-    )
-    second_registration = await client.post(f"/events/{event_id}/register", headers=second_member)
-    second_registration_id = second_registration.json()["registration_id"]
-    await client.patch(
-        f"/events/{event_id}/registrations/{second_registration_id}/attendance",
-        headers=leader_headers,
-        json=attendance_payload,
-    )
-
+async def test_result_registrant_value_does_not_create_notification(client, member, two_checked_in):
+    """Confirm that declaring results posts notifications for checked-in participants"""
+    leader_headers, event_id, winner_reg_id, runner_up_reg_id = two_checked_in
     result_payload = {
-        "winner_registration_id": registration_id,
-        "runner_up_registration_id": second_registration_id,
+        "winner_registration_id": winner_reg_id,
+        "runner_up_registration_id": runner_up_reg_id,
     }
     await client.patch(f"/events/{event_id}/results", headers=leader_headers, json=result_payload)
 
@@ -748,26 +762,12 @@ async def test_join_approved_twice_does_not_duplicate_notification(client, leade
     assert len(response.json()) == 1
 
 @pytest.mark.asyncio
-async def test_declare_results_twice_does_not_create_duplicate_notifications(client, leader, member, second_member, started_event):
+async def test_declare_results_twice_does_not_create_duplicate_notifications(client, member, two_checked_in):
     """Confirm that declaring results twice is rejected and does not create duplicate notifications"""
-    leader_headers, event_id, registration_id = started_event
-    attendance_payload = {"checked_in": True}
-    await client.patch(
-        f"/events/{event_id}/registrations/{registration_id}/attendance",
-        headers=leader_headers,
-        json=attendance_payload,
-    )
-    second_registration = await client.post(f"/events/{event_id}/register", headers=second_member)
-    second_registration_id = second_registration.json()["registration_id"]
-    await client.patch(
-        f"/events/{event_id}/registrations/{second_registration_id}/attendance",
-        headers=leader_headers,
-        json=attendance_payload,
-    )
-
+    leader_headers, event_id, winner_reg_id, runner_up_reg_id = two_checked_in
     result_payload = {
-        "winner_registration_id": registration_id,
-        "runner_up_registration_id": second_registration_id,
+        "winner_registration_id": winner_reg_id,
+        "runner_up_registration_id": runner_up_reg_id,
     }
     first = await client.patch(f"/events/{event_id}/results", headers=leader_headers, json=result_payload)
     assert first.status_code == 200
@@ -838,26 +838,12 @@ async def test_list_notifications_combined_is_read_and_type_filters(client, lead
     assert body[0]["type"] == "REGISTRATION_CONFIRMED"
 
 @pytest.mark.asyncio
-async def test_result_posted_message_for_runner_up(client, leader, member, second_member, started_event):
+async def test_result_posted_message_for_runner_up(client, member, two_checked_in):
     """Confirm the RESULT_POSTED message correctly interpolates a non-WINNER result value"""
-    leader_headers, event_id, registration_id = started_event
-    attendance_payload = {"checked_in": True}
-    await client.patch(
-        f"/events/{event_id}/registrations/{registration_id}/attendance",
-        headers=leader_headers,
-        json=attendance_payload,
-    )
-    second_registration = await client.post(f"/events/{event_id}/register", headers=second_member)
-    second_registration_id = second_registration.json()["registration_id"]
-    await client.patch(
-        f"/events/{event_id}/registrations/{second_registration_id}/attendance",
-        headers=leader_headers,
-        json=attendance_payload,
-    )
-
+    leader_headers, event_id, winner_reg_id, runner_up_reg_id = two_checked_in
     result_payload = {
-        "winner_registration_id": second_registration_id,
-        "runner_up_registration_id": registration_id,
+        "winner_registration_id": runner_up_reg_id,
+        "runner_up_registration_id": winner_reg_id,  # member is runner-up
     }
     await client.patch(f"/events/{event_id}/results", headers=leader_headers, json=result_payload)
 
