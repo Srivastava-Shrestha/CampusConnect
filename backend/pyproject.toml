@@ -26,6 +26,9 @@ dependencies = [
 pythonpath = ["."]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+filterwarnings = [
+    "ignore:coroutine 'Connection._cancel' was never awaited:RuntimeWarning",
+]
 
 [dependency-groups]
 dev = [
