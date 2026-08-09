@@ -1,6 +1,38 @@
-def main():
-    print("Hello from Campus Connect!")
+from fastapi import FastAPI, Request
+from app.exceptions import AppException
+from fastapi.responses import JSONResponse
+from app.api import (
+    auth_router, college_router, club_router, event_router, announcement_router, issue_router,
+    notification_router, certificate_router
+)
+from fastapi.middleware.cors import CORSMiddleware
+from app.core.config import settings
 
+app = FastAPI(title="CampusConnect",
+    description="Backend APIs for campusconnect.itshrestha.dev"
+    )
 
-if __name__ == "__main__":
-    main()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[settings.FRONTEND_URL],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+@app.exception_handler(AppException)
+async def handle_app_exc(request: Request, exc: AppException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"message": exc.message}
+    )
+
+app.include_router(auth_router)
+app.include_router(college_router)
+app.include_router(club_router)
+app.include_router(event_router)
+app.include_router(announcement_router)
+app.include_router(issue_router)
+app.include_router(notification_router)
+app.include_router(certificate_router)
+
