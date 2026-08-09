@@ -42,3 +42,28 @@ class LoginResponse(BaseModel):
     access_token: str
     refresh_token: str
     message: str
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr = Field(..., max_length=255)
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def normalize_email(cls, value):
+        return value.strip().lower() if isinstance(value, str) else value
+
+class ForgotPasswordResponse(BaseModel):
+    message: str
+
+class ResetPasswordRequest(BaseModel):
+    token: str = Field(..., min_length=1)
+    password: str = Field(..., min_length=8, max_length=255)
+    confirm_password: str = Field(..., min_length=8, max_length=255)
+
+    @model_validator(mode="after")
+    def passwords_match(self):
+        if self.password != self.confirm_password:
+            raise ValueError("password and confirm password do not match")
+        return self
+
+class ResetPasswordResponse(BaseModel):
+    message: str

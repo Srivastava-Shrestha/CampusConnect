@@ -1,6 +1,8 @@
 class AuthMessages:
     SIGNUP_SUCCESS = "Account created successfully"
     LOGIN_SUCCESS = "Logged in successfully"
+    RESET_LINK_SENT = "If that email is registered, a password reset link has been sent to it"
+    PASSWORD_RESET = "Password reset successfully, please log in with your new password"
 
 
 class CollegeMessages:

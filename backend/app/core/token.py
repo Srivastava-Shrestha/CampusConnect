@@ -22,6 +22,13 @@ def create_refresh_token(payload: dict, expires_days: int = 7) -> str:
     }
     return jwt.encode(to_encode, settings.JWT_SECRET_KEY, settings.JWT_ALGORITHM)
 
+def create_reset_token(payload: dict, expires_minutes: int = 15) -> str:
+    iat = datetime.now(timezone.utc)
+    expire = iat + timedelta(minutes=expires_minutes)
+    to_encode = {**payload, "iat": iat, "exp": expire, "type": "reset"}
+    return jwt.encode(to_encode, settings.JWT_SECRET_KEY, settings.JWT_ALGORITHM)
+
+
 def decode_token(token: str, exp_type: str = "access") -> dict:
     try:
         payload = jwt.decode(

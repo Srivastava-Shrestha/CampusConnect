@@ -1,10 +1,18 @@
-from app.schemas import SignupRequest, SignupResponse, LoginRequest, LoginResponse
+from fastapi import BackgroundTasks
+from app.schemas import (
+    SignupRequest, SignupResponse, LoginRequest, LoginResponse,
+    ForgotPasswordRequest, ForgotPasswordResponse, ResetPasswordRequest, ResetPasswordResponse
+)
 from app.repository import UserRepository, CollegeRepository
-from app.exceptions import UserAlreadyExistError, CollegeNotFoundError, CollegeAlreadyExistError, IncorrectCredentialError
-from app.utils.hashing import hash_password, verify_password
+from app.exceptions import UserAlreadyExistError, CollegeNotFoundError, CollegeAlreadyExistError, IncorrectCredentialError, AuthenticationError
+from app.utils.hashing import hash_password, verify_password, password_fingerprint
 from app.models import UserRole
-from app.core.token import create_access_token, create_refresh_token
+from app.core.config import settings
+from app.core.mailer import send_password_reset_job
+from app.core.token import create_access_token, create_refresh_token, create_reset_token, decode_token
 from app.core.messages import AuthMessages
+
+RESET_TOKEN_MINUTES = 15
 
 class UserService:
     def __init__(self, user_repo : UserRepository, college_repo: CollegeRepository):
@@ -73,6 +81,43 @@ class UserService:
         access_token = create_access_token(payload=payload)
         refresh_token = create_refresh_token(payload=payload)
         return LoginResponse(access_token=access_token, refresh_token=refresh_token, message=AuthMessages.LOGIN_SUCCESS)
+
+    async def forgot_password(self, data: ForgotPasswordRequest,
+                              background: BackgroundTasks | None = None) -> ForgotPasswordResponse:
+        user = await self.user_repo.get_user_by_email(data.email)
+
+        if user and background is not None:
+            token = create_reset_token(
+                payload={
+                    "sub": str(user.id),
+                    "email": user.email,
+                    "pwd": password_fingerprint(user.hashed_password),
+                },
+                expires_minutes=RESET_TOKEN_MINUTES,
+            )
+            background.add_task(
+                send_password_reset_job,
+                user.email,
+                user.full_name,
+                self._reset_url(token),
+                RESET_TOKEN_MINUTES,
+            )
+
+        return ForgotPasswordResponse(message=AuthMessages.RESET_LINK_SENT)
+
+    async def reset_password(self, data: ResetPasswordRequest) -> ResetPasswordResponse:
+        payload = decode_token(data.token, exp_type="reset")
+
+        user = await self.user_repo.get_user_by_id(int(payload.get("sub")))
+        if not user or payload.get("pwd") != password_fingerprint(user.hashed_password):
+            raise AuthenticationError()
+
+        await self.user_repo.set_password(user, hash_password(data.password))
+        return ResetPasswordResponse(message=AuthMessages.PASSWORD_RESET)
+
+    @staticmethod
+    def _reset_url(token: str) -> str:
+        return f"{settings.FRONTEND_URL.rstrip('/')}/reset-password?token={token}"
         
         
         
