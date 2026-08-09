@@ -82,7 +82,8 @@ async def second_member(client, leader):
     approve_payload = {"action": "APPROVED"}
     await client.patch(
         f"/clubs/{club_id}/requests/{join.json()['id']}",
-        headers=leader_headers, json=approve_payload,
+        headers=leader_headers,
+        json=approve_payload,
     )
     return headers
 
@@ -127,13 +128,16 @@ async def two_checked_in(client, db_session, leader, member, second_member):
     event.ends_at = datetime.now(timezone.utc) + timedelta(hours=1)
     await db_session.flush()
 
+    payload = {"checked_in": True}
     await client.patch(
         f"/events/{event_id}/registrations/{first_registration_id}/attendance",
-        headers=leader_headers, json={"checked_in": True},
+        headers=leader_headers,
+        json=payload,
     )
     await client.patch(
         f"/events/{event_id}/registrations/{second_registration_id}/attendance",
-        headers=leader_headers, json={"checked_in": True},
+        headers=leader_headers,
+        json=payload,
     )
 
     return leader_headers, event_id, first_registration_id, second_registration_id
@@ -156,7 +160,7 @@ async def certificate_for_member(db_session, two_checked_in):
     return event_id, member_registration_id, certificate
 
 
-# ==== GET /certificates/me ====
+# ==== my certificates ====
 
 @pytest.mark.asyncio
 async def test_my_certificates_returns_earned_certificate(client, certificate_for_member, member):
@@ -188,13 +192,13 @@ async def test_my_certificates_without_token_fails(client):
 
 @pytest.mark.asyncio
 async def test_my_certificates_by_non_student_fails(client, admin_token):
-    """Ensure that a non-student (e.g. CAMPUS_ADMIN) cannot access the student certificate list"""
+    """Ensure that a non-student cannot access the student certificate list"""
     headers = {"Authorization": f"Bearer {admin_token}"}
     response = await client.get("/certificates/me", headers=headers)
     assert response.status_code == 401
 
 
-# ==== GET /certificates/verify/{serial} (public) ====
+# ==== verify certificate ====
 
 @pytest.mark.asyncio
 async def test_verify_certificate_valid_serial_no_auth_needed(client, certificate_for_member):
@@ -212,9 +216,10 @@ async def test_verify_certificate_unknown_serial_fails(client):
     """Confirm that verifying a non-existent serial returns not found"""
     response = await client.get("/certificates/verify/CC-FAKE-9999-00000")
     assert response.status_code == 404
+    assert response.json()["message"] == "Certificate not found"
 
 
-# ==== GET /certificates/{serial}/download ====
+# ==== download certificate ====
 
 @pytest.mark.asyncio
 async def test_download_certificate_success(client, certificate_for_member, member):
@@ -235,6 +240,7 @@ async def test_download_certificate_by_non_owner_fails(client, certificate_for_m
     _, _, certificate = certificate_for_member
     response = await client.get(f"/certificates/{certificate.serial}/download", headers=outsider)
     assert response.status_code == 404
+    assert response.json()["message"] == "Certificate not found"
 
 
 @pytest.mark.asyncio
@@ -242,6 +248,7 @@ async def test_download_certificate_unknown_serial_fails(client, member):
     """Confirm that downloading a non-existent serial returns not found"""
     response = await client.get("/certificates/FAKE-SERIAL/download", headers=member)
     assert response.status_code == 404
+    assert response.json()["message"] == "Certificate not found"
 
 
 @pytest.mark.asyncio
@@ -251,3 +258,130 @@ async def test_download_certificate_without_token_fails(client, certificate_for_
     response = await client.get(f"/certificates/{certificate.serial}/download")
     assert response.status_code == 401
     assert response.json()["detail"] == "Not authenticated"
+
+
+# ==== multiple certificates ====
+
+@pytest.mark.asyncio
+async def test_my_certificates_lists_multiple_earned_certificates(client, db_session, two_checked_in, member):
+    """Verify that a student with certificates from multiple events receives all of them"""
+    _, event_id, member_registration_id, second_registration_id = two_checked_in
+
+    first_certificate = Certificate(
+        registration_id=member_registration_id,
+        serial="CC-LFW-2026-00001",
+        result=RegistrationResult.WINNER,
+        issued_at=datetime.now(timezone.utc),
+    )
+    db_session.add(first_certificate)
+
+    second_certificate = Certificate(
+        registration_id=second_registration_id,
+        serial="CC-LFW-2026-00002",
+        result=RegistrationResult.RUNNER_UP,
+        issued_at=datetime.now(timezone.utc),
+    )
+    db_session.add(second_certificate)
+    await db_session.flush()
+
+    response = await client.get("/certificates/me", headers=member)
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body) == 1
+    assert body[0]["serial"] == "CC-LFW-2026-00001"
+
+
+@pytest.mark.asyncio
+async def test_my_certificates_lists_multiple_events_same_student(client, db_session, leader, member):
+    """Verify that a student's certificates from two different events both appear in their list"""
+    leader_headers, club_id = leader
+
+    events = []
+    for i in range(2):
+        payload = {
+            "club_id": club_id,
+            "title": f"Workshop {i}",
+            "description": f"Test workshop number {i} for multi-certificate testing",
+            "venue": "Lab 204",
+            "starts_at": future_time(2 + i * 10),
+            "ends_at": future_time(4 + i * 10),
+        }
+        create = await client.post("/events", headers=leader_headers, json=payload)
+        event_id = create.json()["id"]
+        await client.patch(f"/events/{event_id}/publish", headers=leader_headers)
+        registration = await client.post(f"/events/{event_id}/register", headers=member)
+        events.append((event_id, registration.json()["registration_id"]))
+
+    for i, (event_id, registration_id) in enumerate(events):
+        certificate = Certificate(
+            registration_id=registration_id,
+            serial=f"CC-MULTI-2026-0000{i+1}",
+            result=RegistrationResult.PARTICIPANT,
+            issued_at=datetime.now(timezone.utc),
+        )
+        db_session.add(certificate)
+    await db_session.flush()
+
+    response = await client.get("/certificates/me", headers=member)
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body) == 2
+    serials = {item["serial"] for item in body}
+    assert serials == {"CC-MULTI-2026-00001", "CC-MULTI-2026-00002"}
+
+
+# ==== result variations ====
+
+@pytest.mark.asyncio
+async def test_verify_certificate_runner_up_result(client, db_session, two_checked_in):
+    """Verify that a RUNNER_UP-result certificate verifies correctly, not just WINNER"""
+    _, event_id, _, second_registration_id = two_checked_in
+    certificate = Certificate(
+        registration_id=second_registration_id,
+        serial="CC-LFW-2026-00050",
+        result=RegistrationResult.RUNNER_UP,
+        issued_at=datetime.now(timezone.utc),
+    )
+    db_session.add(certificate)
+    await db_session.flush()
+
+    response = await client.get("/certificates/verify/CC-LFW-2026-00050")
+    assert response.status_code == 200
+    assert response.json()["result"] == "RUNNER_UP"
+
+
+@pytest.mark.asyncio
+async def test_verify_certificate_participant_result(client, db_session, two_checked_in):
+    """Verify that a PARTICIPANT-result certificate verifies correctly, not just WINNER"""
+    _, event_id, _, second_registration_id = two_checked_in
+    certificate = Certificate(
+        registration_id=second_registration_id,
+        serial="CC-LFW-2026-00099",
+        result=RegistrationResult.PARTICIPANT,
+        issued_at=datetime.now(timezone.utc),
+    )
+    db_session.add(certificate)
+    await db_session.flush()
+
+    response = await client.get("/certificates/verify/CC-LFW-2026-00099")
+    assert response.status_code == 200
+    assert response.json()["result"] == "PARTICIPANT"
+
+
+@pytest.mark.asyncio
+async def test_download_certificate_runner_up_result(client, db_session, two_checked_in, second_member):
+    """Verify that a RUNNER_UP certificate can be downloaded by its owning student"""
+    _, event_id, _, second_registration_id = two_checked_in
+    certificate = Certificate(
+        registration_id=second_registration_id,
+        serial="CC-LFW-2026-00051",
+        result=RegistrationResult.RUNNER_UP,
+        issued_at=datetime.now(timezone.utc),
+    )
+    db_session.add(certificate)
+    await db_session.flush()
+
+    response = await client.get(f"/certificates/{certificate.serial}/download", headers=second_member)
+    assert response.status_code == 200
+    body = response.json()
+    assert body["serial"] == "CC-LFW-2026-00051"
