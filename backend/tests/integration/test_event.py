@@ -1469,6 +1469,36 @@ async def test_mark_attendance_by_non_leader_fails(client, started_event, outsid
     assert response.status_code == 403
 
 
+@pytest.mark.asyncio
+async def test_mark_attendance_registration_from_different_event_fails(client, started_event, leader, member):
+    """Confirm that a registration from a different event cannot be marked via this event's attendance route"""
+    leader_headers, event_id, _ = started_event
+    _, club_id = leader
+
+    event_payload = {
+        "club_id": club_id,
+        "title": "Other Event",
+        "description": "A separate event for cross-event testing",
+        "venue": "Elsewhere",
+        "starts_at": future_time(48),
+        "ends_at": future_time(50),
+    }
+    other_event = await client.post("/events", headers=leader_headers, json=event_payload)
+    other_event_id = other_event.json()["id"]
+    await client.patch(f"/events/{other_event_id}/publish", headers=leader_headers)
+    other_reg = await client.post(f"/events/{other_event_id}/register", headers=member)
+    other_reg_id = other_reg.json()["registration_id"]
+
+    payload = {"checked_in": True}
+    response = await client.patch(
+        f"/events/{event_id}/registrations/{other_reg_id}/attendance",
+        headers=leader_headers,
+        json=payload,
+    )
+    assert response.status_code == 404
+    assert response.json()["message"] == "Registration not found"
+
+
 # ==== results ====
 
 # ==== my registrations ====
@@ -1712,3 +1742,73 @@ async def test_mark_attendance_freeze_applies_to_uninvolved_registration(client,
         headers=leader_headers, json=attendance_payload,
     )
     assert response.status_code == 409
+
+
+@pytest.mark.asyncio
+async def test_declare_results_registration_from_different_event_fails(client, two_checked_in, leader):
+    """Confirm a registration ID belonging to a different event is rejected"""
+    leader_headers, event_id, first_id, second_id = two_checked_in
+    _, club_id = leader
+    other_event = await client.post("/events", headers=leader_headers, json={
+        "club_id": club_id, "title": "Other Event", "description": "A separate event",
+        "venue": "Elsewhere", "starts_at": future_time(48), "ends_at": future_time(50),
+    })
+    other_event_id = other_event.json()["id"]
+
+    payload = {"winner_registration_id": first_id, "runner_up_registration_id": second_id}
+    response = await client.patch(f"/events/{other_event_id}/results", headers=leader_headers, json=payload)
+    assert response.status_code == 404
+    assert response.json()["message"] == "Registration not found"
+
+@pytest.fixture
+async def three_checked_in(client, db_session, leader, member, second_member):
+    """Three students registered and checked in, for testing participants count math."""
+    from app.models import Event
+
+    leader_headers, club_id = leader
+    third_payload = {
+        "email": "third@knit.edu.in", "full_name": "Third Member",
+        "password": "Test@1234", "confirm_password": "Test@1234", "role": "STUDENT",
+    }
+    signup = await client.post("/auth/signup", json=third_payload)
+    third_headers = {"Authorization": f"Bearer {signup.json()['access_token']}"}
+    join = await client.post(f"/clubs/{club_id}/join", headers=third_headers)
+    await client.patch(f"/clubs/{club_id}/requests/{join.json()['id']}",
+                       headers=leader_headers, json={"action": "APPROVED"})
+
+    payload = {
+        "club_id": club_id, "title": "Three Person Event",
+        "description": "An event with three checked-in attendees",
+        "venue": "Lab 204", "starts_at": future_time(2), "ends_at": future_time(4),
+    }
+    create = await client.post("/events", headers=leader_headers, json=payload)
+    event_id = create.json()["id"]
+    await client.patch(f"/events/{event_id}/publish", headers=leader_headers)
+
+    r1 = await client.post(f"/events/{event_id}/register", headers=member)
+    r2 = await client.post(f"/events/{event_id}/register", headers=second_member)
+    r3 = await client.post(f"/events/{event_id}/register", headers=third_headers)
+    ids = [r1.json()["registration_id"], r2.json()["registration_id"], r3.json()["registration_id"]]
+
+    event = await db_session.get(Event, event_id)
+    event.starts_at = datetime.now(timezone.utc) - timedelta(hours=1)
+    event.ends_at = datetime.now(timezone.utc) + timedelta(hours=1)
+    await db_session.flush()
+
+    for reg_id in ids:
+        await client.patch(f"/events/{event_id}/registrations/{reg_id}/attendance",
+                           headers=leader_headers, json={"checked_in": True})
+
+    return leader_headers, event_id, ids
+
+
+@pytest.mark.asyncio
+async def test_declare_results_participants_count_with_three_attendees(client, three_checked_in):
+    """Verify that participants count correctly excludes winner and runner-up from the total"""
+    leader_headers, event_id, ids = three_checked_in
+    payload = {"winner_registration_id": ids[0], "runner_up_registration_id": ids[1]}
+    response = await client.patch(f"/events/{event_id}/results", headers=leader_headers, json=payload)
+    assert response.status_code == 200
+    body = response.json()
+    assert body["participants"] == 1
+    assert body["certificates_queued"] == 3
