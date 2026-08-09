@@ -1,7 +1,6 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import { useRouter } from 'vue-router'
-import { Award, LogOut } from 'lucide-vue-next'
+import { Award } from 'lucide-vue-next'
 import StudentSidebar from '../components/layout/StudentSidebar.vue'
 import Topbar from '../components/layout/Topbar.vue'
 import CertCard from '../components/ui/CertCard.vue'
@@ -10,16 +9,10 @@ import { getMyCertificates } from '../api/certificates'
 import { getMyRegistrations } from '../api/events'
 import { toast } from '../composables/useToast'
 
+// Logging out lives once, in the sidebar - this page used to have its own
+// second button, which meant two logout controls were visible at once
+// whenever this page was open. See issue #46.
 const auth = useAuthStore()
-const router = useRouter()
-
-function handleLogout() {
-  const slug = auth.user.collegeSlug
-
-  auth.logout()
-
-  router.push(`/${slug}/login`)
-}
 
 const certificates = ref([])
 
@@ -104,9 +97,6 @@ onMounted(async function loadProfile() {
             <p class="profile-stat-label">{{ stat.label }}</p>
           </div>
         </div>
-        <button class="btn-secondary-sm profile-logout-btn" @click="handleLogout">
-          <LogOut /> Log out
-        </button>
       </div>
 
       <div>
@@ -154,16 +144,3 @@ onMounted(async function loadProfile() {
 
   </div>
 </template>
-
-<style scoped>
-.profile-logout-btn {
-  gap: 6px;
-  color: var(--color-pink-text, #ab3a50);
-  align-self: center;
-}
-
-.profile-logout-btn svg {
-  width: 18px;
-  height: 18px;
-}
-</style>

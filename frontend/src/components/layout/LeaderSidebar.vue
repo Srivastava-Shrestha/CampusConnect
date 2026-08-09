@@ -29,8 +29,28 @@ const mobileItems = computed(() => [
   { label: 'Member', to: `/${slug.value}/clubs`, icon: Compass }
 ])
 
+// Among every menu item whose path is a prefix of the current route, only
+// the longest one should be treated as active. Without this, being on
+// "/clubs/propose" would light up both "Member Area" and "Create Club" at
+// once, since "/clubs/propose" also starts with "/clubs/".
+const bestMatchPath = computed(function findBestMatch() {
+  const candidatePaths = menuItems.value
+    .map(function getPath(item) { return item.to })
+    .filter(function matchesCurrentRoute(path) {
+      return route.path === path || route.path.startsWith(path + '/')
+    })
+
+  if (candidatePaths.length === 0) {
+    return null
+  }
+
+  return candidatePaths.reduce(function pickLongest(longestSoFar, path) {
+    return path.length > longestSoFar.length ? path : longestSoFar
+  })
+})
+
 function isActive(itemPath) {
-  return route.path === itemPath || route.path.startsWith(itemPath + '/')
+  return itemPath === bestMatchPath.value
 }
 
 function logout() {

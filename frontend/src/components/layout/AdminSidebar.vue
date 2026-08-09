@@ -1,11 +1,12 @@
 <script setup>
 import { computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
 import { GraduationCap, LayoutDashboard, CheckCircle2, Building2, ScrollText } from 'lucide-vue-next'
 import MobileNav from './MobileNav.vue'
 
 const route = useRoute()
+const router = useRouter()
 const auth = useAuthStore()
 const slug = computed(() => auth.user.collegeSlug)
 
@@ -29,6 +30,14 @@ function isActive(itemPath) {
   }
 
   return route.path === itemPath || route.path.startsWith(itemPath + '/')
+}
+
+function logout() {
+  const collegeSlug = auth.user.collegeSlug
+
+  auth.logout()
+
+  router.push(`/${collegeSlug}/login`)
 }
 </script>
 
@@ -57,12 +66,18 @@ function isActive(itemPath) {
 
     <div class="sidebar-spacer"></div>
 
-    <div class="user-card">
-      <div class="user-avatar admin-av">{{ auth.user.initials }}</div>
-      <div class="user-info">
-        <p class="user-name">{{ auth.user.name }}</p>
-        <p class="user-sub">{{ auth.user.sub }}</p>
+    <div>
+      <div class="user-card">
+        <div class="user-avatar admin-av">{{ auth.user.initials }}</div>
+        <div class="user-info">
+          <p class="user-name">{{ auth.user.name }}</p>
+          <p class="user-sub">{{ auth.user.sub }}</p>
+        </div>
       </div>
+
+      <button class="logout-btn" @click="logout">
+        Logout
+      </button>
     </div>
   </aside>
 

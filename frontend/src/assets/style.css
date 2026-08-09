@@ -8347,3 +8347,35 @@ html {
 .auth-form-panel{
   max-width:560px;
 }
+
+/*  54. Auth layout fixes (issue #46 follow-ups)  */
+
+/* The desktop auth frame was locked to height: 660px while the form column
+   scrolled internally (overflow-y: auto). Login fits in 660px, but the signup
+   form - role toggle, four fields, strength meter, submit - does not, so a
+   scrollbar appeared down the middle of the card.
+
+   Letting the frame grow to fit its content removes the scrollbar without
+   touching the form. min-height keeps login exactly as it was, and max-height
+   still hands scrolling back to the panel on genuinely short viewports, which
+   is the one case where a scrollbar is the correct answer. */
+@media (min-width: 768px) {
+  .auth-frame {
+    height: auto;
+    min-height: 660px;
+    max-height: calc(100vh - 48px);
+  }
+}
+
+/* The sidebar spreads its children with space-between, which pushed the
+   "Welcome back." block down the orange login panel. Stacking from the top
+   with a fixed gap under the logo lifts it to where it reads as a heading
+   rather than floating mid-panel. Login only - the green signup panel keeps
+   space-between, since its feature list needs the spread. */
+.auth-sidebar.orange-auth {
+  justify-content: flex-start;
+}
+
+.auth-sidebar.orange-auth .auth-sidebar-logo {
+  margin-bottom: 44px;
+}
