@@ -30,6 +30,13 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+
+      mailhog:
+        image: mailhog/mailhog
+        ports:
+          - 1025:1025
+          - 8025:8025
+
     steps:
       - uses: actions/checkout@v5
 
@@ -55,4 +62,9 @@ jobs:
           S3_BUCKET_NAME: test-bucket
           AWS_ACCESS_KEY_ID: test-access-key
           AWS_SECRET_ACCESS_KEY: test-secret-key
+          SMTP_HOST: localhost
+          SMTP_PORT: 1025
+          SMTP_USER: test
+          SMTP_PASSWORD: test
+          MAIL_FROM: noreply@campusconnect.com
         run: uv run pytest tests/ -v
