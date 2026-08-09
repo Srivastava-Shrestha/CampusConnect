@@ -1,4 +1,7 @@
-from app.schemas.user import SignupRequest, SignupResponse, LoginRequest, LoginResponse
+from app.schemas.user import (
+    SignupRequest, SignupResponse, LoginRequest, LoginResponse,
+    ForgotPasswordRequest, ForgotPasswordResponse, ResetPasswordRequest, ResetPasswordResponse
+)
 from app.schemas.college import CollegeOnboardingRequest, CollegeOnboardingResponse
 from app.schemas.club import (
     ClubLinkSchema, CreateClubRequest, UpdateClubRequest, CreateClubResponse,
