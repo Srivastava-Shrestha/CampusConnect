@@ -6,6 +6,7 @@ import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
+from sqlalchemy import event
 
 from app.core.database import Base, get_db
 from app.core.config import settings
@@ -28,11 +29,35 @@ async def setup_db():
     await test_engine.dispose()
 
 
+# Simple fixture — fast, used by most tests (no internal commits happen)
 @pytest_asyncio.fixture()
 async def db_session(setup_db) -> AsyncGenerator[AsyncSession, None]:
     async with TestSessionLocal() as session:
         yield session
         await session.rollback()
+
+
+# SAVEPOINT-based fixture — only for tests that hit an endpoint calling db.commit() internally
+@pytest_asyncio.fixture()
+# async def db_session_committing(setup_db) -> AsyncGenerator[AsyncSession, None]:
+async def db_session(setup_db) -> AsyncGenerator[AsyncSession, None]:
+    async with test_engine.connect() as connection:
+        outer_transaction = await connection.begin()
+        session = TestSessionLocal(bind=connection)
+        nested = await connection.begin_nested()
+
+        @event.listens_for(session.sync_session, "after_transaction_end")
+        def restart_savepoint(sess, transaction):
+            nonlocal nested
+            if not nested.is_active:
+                nested = connection.sync_connection.begin_nested()
+
+        try:
+            yield session
+        finally:
+            await session.close()
+            await outer_transaction.rollback()
+            await connection.close()
 
 
 @pytest_asyncio.fixture()
