@@ -10,28 +10,27 @@ MAILHOG_API_BASE = "http://localhost:8025/api"
 
 
 @pytest.mark.asyncio
-async def test_forgot_password_registered_email_sends_mail(client, db_session):
-    """Verify that a password reset email is sent for a registered email"""
-    from app.models.college import College
-
-    gmail_college = College(name="Gmail University", email_suffix="gmail.com", slug="gmail-university")
-    db_session.add(gmail_college)
-    await db_session.flush()
-
+async def test_forgot_password_registered_email_sends_mail(client, seed_college, clear_mailhog):
+    """Verify that a password reset email is sent via MailHog for a registered email"""
     payload = {
-        "email": "itsmepawan.jh@gmail.com",
-        "full_name": "Pawan Kumar",
+        "email": "forgot.test@knit.edu.in",
+        "full_name": "Forgot Test User",
         "password": "Forgot@123",
         "confirm_password": "Forgot@123",
         "role": "STUDENT"
     }
     await client.post("/auth/signup", json=payload)
 
-    payload = {"email": "itsmepawan.jh@gmail.com"}
+    payload = {"email": "forgot.test@knit.edu.in"}
     response = await client.post("/auth/forgot-password", json=payload)
     assert response.status_code == 200
     body = response.json()
     assert body["message"] == "If that email is registered, a password reset link has been sent to it"
+
+    mailhog_response = httpx.get(f"{MAILHOG_API_BASE}/v2/messages")
+    messages = mailhog_response.json()["items"]
+    assert len(messages) == 1
+    assert "forgot.test@knit.edu.in" in messages[0]["Raw"]["To"][0]
 
 
 @pytest.mark.asyncio
