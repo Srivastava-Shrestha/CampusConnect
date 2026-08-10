@@ -1,16 +1,17 @@
 # Campus Connect API - OpenAPI 3.1 specification
 # Team 003 (Nexmind) - BSCS3001 Software Engineering Project, May 2026
-# Covers Epics 1-4 of the Milestone-1 user stories.
+# Covers Epics 1-5 of the Milestone-1 user stories.
 openapi: 3.1.0
 info:
   title: Campus Connect API
   summary: Student club management for higher education institutions - club discovery, membership, the
-    event lifecycle, results and member communication.
+    event lifecycle, results, certificates and member communication.
   description: |-
     Campus Connect is a single platform for student club management in higher education
     institutions. It replaces the scatter of Instagram DMs, WhatsApp groups, Google Forms and
     spreadsheets that campus clubs currently run on, and connects club discovery, membership,
-    the event lifecycle, results and member communication into one auditable workflow.
+    the event lifecycle, results, verifiable certificates and member communication into one
+    auditable workflow.
 
     This document is the complete reference for the backend HTTP API: every endpoint, the user
     story it implements, the roles allowed to call it, and every error it can return.
@@ -50,6 +51,24 @@ info:
     A token whose `type` claim is not `access` is rejected, so a refresh token cannot be used to
     call a resource endpoint. There is no refresh exchange endpoint in this release; a client
     that holds an expired access token must log in again.
+
+    **Password reset tokens.** A user who cannot log in recovers the account through a third
+    token type, `reset`, which is never returned in a response body - it is minted by
+    `POST /auth/forgot-password` and delivered inside a link in an email.
+
+    | Property | Value |
+    |---|---|
+    | Lifetime | 15 minutes |
+    | Claims | `sub` (user id), `email`, `pwd`, `iat`, `exp`, `type` |
+    | Delivery | Emailed link only, never in an API response |
+    | Accepted by | `POST /auth/reset-password` and nothing else |
+
+    Two properties follow from the claims. Because the same `type` check that rejects a refresh
+    token also rejects a `reset` token, a link intercepted from an inbox cannot be used to call
+    any resource endpoint - it can only reach the reset route. And because `pwd` is a
+    fingerprint of the account's current password hash, which necessarily changes when the
+    password is written, a link stops working the moment it is used once. Nothing is stored
+    server side and no token is revoked; expiry and the fingerprint are the entire mechanism.
 
     ---
 
@@ -151,7 +170,7 @@ info:
     | `CollegeNotFoundError` | 404 | `College not registered` | Student signup whose email domain matches no college, or an authenticated user has no college attached |
     | `CollegeAlreadyExistError` | 409 | `College already registered` | Admin signup or onboarding for a domain that is already registered |
     | `IncorrectCredentialError` | 401 | `Incorrect email or password` | Login with an unknown email or a wrong password |
-    | `AuthenticationError` | 401 | `Invalid token` | Token is malformed, expired, or not of type `access` |
+    | `AuthenticationError` | 401 | `Invalid token` | Token is malformed, expired, or not of the type the endpoint requires. Also raised by `POST /auth/reset-password` when the link is not a `reset` token, when its subject no longer exists, or when its `pwd` fingerprint no longer matches - that is, when the link has already been used |
     | `AuthorizationError` | 401 | `Invalid token` | Token is valid but its `role` is not in the endpoint's scopes |
     | `StudentNotFoundError` | 404 | `Student profile not found` | A student-only action is attempted by a user with no student profile |
     | `ClubNotFoundError` | 404 | `Club not found` | Club id does not exist, belongs to another college, or is not `ACTIVE` when viewed by a student |
@@ -170,11 +189,13 @@ info:
     | `RegistrationNotFoundError` | 404 | `Registration not found` | No registration for this student, or the registration id belongs to a different event |
     | `NotClubMemberError` | 403 | `Only approved club members can register for this event` | Registering without an `APPROVED` membership of the hosting club |
     | `AttendanceNotAllowedError` | 403 | `Attendance can only be marked once the event has started` | Marking attendance before the event start time |
-    | `NotCheckedInError` | 400 | `Result can only be set for attendees who were checked in` | Setting a result on a registration that is not checked in |
+    | `NotCheckedInError` | 400 | `Result can only be set for attendees who were checked in` | Naming a winner or runner-up who was never marked present |
+    | `ResultsAlreadyDeclaredError` | 409 | `Results for this event have already been declared and can no longer be changed` | Declaring results a second time, or marking attendance after results are declared |
     | `AnnouncementNotFoundError` | 404 | `Announcement not found` | Announcement id unknown or in another college |
     | `IssueNotFoundError` | 404 | `Issue not found` | Issue id unknown or in another college |
     | `IssueActionNotAllowedError` | 403 | `This action is not allowed for this issue` | Overridden with `A resolved issue cannot be replied to` or `Issue is already resolved` |
     | `NotificationNotFoundError` | 404 | `Notification not found` | Notification id unknown or belongs to another student |
+    | `CertificateNotFoundError` | 404 | `Certificate not found` | Serial does not exist, or - on the download route - the certificate belongs to a different student |
     | `AppException` | 500 | `Something went wrong` | Base class. Any unhandled application error |
 
     ### 4.4 Validation errors (422)
@@ -183,12 +204,13 @@ info:
 
     | Field | Constraint |
     |---|---|
-    | `password`, `confirm_password` | 8-255 characters, and must match on signup |
+    | `password`, `confirm_password` | 8-255 characters, and must match on both signup and password reset |
     | `email` | Valid address, max 255, lower-cased and trimmed server-side |
     | `full_name` | 5-100 characters |
     | `email_suffix` | Lower-cased domain, e.g. `knit.ac.in`. Must match `^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$` |
     | `CreateEventRequest` | `ends_at` must be strictly after `starts_at` |
-    | `SetResultRequest.result` | Must be `WINNER`, `RUNNER_UP` or `PARTICIPANT`. `REGISTRANT` is rejected - it is the default assigned on registration, not an outcome |
+    | `DeclareResultsRequest` | `winner_registration_id` and `runner_up_registration_id` must be two different registrations |
+    | `ResetPasswordRequest.token` | Non-empty string. An expired, tampered or already-used link is a `401`, not a `422` - the token is only inspected after the body passes validation |
     | `RequestActionRequest.action` | Must be `APPROVED` or `REJECTED`. `PENDING` is rejected |
     | `GET /clubs/me` `status` | Must be sent together with `role`, and must be a valid value for that role |
 
@@ -226,7 +248,7 @@ info:
     | **3.2** Register for an event | Student registers and receives a retrievable confirmation with a registration id | `GET /events`, `GET /events/{event_id}`, `POST /events/{event_id}/register`, `DELETE /events/{event_id}/register`, `GET /events/me/registrations` |
     | **3.3** View registered participants | Leader sees the full registration list for logistics | `GET /events/{event_id}/registrations` |
     | **3.4** Mark attendance | Leader records who actually attended | `PATCH /events/{event_id}/registrations/{registration_id}/attendance` |
-    | **3.5** Set a result for each attendee | Leader assigns Winner / Runner-up / Participant | `PATCH /events/{event_id}/registrations/{registration_id}/result` |
+    | **3.5** Set a result for each attendee | Leader assigns Winner / Runner-up / Participant | `PATCH /events/{event_id}/results` |
     | **3.6** View my event result | Student sees results from every event attended | `GET /events/me/results` |
     | **3.7** Edit or cancel an event | Leader updates details or cancels when plans change | `PUT /events/{event_id}`, `PATCH /events/{event_id}/cancel` |
 
@@ -238,6 +260,14 @@ info:
     | **4.2** View announcements from joined clubs | Student reads a consolidated feed | `GET /announcements`, `GET /announcements/unread-count`, `POST /announcements/read-all` |
     | **4.3** Raise an issue or query | Student submits a tracked query about registration, membership or a certificate | `POST /issues`, `GET /issues` |
     | **4.4** View and resolve member issues | Leader manages member concerns in one queue | `GET /issues/club`, `GET /issues/club/open-count`, `POST /issues/{issue_id}/reply`, `PATCH /issues/{issue_id}/resolve` |
+
+    ### Epic 5 - Certificate Workflow
+
+    | Story | As a / I want | Endpoints |
+    |---|---|---|
+    | **5.1** Auto-generate participation certificates | Leader gets a PDF for every attendee the moment results are submitted, without opening a design tool or typing a single name | `PATCH /events/{event_id}/results` - generation is a side effect of declaring results. There is no endpoint that creates a certificate directly |
+    | **5.2** Download my participation certificate | Student reaches any earned certificate from their profile at any time | `GET /certificates/me`, `GET /certificates/{serial}/download` |
+    | **5.3** Verify a certificate by serial number | A holder or an external verifier confirms a serial is authentic without an account | `GET /certificates/verify/{serial}` |
 
     ### Cross-cutting - Notification delivery
 
@@ -252,16 +282,20 @@ info:
     |---|---|---|
     | `JOIN_APPROVED` / `JOIN_REJECTED` | `PATCH /clubs/{club_id}/requests/{membership_id}` | 2.3, 2.4 |
     | `REGISTRATION_CONFIRMED` | `POST /events/{event_id}/register` | 3.2 |
-    | `RESULT_POSTED` | `PATCH /events/{event_id}/registrations/{registration_id}/result` | 3.5, 3.6 |
-    | `CERTIFICATE_ISSUED` | Reserved for Epic 5, not emitted in this release | - |
+    | `RESULT_POSTED` | `PATCH /events/{event_id}/results` | 3.5, 3.6 |
+    | `CERTIFICATE_ISSUED` | The background job queued by `PATCH /events/{event_id}/results`, once the PDF is stored | 5.1, 5.2 |
 
     ### Scope note
 
     This specification documents the endpoints implemented in the current release, which cover
-    Epics 1 to 4 in full. Epic 5 (certificate generation, download and public verification),
-    Epic 6 (AI-powered club discovery) and Epic 7 (club activity leaderboard) are scheduled for
-    the next sprint and have no endpoints yet; they are deliberately not documented here so that
-    this file describes only the live API surface.
+    Epics 1 to 5 in full. Epic 6 (AI-powered club discovery) and Epic 7 (club activity
+    leaderboard) are scheduled for the next sprint and have no endpoints yet; they are
+    deliberately not documented here so that this file describes only the live API surface.
+
+    Password recovery (`POST /auth/forgot-password`, `POST /auth/reset-password`) is documented
+    with the rest of the `Auth` endpoints but carries no `x-user-story`. It was added after
+    sprint 1 in response to user feedback rather than from the Milestone-1 story set, so mapping
+    it onto a numbered story would misreport the traceability.
 
     ---
 
@@ -280,13 +314,29 @@ info:
     `POST /clubs/{club_id}/join` by a student, then
     `PATCH /clubs/{club_id}/requests/{membership_id}` by the leader.
 
-    **Event, draft to result**
+    **Event, draft to certificate**
     `POST /events` (created `DRAFT`) then `PATCH /events/{event_id}/publish` then
     `POST /events/{event_id}/register` by approved members, then
     `GET /events/{event_id}/registrations` on the day, then
     `PATCH .../attendance` per attendee once the event has started, then
-    `PATCH .../result` for each checked-in attendee. The student reads the outcome from
-    `GET /events/me/results`.
+    `PATCH /events/{event_id}/results` once, naming the winner and the runner-up. That single
+    call closes the event out: every other checked-in attendee becomes a `PARTICIPANT`,
+    attendance and results freeze, every attendee is notified, and one certificate is queued per
+    attendee. The student reads the outcome from `GET /events/me/results` and collects the PDF
+    from `GET /certificates/me`.
+
+    **Certificate to verification**
+    Certificates exist only as a consequence of the call above. The student lists them with
+    `GET /certificates/me`, takes a fresh signed link from `GET /certificates/{serial}/download`
+    when the one in the list has expired, and prints or shares the serial. Anyone holding that
+    serial - an employer, another institution - confirms it through the public
+    `GET /certificates/verify/{serial}` with no account and no token.
+
+    **Password recovery**
+    `POST /auth/forgot-password` with the account email, which answers `200` whether or not the
+    address is registered. The user opens the emailed link, and the client posts the token taken
+    from its query string to `POST /auth/reset-password` together with the new password. The
+    link is valid for 15 minutes and for one use, after which the user logs in normally.
   version: 1.0.0
   contact:
     name: Team 003 - Nexmind, BS in Data Science, IIT Madras
@@ -301,11 +351,13 @@ servers:
 tags:
 - name: Auth
   description: |-
-    Account creation and login. The only public endpoints in the API. Both return an access token and a refresh token.
+    Account creation, login and password recovery. The only public endpoints in the API, apart from certificate verification. Signup and login both return an access token and a refresh token.
 
     Signup is also the point at which a user's role is decided: an email whose domain matches a registered college produces a `STUDENT`, while an unregistered domain produces a `CAMPUS_ADMIN` who is expected to complete college onboarding next.
 
-    **Implements user story 1.2.**
+    Password recovery is a two-call flow across two clients. `POST /auth/forgot-password` emails a link carrying a short-lived `reset` token, and `POST /auth/reset-password` exchanges that token plus a new password for a usable account. Nothing about the reset is readable from the API - a request for an unregistered address is indistinguishable from one for a real account.
+
+    **Signup and login implement user story 1.2. Password recovery is not part of the Milestone-1 story set.**
 - name: College Onboarding
   description: |-
     Registration of an institution and its verified student email domain. Run once per college by the campus council admin, immediately after admin signup.
@@ -352,6 +404,17 @@ tags:
     Unread state here is per-notification (`is_read`), unlike announcements which use a single watermark.
 
     **Cross-cutting: supports stories 2.3, 2.4, 3.2 and 3.5.**
+- name: Certificates
+  description: |-
+    Participation certificates: one PDF per checked-in attendee, generated automatically when a leader declares results, addressable by a unique serial, downloadable by its owner and verifiable by anyone.
+
+    No client ever creates a certificate. `PATCH /events/{event_id}/results` queues one background job per checked-in attendee; each job renders the PDF from the template matching that attendee's result, uploads it to object storage as `certificates/{serial}.pdf`, writes the certificate row and sends a `CERTIFICATE_ISSUED` notification. A student's first sight of a certificate is therefore the notification, not a response body.
+
+    Serials take the form `CC-<abbreviated event title>-<year>-<5 digits>`, for example `CC-HAC-2026-04213`, and are printed on the certificate itself next to a QR code pointing at the public verification page. The serial is the only identifier in this tag - certificates are never addressed by numeric id.
+
+    Storage is private. Both `GET /certificates/me` and `GET /certificates/{serial}/download` return a time-limited signed URL rather than a permanent one, so a link that leaks stops working within the hour.
+
+    **Implements user stories 5.1 - 5.3.**
 paths:
   /auth/signup:
     post:
@@ -509,6 +572,156 @@ paths:
           description: The request body, query string or path parameters failed schema validation. Produced
             by the framework before the handler runs, so it uses the `detail` key rather than the `message`
             envelope.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '500':
+          description: Unhandled server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                server_error:
+                  summary: Something went wrong
+                  value:
+                    message: Something went wrong
+  /auth/forgot-password:
+    post:
+      tags:
+      - Auth
+      summary: Request a password reset link
+      description: |-
+        Starts password recovery by emailing a single-use reset link to the address supplied. Added after sprint 1 in response to user feedback; it is not part of the Milestone-1 story set and carries no user story.
+
+        The response is deliberately uninformative. Whether the address belongs to an account or to nobody at all, the call returns the same `200` and the same message, so this endpoint cannot be used to discover which emails are registered. A client must not branch on the response - it can only tell the user to check their inbox.
+
+        The email is sent from a background task after the response is written, so a slow or unreachable mail server delays nothing and fails nothing. The corollary is that a delivery failure is invisible to the caller: it is logged server side, and the user's only remedy is to request another link.
+
+        **Access.** Public. No token required.
+
+        **Notes.**
+
+        * `email` is trimmed and lower-cased before lookup, matching signup, so `A@X.COM` finds the account created as `a@x.com`.
+        * The link points at `{FRONTEND_URL}/reset-password?token=<token>` and is valid for 15 minutes.
+        * The token is a `reset` token, not an access token. It is refused by every other endpoint in this API.
+        * Requesting a second link does not invalidate the first. Both remain usable until one is spent or they expire, because nothing about the reset is stored server side.
+        * Nothing is written to the database by this call - the account is untouched until the reset itself succeeds.
+      operationId: forgot_password_auth_forgot_password_post
+      x-required-role:
+      - public
+      x-required-club-role: none
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordRequest'
+        required: true
+      responses:
+        '200':
+          description: |-
+            Accepted. Returned identically for a registered and an unregistered address, so it confirms only that the request was understood, never that the account exists.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForgotPasswordResponse'
+              examples:
+                sent:
+                  summary: Always the same answer
+                  value:
+                    message: If that email is registered, a password reset link has been sent to it
+        '422':
+          description: |-
+            The request body failed schema validation. Produced by the framework before the handler runs, so it uses the `detail` key rather than the `message` envelope.
+
+            * `email` is missing, malformed, or longer than 255 characters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '500':
+          description: |-
+            Unhandled server error.
+
+            A mail server that is down does **not** produce this. Sending happens after the response, so an SMTP failure is logged and never surfaces to the client.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                server_error:
+                  summary: Something went wrong
+                  value:
+                    message: Something went wrong
+  /auth/reset-password:
+    post:
+      tags:
+      - Auth
+      summary: Set a new password from a reset link
+      description: |-
+        Completes password recovery. Takes the token from the emailed link and a new password, and writes the new password to the account. Added after sprint 1 in response to user feedback; it is not part of the Milestone-1 story set and carries no user story.
+
+        The current password is not required and cannot be supplied - possession of the emailed link is the entire proof of identity, which is why the link is short-lived and single-use.
+
+        **A link works exactly once.** The token carries a fingerprint of the password hash it was minted against. Resetting the password changes that hash, so the fingerprint in every outstanding link for the account stops matching and every one of them - including the link just used - is rejected from that moment on. There is no stored token to revoke and no `used` flag anywhere.
+
+        **Every failure is the same `401`.** Expired, tampered with, an access token pasted in by mistake, or a link already spent - all four return `Invalid token`, so the response reveals nothing about which of them happened.
+
+        **Access.** Public. No bearer token; the reset token travels in the request body, not in the `Authorization` header.
+
+        **Notes.**
+
+        * No session is issued. On success the client sends the user to log in with the new password.
+        * No token is returned and none is invalidated: access tokens issued before the reset stay valid until they expire on their own.
+        * `password` and `confirm_password` must match, exactly as on signup.
+        * Reusing the previous password is accepted. The only effect is that outstanding reset links keep working, because the hash - and so the fingerprint - is unchanged.
+      operationId: reset_password_auth_reset_password_post
+      x-required-role:
+      - public
+      x-required-club-role: none
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequest'
+        required: true
+      responses:
+        '200':
+          description: Password replaced. The link is now spent, and the user can log in with the new password.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResetPasswordResponse'
+              examples:
+                reset:
+                  summary: Password reset successfully
+                  value:
+                    message: Password reset successfully, please log in with your new password
+        '401':
+          description: |-
+            The reset token cannot be honoured. All four causes below are reported identically, so a client cannot tell them apart and must offer the same remedy - request a new link.
+
+            * `Invalid token` - The token is malformed or was tampered with.
+            * `Invalid token` - The token expired. Links live 15 minutes.
+            * `Invalid token` - The token is not of type `reset`, for example an access token sent in its place.
+            * `Invalid token` - The link has already been used, or the password has changed since it was issued, so its password fingerprint no longer matches. The account referenced by the token no longer existing is reported the same way.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalid_token:
+                  summary: Invalid token
+                  value:
+                    message: Invalid token
+        '422':
+          description: |-
+            The request body failed schema validation. Produced by the framework before the handler runs, so it uses the `detail` key rather than the `message` envelope.
+
+            * `password` or `confirm_password` is shorter than 8 or longer than 255 characters.
+            * `password` and `confirm_password` do not match.
+            * `token` is missing or empty. A token that is present but unusable is a `401`, not a `422`.
           content:
             application/json:
               schema:
@@ -3551,11 +3764,14 @@ paths:
 
         **Only once the event has started.** Marking attendance before `starts_at` returns `403`, so a roster cannot be pre-filled.
 
+        **Only until results are declared.** Once `PATCH /events/{event_id}/results` has run, attendance is frozen and this endpoint returns `409` - certificates have already been issued against the roster as it stood.
+
         **Access.** `STUDENT` token **and** a `LEADER` membership on the hosting club.
 
         **Notes.**
 
-        * Sending `checked_in: false` un-marks a previous check-in **and resets any recorded result back to `REGISTRANT`**, keeping the two consistent - a result never outlives the attendance that justified it.
+        * Checking a student in sets their result to `PARTICIPANT` immediately. Declaring results later only promotes the two students named as winner and runner-up.
+        * Sending `checked_in: false` un-marks a previous check-in **and resets the result back to `REGISTRANT`**, keeping the two consistent - a result never outlives the attendance that justified it.
         * The call is idempotent: marking an already checked-in student again is accepted.
         * A `registration_id` belonging to a different event returns `404`.
       operationId: mark_attendance_events__event_id__registrations__registration_id__attendance_patch
@@ -3662,6 +3878,20 @@ paths:
                   summary: Registration not found
                   value:
                     message: Registration not found
+        '409':
+          description: |-
+            The request conflicts with a record that already exists.
+
+            * `Results for this event have already been declared and can no longer be changed` - Attendance is frozen once results are declared, because certificates were issued against the roster as it stood at that moment.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                already_declared:
+                  summary: Results have already been declared
+                  value:
+                    message: Results for this event have already been declared and can no longer be changed
         '422':
           description: The request body, query string or path parameters failed schema validation. Produced
             by the framework before the handler runs, so it uses the `detail` key rather than the `message`
@@ -3683,33 +3913,37 @@ paths:
                     message: Something went wrong
       security:
       - HTTPBearer: []
-  /events/{event_id}/registrations/{registration_id}/result:
+  /events/{event_id}/results:
     patch:
       tags:
       - Events
-      summary: Set a participant's result
+      summary: Declare the event results
       description: |-
         **User story 3.5 - Set a Result for Each Attendee** (Epic 3 - Event Lifecycle)
 
         > As a club leader, I want to assign a result - Winner, Runner-up, or Participant - to each student who attended, so that outcomes are permanently recorded and not lost in WhatsApp messages after the event ends.
 
-        Records the outcome for one checked-in attendee as `WINNER`, `RUNNER_UP` or `PARTICIPANT`.
+        Closes the event out in a single call. The leader names the winner and the runner-up; every other checked-in attendee is already a `PARTICIPANT` from the moment attendance was marked, so nothing further needs to be sent for them.
 
         This is what makes results permanent. The record lives on the student's profile through `GET /events/me/results` instead of in a message that scrolls away, which is the difference between a participation history that survives the year and one that nobody can reconstruct.
 
-        **The student must be checked in first.** Setting a result on a registration that was never marked present returns `400 Result can only be set for attendees who were checked in`.
+        **Both nominees must be checked in.** Naming a student who was never marked present returns `400 Result can only be set for attendees who were checked in`.
 
-        **Side effect:** a `RESULT_POSTED` notification is written to the student.
+        **This call is final.** Once results are declared the event is frozen: a second declaration returns `409`, and so does any later attempt to change attendance through `PATCH .../attendance`. Correcting a mistake after this point is not possible through the API.
+
+        **Side effects.** A `RESULT_POSTED` notification is written for every checked-in attendee, and one certificate job is queued per attendee - which is where all Epic 5 certificates come from.
 
         **Access.** `STUDENT` token **and** a `LEADER` membership on the hosting club.
 
         **Notes.**
 
-        * `REGISTRANT` cannot be set explicitly - it is the default assigned on registration, not an outcome. Sending it returns `422`.
-        * A result may be changed by calling again; the notification is written each time.
-        * Un-marking attendance afterwards resets the result to `REGISTRANT`.
-        * There is no restriction on how many students receive `WINNER`; that judgement is left to the leader.
-      operationId: set_result_events__event_id__registrations__registration_id__result_patch
+        * `winner_registration_id` and `runner_up_registration_id` must differ; sending the same id twice is a `422`.
+        * Exactly one winner and one runner-up. The API does not support ties or multiple winners.
+        * Attendees who were never checked in receive nothing - no result change, no notification and no certificate.
+        * `certificates_queued` counts the jobs handed to the background worker, not certificates confirmed as stored. Certificates appear in `GET /certificates/me` once each job finishes, typically within seconds.
+        * `participants` is the number of checked-in attendees other than the two nominees.
+        * Results are committed before the certificate jobs are queued, so a failure while rendering a PDF never rolls back the declared results.
+      operationId: declare_results_events__event_id__results_patch
       x-epic: Epic 3 - Event Lifecycle
       x-user-story: '3.5'
       x-user-story-title: Set a Result for Each Attendee
@@ -3724,31 +3958,25 @@ paths:
         schema:
           type: integer
           title: Event Id
-      - name: registration_id
-        in: path
-        required: true
-        description: Id of the registration, taken from `GET /events/{event_id}/registrations`.
-        schema:
-          type: integer
-          title: Registration Id
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/SetResultRequest'
+              $ref: '#/components/schemas/DeclareResultsRequest'
       responses:
         '200':
-          description: The registration after the result was recorded.
+          description: Results declared. Every checked-in attendee has been notified and a certificate
+            has been queued for each of them.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ResultResponse'
+                $ref: '#/components/schemas/DeclareResultsResponse'
         '400':
           description: |-
             The request is well formed but the target record is in a state that forbids it.
 
-            * `Result can only be set for attendees who were checked in` - The registration is not checked in. Mark attendance first.
+            * `Result can only be set for attendees who were checked in` - The winner or the runner-up is not checked in. Mark attendance first.
           content:
             application/json:
               schema:
@@ -3822,10 +4050,26 @@ paths:
                   summary: Registration not found
                   value:
                     message: Registration not found
+        '409':
+          description: |-
+            The request conflicts with a record that already exists.
+
+            * `Results for this event have already been declared and can no longer be changed` - Results were declared for this event by an earlier call. The declaration is final; there is no endpoint that reopens it.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                already_declared:
+                  summary: Results have already been declared
+                  value:
+                    message: Results for this event have already been declared and can no longer be changed
         '422':
-          description: The request body, query string or path parameters failed schema validation. Produced
-            by the framework before the handler runs, so it uses the `detail` key rather than the `message`
-            envelope.
+          description: |-
+            The request body, query string or path parameters failed schema validation. Produced by the framework before the handler runs, so it uses the `detail` key rather than the `message` envelope.
+
+            * `winner_registration_id` and `runner_up_registration_id` are the same registration.
+            * Either id is missing or is not an integer.
           content:
             application/json:
               schema:
@@ -5857,6 +6101,288 @@ paths:
                     message: Something went wrong
       security:
       - HTTPBearer: []
+  /certificates/me:
+    get:
+      tags:
+      - Certificates
+      summary: List my certificates
+      description: |-
+        **User story 5.2 - Download My Participation Certificate** (Epic 5 - Certificate Workflow)
+
+        > As a student, I want to access and download any of my earned certificates from my profile at any time, so that I have permanent proof of my participation that does not disappear when I change my phone.
+
+        The caller's certificate wallet: every certificate issued to them, newest first, each with the event it came from, the result it records and a ready-to-use download link.
+
+        This is the durable half of the story. The certificate lives against the account rather than on a device, so changing phone, losing a chat history or clearing a downloads folder costs nothing - the student signs in and the certificates are still here.
+
+        **Access.** `STUDENT` token. Returns only the caller's own certificates; there is no way to list another student's.
+
+        **Notes.**
+
+        * Certificates are never created by a client. One appears here after a leader calls `PATCH /events/{event_id}/results` and the background job has stored the PDF, which is also when the student receives a `CERTIFICATE_ISSUED` notification.
+        * Only checked-in attendees are issued certificates. A registration that was never marked present produces none, so this list is a strict subset of `GET /events/me/registrations`.
+        * `download_url` is a signed link valid for one hour from the moment this response was generated. Cache the list if you like, but re-fetch before using a stale link, or call `GET /certificates/{serial}/download` for a fresh one.
+        * An empty array is the correct answer for a student who has attended nothing yet - never a `404`.
+      operationId: my_certificates_certificates_me_get
+      x-epic: Epic 5 - Certificate Workflow
+      x-user-story: '5.2'
+      x-user-story-title: Download My Participation Certificate
+      x-required-role:
+      - STUDENT
+      x-required-club-role: none
+      responses:
+        '200':
+          description: The caller's certificates, newest first. Empty array if none have been issued yet.
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/MyCertificateItem'
+                type: array
+                title: Response My Certificates Certificates Me Get
+        '401':
+          description: |-
+            The bearer token is present but unusable, or the account role is not permitted here.
+
+            * `Invalid token` - The token is malformed, expired, not an `access` token, or its `role` is not permitted on this endpoint.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalid_token:
+                  summary: Invalid token
+                  value:
+                    message: Invalid token
+        '403':
+          description: |-
+            The caller is authenticated but not permitted, or the resource state blocks the action.
+
+            * **Missing credentials** - the `Authorization` header is absent or is not a bearer token. This case is produced by the security scheme before application code runs and is the one error that uses the `detail` key: `{"detail": "Not authenticated"}`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotAuthenticated'
+              examples:
+                missing_credentials:
+                  summary: No Authorization header
+                  value:
+                    detail: Not authenticated
+        '404':
+          description: |-
+            The record does not exist, belongs to another college, or is not visible to the caller.
+
+            * `Student profile not found` - The token is valid but the account has no student profile attached. A `CAMPUS_ADMIN` never has one, and campus admins do not earn certificates.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                student_profile_missing:
+                  summary: Student profile not found
+                  value:
+                    message: Student profile not found
+        '500':
+          description: Unhandled server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                server_error:
+                  summary: Something went wrong
+                  value:
+                    message: Something went wrong
+      security:
+      - HTTPBearer: []
+  /certificates/verify/{serial}:
+    get:
+      tags:
+      - Certificates
+      summary: Verify a certificate by serial
+      description: |-
+        **User story 5.3 - Verify a Certificate by Serial Number** (Epic 5 - Certificate Workflow)
+
+        > As a certificate holder or external verifier, I want to enter a certificate's serial number on a public page and confirm it is authentic, so that I can share verifiable proof of participation with employers or institutions without needing to log into the platform.
+
+        Resolves a serial to the record behind it: who earned it, for which event, hosted by which club at which college, with what result and when it was issued.
+
+        **This is the only college-agnostic endpoint in the API.** Every other read is filtered to the caller's college, because a verifier is by definition an outsider - a recruiter at another company, an admissions office at another institution - who has no account and belongs to no college. Tenancy scoping would make verification impossible, so it is deliberately absent here.
+
+        **Access.** Public. No token required. This is also the page behind the QR code printed on every certificate.
+
+        **Notes.**
+
+        * The serial is the whole credential. Serials are `CC-<abbreviated event title>-<year>-<5 random digits>`, and the random component is what stops the range being walked from a single known certificate.
+        * `valid` is `true` in every `200`. An invalid serial is a `404`, not a `200` with `valid: false` - the field exists so a client can render one shape for both outcomes without special-casing the status.
+        * The response deliberately exposes the student's name: confirming *who* the certificate belongs to is the point of verification. It exposes nothing else about the account - no email, no id, no other certificates.
+        * The PDF itself is not returned or linked. Verification confirms the record; only the owner can download the file.
+      operationId: verify_certificate_certificates_verify__serial__get
+      x-epic: Epic 5 - Certificate Workflow
+      x-user-story: '5.3'
+      x-user-story-title: Verify a Certificate by Serial Number
+      x-required-role:
+      - public
+      x-required-club-role: none
+      parameters:
+      - name: serial
+        in: path
+        required: true
+        description: The serial printed on the certificate, for example `CC-HAC-2026-04213`. Matched exactly,
+          including case.
+        schema:
+          type: string
+          title: Serial
+      responses:
+        '200':
+          description: The serial is authentic. Returns the record it certifies.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CertificateVerification'
+        '404':
+          description: |-
+            The record does not exist.
+
+            * `Certificate not found` - No certificate carries this serial. A mistyped serial and a fabricated one are indistinguishable, which is the intended answer to both.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                certificate_not_found:
+                  summary: Certificate not found
+                  value:
+                    message: Certificate not found
+        '422':
+          description: The path parameter failed schema validation. Produced by the framework before the
+            handler runs, so it uses the `detail` key rather than the `message` envelope.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '500':
+          description: Unhandled server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                server_error:
+                  summary: Something went wrong
+                  value:
+                    message: Something went wrong
+  /certificates/{serial}/download:
+    get:
+      tags:
+      - Certificates
+      summary: Get a download link for one certificate
+      description: |-
+        **User story 5.2 - Download My Participation Certificate** (Epic 5 - Certificate Workflow)
+
+        > As a student, I want to access and download any of my earned certificates from my profile at any time, so that I have permanent proof of my participation that does not disappear when I change my phone.
+
+        Issues a fresh, time-limited link to one certificate PDF, for a client whose link from `GET /certificates/me` has aged out.
+
+        **This does not return the PDF.** It returns JSON containing a signed URL that the client then follows, so the file is served directly by object storage rather than proxied through the API. The response also carries the filename to save it under.
+
+        **Access.** `STUDENT` token, and the certificate must belong to the caller.
+
+        **Notes.**
+
+        * A serial belonging to another student returns `404 Certificate not found`, exactly as an unknown serial does. Ownership is never reported as `403`, so the endpoint cannot be used to discover which serials exist.
+        * `expires_in` is seconds from the moment of the response - currently 3600. After that the link stops working and this endpoint must be called again. The certificate itself never expires; only the link does.
+        * There is no rate limit on issuing links, and issuing one does not invalidate any link issued earlier.
+        * Verification of the same serial is public, but downloading it is not. Anyone can confirm the certificate is real; only its owner can obtain the file.
+      operationId: download_certificate_certificates__serial__download_get
+      x-epic: Epic 5 - Certificate Workflow
+      x-user-story: '5.2'
+      x-user-story-title: Download My Participation Certificate
+      x-required-role:
+      - STUDENT
+      x-required-club-role: none
+      parameters:
+      - name: serial
+        in: path
+        required: true
+        description: Serial of one of the caller's own certificates, taken from `GET /certificates/me`.
+        schema:
+          type: string
+          title: Serial
+      responses:
+        '200':
+          description: A signed download link, valid for `expires_in` seconds.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CertificateDownloadResponse'
+        '401':
+          description: |-
+            The bearer token is present but unusable, or the account role is not permitted here.
+
+            * `Invalid token` - The token is malformed, expired, not an `access` token, or its `role` is not permitted on this endpoint.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalid_token:
+                  summary: Invalid token
+                  value:
+                    message: Invalid token
+        '403':
+          description: |-
+            The caller is authenticated but not permitted, or the resource state blocks the action.
+
+            * **Missing credentials** - the `Authorization` header is absent or is not a bearer token. This case is produced by the security scheme before application code runs and is the one error that uses the `detail` key: `{"detail": "Not authenticated"}`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotAuthenticated'
+              examples:
+                missing_credentials:
+                  summary: No Authorization header
+                  value:
+                    detail: Not authenticated
+        '404':
+          description: |-
+            The record does not exist, or is not visible to the caller.
+
+            * `Student profile not found` - The token is valid but the account has no student profile attached.
+            * `Certificate not found` - No certificate carries this serial, **or** it carries this serial but belongs to another student. The two cases are deliberately indistinguishable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                student_profile_missing:
+                  summary: Student profile not found
+                  value:
+                    message: Student profile not found
+                certificate_not_found:
+                  summary: Certificate not found
+                  value:
+                    message: Certificate not found
+        '422':
+          description: The path parameter failed schema validation. Produced by the framework before the
+            handler runs, so it uses the `detail` key rather than the `message` envelope.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '500':
+          description: Unhandled server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                server_error:
+                  summary: Something went wrong
+                  value:
+                    message: Something went wrong
+      security:
+      - HTTPBearer: []
 components:
   schemas:
     AnnouncementCategory:
@@ -5960,6 +6486,76 @@ components:
       - message
       title: AttendanceResponse
       description: The registration after attendance was marked or un-marked.
+    CertificateDownloadResponse:
+      properties:
+        serial:
+          type: string
+          title: Serial
+        filename:
+          type: string
+          title: Filename
+        download_url:
+          type: string
+          title: Download Url
+        expires_in:
+          type: integer
+          title: Expires In
+      type: object
+      required:
+      - serial
+      - filename
+      - download_url
+      - expires_in
+      title: CertificateDownloadResponse
+      description: 'A signed link to one certificate PDF. `download_url` is time-limited: it stops working
+        `expires_in` seconds after this response was generated, at which point the endpoint must be called
+        again. `filename` is the name the client should save the file under.'
+    CertificateVerification:
+      properties:
+        valid:
+          type: boolean
+          title: Valid
+        serial:
+          type: string
+          title: Serial
+        result:
+          $ref: '#/components/schemas/RegistrationResult'
+        student_name:
+          type: string
+          title: Student Name
+        event_title:
+          type: string
+          title: Event Title
+        event_date:
+          type: string
+          format: date-time
+          title: Event Date
+        club_name:
+          type: string
+          title: Club Name
+        college_name:
+          type: string
+          title: College Name
+        issued_at:
+          type: string
+          format: date-time
+          title: Issued At
+      type: object
+      required:
+      - valid
+      - serial
+      - result
+      - student_name
+      - event_title
+      - event_date
+      - club_name
+      - college_name
+      - issued_at
+      title: CertificateVerification
+      description: |-
+        The record behind an authentic serial, returned to anyone who asks - this is the only response in the API that is not scoped to a college.
+
+        `valid` is always `true` here; an unknown serial is a `404` rather than a `200` carrying `valid: false`. The student's name is included because confirming who the certificate belongs to is the purpose of verification; nothing else about the account is exposed, and the PDF itself is not linked.
     ClubDetailResponse:
       properties:
         id:
@@ -6415,6 +7011,76 @@ components:
       - message
       title: CreateEventResponse
       description: Confirmation that the event was created as a draft.
+    DeclareResultsRequest:
+      properties:
+        winner_registration_id:
+          type: integer
+          title: Winner Registration Id
+        runner_up_registration_id:
+          type: integer
+          title: Runner Up Registration Id
+      type: object
+      required:
+      - winner_registration_id
+      - runner_up_registration_id
+      title: DeclareResultsRequest
+      description: |-
+        The two placings the leader has to name. Ids come from `GET /events/{event_id}/registrations`.
+
+        Both registrations must be checked in, and the two ids must differ - sending the same id twice is a `422`. Every other checked-in attendee keeps the `PARTICIPANT` result they were given when their attendance was marked, so they need not be listed.
+    DeclareResultsResponse:
+      properties:
+        event_id:
+          type: integer
+          title: Event Id
+        winner:
+          $ref: '#/components/schemas/DeclaredResultItem'
+        runner_up:
+          $ref: '#/components/schemas/DeclaredResultItem'
+        participants:
+          type: integer
+          title: Participants
+        certificates_queued:
+          type: integer
+          title: Certificates Queued
+        message:
+          type: string
+          title: Message
+      type: object
+      required:
+      - event_id
+      - winner
+      - runner_up
+      - participants
+      - certificates_queued
+      - message
+      title: DeclareResultsResponse
+      description: |-
+        Summary of a declaration that has already been committed.
+
+        `participants` counts the checked-in attendees other than the two named here. `certificates_queued` counts the background jobs handed off - one per checked-in attendee, the two nominees included - and is a count of work started, not of PDFs confirmed as stored. The certificates surface in `GET /certificates/me` as each job finishes.
+    DeclaredResultItem:
+      properties:
+        registration_id:
+          type: integer
+          title: Registration Id
+        student_id:
+          type: integer
+          title: Student Id
+        full_name:
+          type: string
+          title: Full Name
+        result:
+          $ref: '#/components/schemas/RegistrationResult'
+      type: object
+      required:
+      - registration_id
+      - student_id
+      - full_name
+      - result
+      title: DeclaredResultItem
+      description: One named placing, echoed back with the student's name so the client can confirm the
+        right person was nominated before the declaration became final.
     DeleteAnnouncementResponse:
       properties:
         id:
@@ -6610,6 +7276,31 @@ components:
       - message
       title: EventStatusResponse
       description: Confirmation of an event status change - publication or cancellation.
+    ForgotPasswordRequest:
+      properties:
+        email:
+          type: string
+          maxLength: 255
+          format: email
+          title: Email
+      type: object
+      required:
+      - email
+      title: ForgotPasswordRequest
+      description: The address to send a reset link to. Trimmed and lower-cased before lookup, exactly
+        as on signup. An address that belongs to no account is accepted without comment.
+    ForgotPasswordResponse:
+      properties:
+        message:
+          type: string
+          title: Message
+      type: object
+      required:
+      - message
+      title: ForgotPasswordResponse
+      description: 'Fixed acknowledgement. The wording is intentionally conditional - `If that email is
+        registered...` - and identical for registered and unregistered addresses, so a client cannot learn
+        which emails have accounts. There is nothing here to branch on.'
     HTTPValidationError:
       properties:
         detail:
@@ -6897,6 +7588,43 @@ components:
         * `PENDING` - submitted, awaiting the leader's decision.
         * `APPROVED` - the student is a member. Required to register for the club's events and to receive its announcements.
         * `REJECTED` - the leader declined the request.
+    MyCertificateItem:
+      properties:
+        serial:
+          type: string
+          title: Serial
+        result:
+          $ref: '#/components/schemas/RegistrationResult'
+        event_id:
+          type: integer
+          title: Event Id
+        event_title:
+          type: string
+          title: Event Title
+        club_name:
+          type: string
+          title: Club Name
+        issued_at:
+          type: string
+          format: date-time
+          title: Issued At
+        download_url:
+          type: string
+          title: Download Url
+      type: object
+      required:
+      - serial
+      - result
+      - event_id
+      - event_title
+      - club_name
+      - issued_at
+      - download_url
+      title: MyCertificateItem
+      description: |-
+        One certificate in the caller's wallet. `serial` is the identifier everywhere else in this tag - certificates are never addressed by numeric id - and is the value an external verifier enters.
+
+        `download_url` is signed and expires an hour after this response was generated. A client holding a stale list should call `GET /certificates/{serial}/download` for a fresh link rather than reusing this one.
     MyClubItem:
       properties:
         id:
@@ -7464,41 +8192,43 @@ components:
       - message
       title: RequestActionResponse
       description: The membership after the leader's decision has been applied.
-    ResultResponse:
+    ResetPasswordRequest:
       properties:
-        registration_id:
-          type: integer
-          title: Registration Id
-        student_id:
-          type: integer
-          title: Student Id
-        full_name:
+        token:
           type: string
-          title: Full Name
-        result:
-          $ref: '#/components/schemas/RegistrationResult'
+          minLength: 1
+          title: Token
+        password:
+          type: string
+          maxLength: 255
+          minLength: 8
+          title: Password
+        confirm_password:
+          type: string
+          maxLength: 255
+          minLength: 8
+          title: Confirm Password
+      type: object
+      required:
+      - token
+      - password
+      - confirm_password
+      title: ResetPasswordRequest
+      description: |-
+        The token lifted from the `token` query parameter of the emailed reset link, plus the new password twice.
+
+        The two password fields must match, as on signup. The current password is neither required nor accepted - possession of the link is the proof of identity. A token that is well-formed but expired, spent or of the wrong type is a `401`, not a `422`; only an empty or missing `token` fails validation here.
+    ResetPasswordResponse:
+      properties:
         message:
           type: string
           title: Message
       type: object
       required:
-      - registration_id
-      - student_id
-      - full_name
-      - result
       - message
-      title: ResultResponse
-      description: The registration after the result was recorded.
-    SetResultRequest:
-      properties:
-        result:
-          $ref: '#/components/schemas/RegistrationResult'
-      type: object
-      required:
-      - result
-      title: SetResultRequest
-      description: The outcome to record. Must be `WINNER`, `RUNNER_UP` or `PARTICIPANT`; `REGISTRANT`
-        is rejected with `422` because it is the default state rather than an outcome.
+      title: ResetPasswordResponse
+      description: Confirmation that the password was replaced. No token is issued - the client sends the
+        user to log in - and no existing access token is revoked.
     SignupRequest:
       properties:
         email:
@@ -7744,6 +8474,8 @@ components:
       description: |-
         JWT bearer authentication. Obtain a token from `POST /auth/signup` or `POST /auth/login` and send it as `Authorization: Bearer <access_token>`.
 
-        The token carries the claims `sub`, `full_name`, `email`, `role`, `college_slug`, `iat`, `exp` and `type`. Only a token whose `type` is `access` is accepted, so a refresh token cannot be used to call a resource endpoint.
+        The token carries the claims `sub`, `full_name`, `email`, `role`, `college_slug`, `iat`, `exp` and `type`. Only a token whose `type` is `access` is accepted, so neither a refresh token nor a password `reset` token can be used to call a resource endpoint.
 
         A missing header is rejected with `403 {"detail": "Not authenticated"}`; a token that is malformed, expired, of the wrong type, or whose `role` is not permitted on the endpoint is rejected with `401 {"message": "Invalid token"}`.
+
+        Five endpoints require no bearer token at all: `POST /auth/signup`, `POST /auth/login`, `POST /auth/forgot-password`, `POST /auth/reset-password` and `GET /certificates/verify/{serial}`. The reset token travels in the request body of `POST /auth/reset-password`, never in this header.
