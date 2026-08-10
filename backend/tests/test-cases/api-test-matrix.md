@@ -459,42 +459,72 @@
 | **IT-413** | Verify that is_read=True returns only notifications that have been marked read | `GET /notifications` | N/A | Status: `200`<br>`len(body) == 1`<br>0: join_notification_id | Status: `200`<br>`len(body) == 1`<br>0: join_notification_id | Success |
 | **IT-414** | Verify that a student's notification list never includes another student's notifications | `PATCH f"/clubs/{club_id}/requests/{join.json()['id']}"` | `{"action": "APPROVED"}` | `member_ids.isdisjoint(outsider_ids)`<br>`len(outsider_ids) >= 1` | `member_ids.isdisjoint(outsider_ids)`<br>`len(outsider_ids) >= 1` | Success |
 
+## Password Reset Integration Tests
+
+| Test ID | Description | API / Function | Inputs | Expected Output | Actual Output | Result |
+|---|---|---|---|---|---|---|
+| **IT-415** | Verify that a password reset email is sent for a registered email | `POST /auth/forgot-password` | `{"email": "itsmepawan.jh@gmail.com"}` | Status: `200`<br>Message: 'If that email is registered, a password reset link has been sent to it' | Status: `200`<br>Message: 'If that email is registered, a password reset link has been sent to it' | Success |
+| **IT-416** | Verify that forgot-password returns the same generic message for an unregistered email | `GET f'{MAILHOG_API_BASE}/v2/messages'` | N/A | Status: `200`<br>Message: 'If that email is registered, a password reset link has been sent to it'<br>`len(mailhog_response.json()['items']) == 0` | Status: `200`<br>Message: 'If that email is registered, a password reset link has been sent to it'<br>`len(mailhog_response.json()['items']) == 0` | Success |
+| **IT-417** | Validate that forgot-password is rejected when the email is malformed | `POST /auth/forgot-password` | `{"email": "not-an-email"}` | Status: `422` | Status: `422` | Success |
+| **IT-418** | Validate that forgot-password is rejected when the email field is missing | `POST /auth/forgot-password` | `{}` | Status: `422` | Status: `422` | Success |
+| **IT-419** | Verify that reset-password updates the password and login works with the new password | `POST /auth/login` | `{'email': signup_payload['email'], 'password': 'OldPass@123'}` | Status: `200`<br>Message: 'Password reset successfully, please log in with your new password'<br>Status: `200`<br>Status: `401`<br>`old_login.json()['message'] == 'Incorrect email or password'`<br>Tokens: access_token | Status: `200`<br>Message: 'Password reset successfully, please log in with your new password'<br>Status: `200`<br>Status: `401`<br>`old_login.json()['message'] == 'Incorrect email or password'`<br>Tokens: access_token | Success |
+| **IT-420** | Verify that a reset token cannot be reused after the password has already been reset | `POST /auth/reset-password` | `{'token': reset_token, 'password': 'AnotherPass@789', 'confirm_password': 'AnotherPass@789'}` | Status: `200`<br>Status: `401`<br>`second_response.json()['message'] == 'Invalid token'` | Status: `200`<br>Status: `401`<br>`second_response.json()['message'] == 'Invalid token'` | Success |
+| **IT-421** | Verify that an expired reset token is rejected | `POST /auth/reset-password` | `{'token': expired_token, 'password': 'NewPass@456', 'confirm_password': 'NewPass@456'}` | Status: `401`<br>`response.json()['message'] == 'Invalid token'` | Status: `401`<br>`response.json()['message'] == 'Invalid token'` | Success |
+| **IT-422** | Verify that a regular access token cannot be used as a reset token | `POST /auth/reset-password` | `{'token': access_token, 'password': 'NewPass@456', 'confirm_password': 'NewPass@456'}` | Status: `401`<br>`response.json()['message'] == 'Invalid token'` | Status: `401`<br>`response.json()['message'] == 'Invalid token'` | Success |
+| **IT-423** | Verify that a refresh token cannot be used as a reset token | `POST /auth/reset-password` | `{'token': refresh_token, 'password': 'NewPass@456', 'confirm_password': 'NewPass@456'}` | Status: `401`<br>`response.json()['message'] == 'Invalid token'` | Status: `401`<br>`response.json()['message'] == 'Invalid token'` | Success |
+| **IT-424** | Verify that a malformed or tampered token string is rejected | `POST /auth/reset-password` | `{"token": "this.is.not-a-valid-jwt", "password": "NewPass@456", "confirm_password": "NewPass@456"}` | Status: `401`<br>`response.json()['message'] == 'Invalid token'` | Status: `401`<br>`response.json()['message'] == 'Invalid token'` | Success |
+| **IT-425** | Validate that reset-password is rejected when password and confirm_password do not match | `POST /auth/reset-password` | `{'token': reset_token, 'password': 'NewPass@456', 'confirm_password': 'Different@789'}` | Status: `422` | Status: `422` | Success |
+| **IT-426** | Validate that reset-password is rejected when the new password is below the minimum length | `POST /auth/reset-password` | `{'token': reset_token, 'password': 'short1', 'confirm_password': 'short1'}` | Status: `422` | Status: `422` | Success |
+
 ## Certificate Unit Tests
 
 | Test ID | Description | API / Function | Inputs | Expected Output | Actual Output | Result |
 |---|---|---|---|---|---|---|
-| **UT-415** | Verify that a multi-word title is abbreviated to its first letters | `abbreviate()` | `'Data Science & AI'` | `abbreviate('Data Science & AI') == 'DSA'` | `abbreviate('Data Science & AI') == 'DSA'` | Success |
-| **UT-416** | Confirm that a single-word title abbreviates to just that word's first letter | `abbreviate()` | `'Hackathon'` | `abbreviate('Hackathon') == 'H'` | `abbreviate('Hackathon') == 'H'` | Success |
-| **UT-417** | Confirm that a title starting with numbers uses the digit, not EVT fallback | `abbreviate()` | `'12345'` | `abbreviate('12345') == '1'` | `abbreviate('12345') == '1'` | Success |
-| **UT-418** | Ensure that a title with only symbols falls back to the EVT default | `abbreviate()` | `'---'` | `abbreviate('---') == 'EVT'`<br>`abbreviate('!!! @@@ ###') == 'EVT'` | `abbreviate('---') == 'EVT'`<br>`abbreviate('!!! @@@ ###') == 'EVT'` | Success |
-| **UT-419** | Confirm that punctuation and symbols don't break abbreviation | `abbreviate()` | `'C++ & Python: Workshop #1'` | `result.isalpha()`<br>`len(result) <= 3` | `result.isalpha()`<br>`len(result) <= 3` | Success |
-| **UT-420** | Verify that a generated serial matches the expected CC-XXX-YYYY-NNNNN pattern | `make_serial()` | `'Robotics Workshop', datetime(2026, 8, 9)` | `re.match('^CC-RW-2026-\\d{5}$', serial)` | `re.match('^CC-RW-2026-\\d{5}$', serial)` | Success |
-| **UT-421** | Confirm that a purely symbol event title falls back to EVT prefix | `make_serial()` | `'---', datetime(2026, 8, 9)` | `re.match('^CC-EVT-2026-\\d{5}$', serial)` | `re.match('^CC-EVT-2026-\\d{5}$', serial)` | Success |
-| **UT-422** | Verify that text longer than the limit is truncated with an ellipsis | `clip()` | `'Very long string that exceeds the limit', 10` | `result == 'Very long…'`<br>`len(result) == 10` | `result == 'Very long…'`<br>`len(result) == 10` | Success |
-| **UT-423** | Confirm that text within the limit is returned unmodified | `clip()` | `'Short', 10` | `clip('Short', 10) == 'Short'` | `clip('Short', 10) == 'Short'` | Success |
-| **UT-424** | Confirm that text exactly at the limit is not truncated | `len()` | `text` | `len(text) == 10`<br>`clip(text, 10) == text` | `len(text) == 10`<br>`clip(text, 10) == text` | Success |
-| **UT-425** | test render pdf all result templates[WINNER] | N/A | N/A | `see test code` | `see test code` | Success |
-| **UT-426** | test render pdf all result templates[RUNNER UP] | N/A | N/A | `see test code` | `see test code` | Success |
-| **UT-427** | test render pdf all result templates[PARTICIPANT] | N/A | N/A | `see test code` | `see test code` | Success |
-| **UT-428** | Confirm that a very long student name doesn't crash PDF rendering | `CertificateContext()` | `no arguments` | `pdf_bytes.startswith(b'%PDF')` | `pdf_bytes.startswith(b'%PDF')` | Success |
-| **UT-429** | Confirm that exhausting all serial retry attempts raises RuntimeError | `AsyncMock()` | `no arguments` | raises RuntimeError | raises RuntimeError | Success |
-| **UT-430** | Confirm that issue() returns None for a registration that was never checked in | `MagicMock()` | `no arguments` | `result is None` | `result is None` | Success |
-| **UT-431** | Confirm that issue() returns None when checked in but result is still REGISTRANT | `MagicMock()` | `no arguments` | `result is None` | `result is None` | Success |
-| **UT-432** | Confirm that issue() returns None when the registration ID doesn't exist | `AsyncMock()` | `no arguments` | `result is None` | `result is None` | Success |
+| **UT-427** | Verify that a multi-word title is abbreviated to its first letters | `abbreviate()` | `'Data Science & AI'` | `abbreviate('Data Science & AI') == 'DSA'` | `abbreviate('Data Science & AI') == 'DSA'` | Success |
+| **UT-428** | Confirm that a single-word title abbreviates to just that word's first letter | `abbreviate()` | `'Hackathon'` | `abbreviate('Hackathon') == 'H'` | `abbreviate('Hackathon') == 'H'` | Success |
+| **UT-429** | Confirm that a title starting with numbers uses the digit, not EVT fallback | `abbreviate()` | `'12345'` | `abbreviate('12345') == '1'` | `abbreviate('12345') == '1'` | Success |
+| **UT-430** | Ensure that a title with only symbols falls back to the EVT default | `abbreviate()` | `'---'` | `abbreviate('---') == 'EVT'`<br>`abbreviate('!!! @@@ ###') == 'EVT'` | `abbreviate('---') == 'EVT'`<br>`abbreviate('!!! @@@ ###') == 'EVT'` | Success |
+| **UT-431** | Confirm that punctuation and symbols don't break abbreviation | `abbreviate()` | `'C++ & Python: Workshop #1'` | `result.isalpha()`<br>`len(result) <= 3` | `result.isalpha()`<br>`len(result) <= 3` | Success |
+| **UT-432** | Verify that a generated serial matches the expected CC-XXX-YYYY-NNNNN pattern | `make_serial()` | `'Robotics Workshop', datetime(2026, 8, 9)` | `re.match('^CC-RW-2026-\\d{5}$', serial)` | `re.match('^CC-RW-2026-\\d{5}$', serial)` | Success |
+| **UT-433** | Confirm that a purely symbol event title falls back to EVT prefix | `make_serial()` | `'---', datetime(2026, 8, 9)` | `re.match('^CC-EVT-2026-\\d{5}$', serial)` | `re.match('^CC-EVT-2026-\\d{5}$', serial)` | Success |
+| **UT-434** | Verify that text longer than the limit is truncated with an ellipsis | `clip()` | `'Very long string that exceeds the limit', 10` | `result == 'Very long…'`<br>`len(result) == 10` | `result == 'Very long…'`<br>`len(result) == 10` | Success |
+| **UT-435** | Confirm that text within the limit is returned unmodified | `clip()` | `'Short', 10` | `clip('Short', 10) == 'Short'` | `clip('Short', 10) == 'Short'` | Success |
+| **UT-436** | Confirm that text exactly at the limit is not truncated | `len()` | `text` | `len(text) == 10`<br>`clip(text, 10) == text` | `len(text) == 10`<br>`clip(text, 10) == text` | Success |
+| **UT-437** | test render pdf all result templates[WINNER] | N/A | N/A | `see test code` | `see test code` | Success |
+| **UT-438** | test render pdf all result templates[RUNNER UP] | N/A | N/A | `see test code` | `see test code` | Success |
+| **UT-439** | test render pdf all result templates[PARTICIPANT] | N/A | N/A | `see test code` | `see test code` | Success |
+| **UT-440** | Confirm that a very long student name doesn't crash PDF rendering | `CertificateContext()` | `no arguments` | `pdf_bytes.startswith(b'%PDF')` | `pdf_bytes.startswith(b'%PDF')` | Success |
+| **UT-441** | Confirm that exhausting all serial retry attempts raises RuntimeError | `AsyncMock()` | `no arguments` | raises RuntimeError | raises RuntimeError | Success |
+| **UT-442** | Confirm that issue() returns None for a registration that was never checked in | `MagicMock()` | `no arguments` | `result is None` | `result is None` | Success |
+| **UT-443** | Confirm that issue() returns None when checked in but result is still REGISTRANT | `MagicMock()` | `no arguments` | `result is None` | `result is None` | Success |
+| **UT-444** | Confirm that issue() returns None when the registration ID doesn't exist | `AsyncMock()` | `no arguments` | `result is None` | `result is None` | Success |
 
 ## Hashing Unit Tests
 
 | Test ID | Description | API / Function | Inputs | Expected Output | Actual Output | Result |
 |---|---|---|---|---|---|---|
-| **UT-433** | Ensure that the hashed password does not match the original plain text | `hash_password()` | `'MyPassword123'` | `hashed != 'MyPassword123'`<br>`isinstance(hashed, str)` | `hashed != 'MyPassword123'`<br>`isinstance(hashed, str)` | Success |
-| **UT-434** | Ensure that a correct password successfully verifies against its hash | `hash_password()` | `'MyPassword123'` | `verify_password('MyPassword123', hashed) is True` | `verify_password('MyPassword123', hashed) is True` | Success |
-| **UT-435** | Ensure that an incorrect password fails to verify against the hash | `hash_password()` | `'MyPassword123'` | `verify_password('WrongPassword', hashed) is False` | `verify_password('WrongPassword', hashed) is False` | Success |
+| **UT-445** | Ensure that the hashed password does not match the original plain text | `hash_password()` | `'MyPassword123'` | `hashed != 'MyPassword123'`<br>`isinstance(hashed, str)` | `hashed != 'MyPassword123'`<br>`isinstance(hashed, str)` | Success |
+| **UT-446** | Ensure that a correct password successfully verifies against its hash | `hash_password()` | `'MyPassword123'` | `verify_password('MyPassword123', hashed) is True` | `verify_password('MyPassword123', hashed) is True` | Success |
+| **UT-447** | Ensure that an incorrect password fails to verify against the hash | `hash_password()` | `'MyPassword123'` | `verify_password('WrongPassword', hashed) is False` | `verify_password('WrongPassword', hashed) is False` | Success |
+| **UT-448** | Ensure calling fingerprint on the same hash returns the exact same string | `hash_password()` | `'MyPassword123'` | `password_fingerprint(hashed) == password_fingerprint(hashed)` | `password_fingerprint(hashed) == password_fingerprint(hashed)` | Success |
+| **UT-449** | Ensure two different password hashes produce different fingerprints | `hash_password()` | `'PasswordOne@123'` | `password_fingerprint(hash1) != password_fingerprint(hash2)` | `password_fingerprint(hash1) != password_fingerprint(hash2)` | Success |
+| **UT-450** | Ensure the fingerprint is exactly 16 characters long | `hash_password()` | `'MyPassword123'` | `len(fp) == 16`<br>`isinstance(fp, str)` | `len(fp) == 16`<br>`isinstance(fp, str)` | Success |
+
+## Mailer Unit Tests
+
+| Test ID | Description | API / Function | Inputs | Expected Output | Actual Output | Result |
+|---|---|---|---|---|---|---|
+| **UT-451** | Ensure plain text version contains full name, reset URL and expiration | `_reset_text()` | `no arguments` | `'Hi Pawan Kumar' in text`<br>`'http://localhost:3000/reset-password?token=sample' in text`<br>`'15 minutes' in text`<br>`APP_NAME in text` | `'Hi Pawan Kumar' in text`<br>`'http://localhost:3000/reset-password?token=sample' in text`<br>`'15 minutes' in text`<br>`APP_NAME in text` | Success |
+| **UT-452** | Ensure send_password_reset renders HTML template and calls send method | `Mailer()` | `no arguments` | `to_arg == 'user@example.com'`<br>`subject_arg == RESET_SUBJECT`<br>`'Test User' in html_arg`<br>`'http://localhost:3000/reset-password?token=xyz' in html_arg`<br>`'Test User' in text_arg` | `to_arg == 'user@example.com'`<br>`subject_arg == RESET_SUBJECT`<br>`'Test User' in html_arg`<br>`'http://localhost:3000/reset-password?token=xyz' in html_arg`<br>`'Test User' in text_arg` | Success |
 
 ## Token Unit Tests
 
 | Test ID | Description | API / Function | Inputs | Expected Output | Actual Output | Result |
 |---|---|---|---|---|---|---|
-| **UT-436** | Ensure that a created access token includes type and expiration claims | `create_access_token()` | `{'sub': '1', 'role': 'STUDENT'}` | `payload['type'] == 'access'`<br>`payload['sub'] == '1'`<br>`'exp' in payload` | `payload['type'] == 'access'`<br>`payload['sub'] == '1'`<br>`'exp' in payload` | Success |
-| **UT-437** | Ensure that a created refresh token includes type and expiration claims | `create_refresh_token()` | `{'sub': '1', 'role': 'STUDENT'}` | `payload['type'] == 'refresh'`<br>`payload['sub'] == '1'` | `payload['type'] == 'refresh'`<br>`payload['sub'] == '1'` | Success |
-| **UT-438** | Ensure that decoding fails when a refresh token is supplied where an access token is expected | `create_refresh_token()` | `{'sub': '1', 'role': 'STUDENT'}` | raises AuthenticationError | raises AuthenticationError | Success |
-| **UT-439** | Ensure that decoding fails when a token with an invalid signature is provided | `decode_token()` | `'not.a.valid.token'` | raises AuthenticationError | raises AuthenticationError | Success |
+| **UT-453** | Ensure that a created access token includes type and expiration claims | `create_access_token()` | `{'sub': '1', 'role': 'STUDENT'}` | `payload['type'] == 'access'`<br>`payload['sub'] == '1'`<br>`'exp' in payload` | `payload['type'] == 'access'`<br>`payload['sub'] == '1'`<br>`'exp' in payload` | Success |
+| **UT-454** | Ensure that a created refresh token includes type and expiration claims | `create_refresh_token()` | `{'sub': '1', 'role': 'STUDENT'}` | `payload['type'] == 'refresh'`<br>`payload['sub'] == '1'` | `payload['type'] == 'refresh'`<br>`payload['sub'] == '1'` | Success |
+| **UT-455** | Ensure that decoding fails when a refresh token is supplied where an access token is expected | `create_refresh_token()` | `{'sub': '1', 'role': 'STUDENT'}` | raises AuthenticationError | raises AuthenticationError | Success |
+| **UT-456** | Ensure that decoding fails when a token with an invalid signature is provided | `decode_token()` | `'not.a.valid.token'` | raises AuthenticationError | raises AuthenticationError | Success |
+| **UT-457** | Ensure that a created reset token contains type='reset', custom claims, and expiration | `create_reset_token()` | `{'sub': '1', 'email': 'user@example.com', 'pwd': 'a1b2c3d4e5f6g7h8'}` | `payload['type'] == 'reset'`<br>`payload['sub'] == '1'`<br>`payload['email'] == 'user@example.com'`<br>`payload['pwd'] == 'a1b2c3d4e5f6g7h8'`<br>`'exp' in payload` | `payload['type'] == 'reset'`<br>`payload['sub'] == '1'`<br>`payload['email'] == 'user@example.com'`<br>`payload['pwd'] == 'a1b2c3d4e5f6g7h8'`<br>`'exp' in payload` | Success |
+| **UT-458** | Ensure that decoding a reset token expecting access token fails | `create_reset_token()` | `{'sub': '1', 'email': 'user@example.com', 'pwd': 'fingerprint12345'}` | raises AuthenticationError | raises AuthenticationError | Success |
+| **UT-459** | Ensure that decoding an access token expecting reset token fails | `create_access_token()` | `{'sub': '1', 'role': 'STUDENT'}` | raises AuthenticationError | raises AuthenticationError | Success |

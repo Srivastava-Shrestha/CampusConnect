@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 from typing import AsyncGenerator
 
+import httpx
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
@@ -12,6 +13,18 @@ from app.core.database import Base, get_db
 from app.core.config import settings
 from app.models.college import College
 from main import app
+
+
+MAILHOG_API_BASE = "http://localhost:8025/api"
+
+
+@pytest_asyncio.fixture()
+async def clear_mailhog():
+    try:
+        httpx.delete(f"{MAILHOG_API_BASE}/v1/messages")
+    except Exception:
+        pass
+    yield
 
 
 TEST_DATABASE_URL = settings.TEST_DATABASE_URL
