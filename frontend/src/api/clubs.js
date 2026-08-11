@@ -203,7 +203,6 @@ export async function rejectClubRequest(clubId) {
   })
 }
 
-// TODO: replace with real endpoint when backend is ready
 export async function getLeaderboard() {
   try {
     return await apiRequest("/clubs/leaderboard")

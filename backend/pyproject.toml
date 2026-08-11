@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "alembic>=1.18.5",
+    "anthropic>=0.40.0",
     "asyncpg>=0.31.0",
     "bcrypt>=5.0.0",
     "boto3>=1.43.67",
@@ -23,6 +24,7 @@ dependencies = [
 ]
 
 [tool.pytest.ini_options]
+# Run tests from the backend root so `import app...` and `import main` resolve.
 pythonpath = ["."]
 asyncio_mode = "auto"
 testpaths = ["tests"]
@@ -32,6 +34,9 @@ filterwarnings = [
 
 [dependency-groups]
 dev = [
+    # Only for scripts/dev_seed.py, which brings up a throwaway local SQLite
+    # database so the app can be run without Postgres. Production is asyncpg.
+    "aiosqlite>=0.20.0",
     "httpx>=0.28.1",
     "pytest>=9.1.1",
     "pytest-asyncio>=1.4.0",

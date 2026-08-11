@@ -62,6 +62,9 @@ const mockCertDatabase = {
 export async function getMyCertificates() {
   try {
     const response = await fetch(BASE_URL + '/certificates/me')
+    if (!response.ok) {
+      throw new Error('Request failed: ' + response.status)
+    }
     return await response.json()
   } catch (error) {
     return mockCertificates
@@ -72,6 +75,9 @@ export async function getMyCertificates() {
 export async function verifyCertificate(serial) {
   try {
     const response = await fetch(BASE_URL + '/certificates/verify/' + serial)
+    if (!response.ok) {
+      throw new Error('Request failed: ' + response.status)
+    }
     return await response.json()
   } catch (error) {
     const found = findCertificateBySerial(serial)

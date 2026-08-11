@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import Text, ForeignKey, DateTime, func
+from sqlalchemy import JSON, Text, ForeignKey, DateTime, func
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core import Base, utcnow
@@ -13,7 +13,17 @@ class Student(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), unique=True)
     bio: Mapped[str | None] = mapped_column(Text)
-    interests: Mapped[list[str]] = mapped_column(ARRAY(Text), server_default="{}")
+    # Postgres keeps this as a real text[]. The sqlite variant exists only so a
+    # developer can run the app against a throwaway local file database (see
+    # scripts/dev_seed.py) - sqlite has no array type, so it stores JSON there.
+    # Nothing changes for Postgres, and no migration is needed.
+    # default=list makes the ORM always send a value, so neither backend has to
+    # fall back to the server_default.
+    interests: Mapped[list[str]] = mapped_column(
+        ARRAY(Text).with_variant(JSON, "sqlite"),
+        server_default="{}",
+        default=list,
+    )
     roll_no: Mapped[str | None] = mapped_column()
     branch: Mapped[str | None] = mapped_column()
     year: Mapped[int | None] = mapped_column()

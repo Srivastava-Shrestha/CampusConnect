@@ -1,8 +1,19 @@
+"""
+Shared pytest fixtures.
+
+Includes an autouse fixture that pins the AI module's LLM client to
+deterministic mock mode for the entire suite, regardless of whether
+ANTHROPIC_API_KEY happens to be set in backend/.env. Tests must stay
+offline, deterministic and free - they exercise the mock fallback
+contract, not the real Anthropic API. The real key is still used by the
+running dev server; only tests are pinned to the mock.
+"""
 import json
 from pathlib import Path
 from typing import AsyncGenerator
 
 import httpx
+import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
@@ -12,6 +23,7 @@ from sqlalchemy import event
 from app.core.database import Base, get_db
 from app.core.config import settings
 from app.models.college import College
+from app.services import llm_client
 from main import app
 
 
@@ -30,6 +42,16 @@ async def clear_mailhog():
 TEST_DATABASE_URL = settings.TEST_DATABASE_URL
 test_engine = create_async_engine(TEST_DATABASE_URL, echo=False, poolclass=NullPool)
 TestSessionLocal = async_sessionmaker(bind=test_engine, class_=AsyncSession, expire_on_commit=False)
+
+
+@pytest.fixture(autouse=True)
+def force_llm_mock_mode(monkeypatch):
+    monkeypatch.setattr(llm_client, "_API_KEY", "")
+    # Clear the response cache so a value cached by a real call in a prior
+    # run cannot leak into a mock-mode assertion.
+    llm_client._cache.clear()
+    yield
+    llm_client._cache.clear()
 
 
 @pytest_asyncio.fixture(scope="session")

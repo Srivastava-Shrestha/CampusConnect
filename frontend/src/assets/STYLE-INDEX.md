@@ -112,6 +112,8 @@ by label rather than trusting the number order.
 | 52      | Custom select (replaces native dropdowns)                       |
 | 53      | Mobile fixes for auth/verify pages                              |
 | 54      | Auth layout fixes (signup scroll, login sidebar alignment)      |
+| 55      | AI Club Finder response variants (event fallback + popularity)  |
+| 56      | Club card artwork (banner icon/image) + AI finder pending state |
 
 ## Conventions
 

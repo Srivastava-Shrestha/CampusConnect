@@ -35,3 +35,4 @@ from app.schemas.notification import (
 from app.schemas.certificate import (
     MyCertificateItem, CertificateDownloadResponse, CertificateVerification
 )
+from app.schemas.ai import ChatMessage, AgentChatRequest, AgentChatResponse

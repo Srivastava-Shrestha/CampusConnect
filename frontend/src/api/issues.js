@@ -96,6 +96,9 @@ const mockLeaderIssues = [
 export async function getLeaderIssues() {
   try {
     const response = await fetch(BASE_URL + '/issues/club')
+    if (!response.ok) {
+      throw new Error('Request failed: ' + response.status)
+    }
     return await response.json()
   } catch (error) {
     return mockLeaderIssues
@@ -106,6 +109,9 @@ export async function getLeaderIssues() {
 export async function getIssues() {
   try {
     const response = await fetch(BASE_URL + '/issues')
+    if (!response.ok) {
+      throw new Error('Request failed: ' + response.status)
+    }
     return await response.json()
   } catch (error) {
     return mockIssues
@@ -120,6 +126,9 @@ export async function raiseIssue(issue) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(issue)
     })
+    if (!response.ok) {
+      throw new Error('Request failed: ' + response.status)
+    }
     return await response.json()
   } catch (error) {
     return { ok: true, issue: { ...issue, status: 'open' } }
@@ -134,6 +143,9 @@ export async function replyToIssue(issueId, reply) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ reply })
     })
+    if (!response.ok) {
+      throw new Error('Request failed: ' + response.status)
+    }
     return await response.json()
   } catch (error) {
     return { ok: true, status: 'in-progress', reply }
@@ -144,6 +156,9 @@ export async function replyToIssue(issueId, reply) {
 export async function resolveIssue(issueId) {
   try {
     const response = await fetch(BASE_URL + '/issues/' + issueId + '/resolve', { method: 'PATCH' })
+    if (!response.ok) {
+      throw new Error('Request failed: ' + response.status)
+    }
     return await response.json()
   } catch (error) {
     return { ok: true, status: 'resolved' }

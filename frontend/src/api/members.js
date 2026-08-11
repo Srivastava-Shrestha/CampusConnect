@@ -76,6 +76,9 @@ const mockJoinRequests = [
 export async function getMembers(clubId) {
   try {
     const response = await fetch(BASE_URL + '/clubs/' + clubId + '/members')
+    if (!response.ok) {
+      throw new Error('Request failed: ' + response.status)
+    }
     return await response.json()
   } catch (error) {
     return mockMembers
@@ -86,6 +89,9 @@ export async function getMembers(clubId) {
 export async function getJoinRequests(clubId) {
   try {
     const response = await fetch(BASE_URL + '/clubs/' + clubId + '/join-requests')
+    if (!response.ok) {
+      throw new Error('Request failed: ' + response.status)
+    }
     return await response.json()
   } catch (error) {
     return mockJoinRequests
@@ -96,6 +102,9 @@ export async function getJoinRequests(clubId) {
 export async function approveJoinRequest(clubId, requestId) {
   try {
     const response = await fetch(BASE_URL + '/clubs/' + clubId + '/join-requests/' + requestId + '/approve', { method: 'POST' })
+    if (!response.ok) {
+      throw new Error('Request failed: ' + response.status)
+    }
     return await response.json()
   } catch (error) {
     return { ok: true, approved: requestId }
@@ -106,6 +115,9 @@ export async function approveJoinRequest(clubId, requestId) {
 export async function rejectJoinRequest(clubId, requestId) {
   try {
     const response = await fetch(BASE_URL + '/clubs/' + clubId + '/join-requests/' + requestId + '/reject', { method: 'POST' })
+    if (!response.ok) {
+      throw new Error('Request failed: ' + response.status)
+    }
     return await response.json()
   } catch (error) {
     return { ok: true, rejected: requestId }
@@ -116,6 +128,9 @@ export async function rejectJoinRequest(clubId, requestId) {
 export async function removeMember(clubId, memberId) {
   try {
     const response = await fetch(BASE_URL + '/clubs/' + clubId + '/members/' + memberId, { method: 'DELETE' })
+    if (!response.ok) {
+      throw new Error('Request failed: ' + response.status)
+    }
     return await response.json()
   } catch (error) {
     return { ok: true, removed: memberId }
