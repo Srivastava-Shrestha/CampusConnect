@@ -9,6 +9,10 @@ class CollegeMessages:
     ONBOARDED = "College onboarded successfully"
 
 
+class StudentMessages:
+    PROFILE_UPDATED = "Profile updated successfully"
+
+
 class ClubMessages:
     CREATED_ACTIVE = "Club created and is now live"
     CREATED_PENDING = "Club submitted for admin approval"

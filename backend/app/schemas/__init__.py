@@ -3,6 +3,10 @@ from app.schemas.user import (
     ForgotPasswordRequest, ForgotPasswordResponse, ResetPasswordRequest, ResetPasswordResponse
 )
 from app.schemas.college import CollegeOnboardingRequest, CollegeOnboardingResponse
+from app.schemas.student import (
+    StudentClubItem, PublicStudentResponse, StudentProfileResponse,
+    UpdateProfileRequest, UpdateProfileResponse
+)
 from app.schemas.club import (
     ClubLinkSchema, CreateClubRequest, UpdateClubRequest, CreateClubResponse,
     ClubStatusResponse, ClubListItem, ClubDetailResponse, ClubHeadInfo, MyClubItem
