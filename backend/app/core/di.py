@@ -7,7 +7,7 @@ from app.repository import (
     NotificationRepository, CertificateRepository
 )
 from app.services import (
-    UserService, CollegeService, ClubService, MembershipService,
+    UserService, CollegeService, StudentService, ClubService, MembershipService,
     EventService, EventRegistrationService, AnnouncementService, IssueService,
     NotificationService, CertificateService
 )
@@ -32,6 +32,12 @@ def get_college_service(db: AsyncSession = Depends(get_db)):
     college_repo = CollegeRepository(db)
     user_repo = UserRepository(db)
     return CollegeService(college_repo, user_repo)
+
+def get_student_service(db: AsyncSession = Depends(get_db)):
+    student_repo = StudentRepository(db)
+    user_repo = UserRepository(db)
+    membership_repo = MembershipRepository(db)
+    return StudentService(student_repo, user_repo, membership_repo)
 
 def get_club_service(db: AsyncSession = Depends(get_db)):
     club_repo = ClubRepository(db)
