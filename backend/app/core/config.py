@@ -19,6 +19,8 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str
     MAIL_FROM: str
 
+    GOOGLE_CLIENT_ID: str = ""
+
     class Config:
         env_file = ".env"
 

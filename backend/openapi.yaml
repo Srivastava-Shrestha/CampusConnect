@@ -4,14 +4,14 @@
 openapi: 3.1.0
 info:
   title: Campus Connect API
-  summary: Student club management for higher education institutions - club discovery, membership, the
-    event lifecycle, results, certificates and member communication.
+  summary: Student club management for higher education institutions - student profiles, club discovery,
+    membership, the event lifecycle, results, certificates and member communication.
   description: |-
     Campus Connect is a single platform for student club management in higher education
     institutions. It replaces the scatter of Instagram DMs, WhatsApp groups, Google Forms and
-    spreadsheets that campus clubs currently run on, and connects club discovery, membership,
-    the event lifecycle, results, verifiable certificates and member communication into one
-    auditable workflow.
+    spreadsheets that campus clubs currently run on, and connects student profiles, club
+    discovery, membership, the event lifecycle, results, verifiable certificates and member
+    communication into one auditable workflow.
 
     This document is the complete reference for the backend HTTP API: every endpoint, the user
     story it implements, the roles allowed to call it, and every error it can return.
@@ -167,12 +167,16 @@ info:
     | Exception | Status | `message` | Raised when |
     |---|---|---|---|
     | `UserAlreadyExistError` | 409 | `Email already registered` | Signup with an email already in use |
-    | `CollegeNotFoundError` | 404 | `College not registered` | Student signup whose email domain matches no college, or an authenticated user has no college attached |
+    | `CollegeNotFoundError` | 404 | `College not registered` | Student signup whose email domain matches no college, an authenticated user has no college attached, or a login (`POST /auth/login` or `POST /auth/google` with `intent: login`) for an email with no account whose domain matches no college |
     | `CollegeAlreadyExistError` | 409 | `College already registered` | Admin signup or onboarding for a domain that is already registered |
-    | `IncorrectCredentialError` | 401 | `Incorrect email or password` | Login with an unknown email or a wrong password |
+    | `AccountNotExistError` | 404 | `Account does not exist` | Login (`POST /auth/login` or `POST /auth/google` with `intent: login`) for an email whose college is registered but that has no account yet. Login never creates one - sign up first |
+    | `IncorrectCredentialError` | 401 | `Incorrect email or password` | Login against an existing account with the wrong password, or against a Google-only account that has no password |
     | `AuthenticationError` | 401 | `Invalid token` | Token is malformed, expired, or not of the type the endpoint requires. Also raised by `POST /auth/reset-password` when the link is not a `reset` token, when its subject no longer exists, or when its `pwd` fingerprint no longer matches - that is, when the link has already been used |
     | `AuthorizationError` | 401 | `Invalid token` | Token is valid but its `role` is not in the endpoint's scopes |
-    | `StudentNotFoundError` | 404 | `Student profile not found` | A student-only action is attempted by a user with no student profile |
+    | `InvalidGoogleTokenError` | 401 | `Invalid Google token` | `POST /auth/google` was given a Google ID token that is malformed, expired, not issued by Google, or not issued for this application's client id |
+    | `EmailNotVerifiedError` | 403 | `Google account email is not verified` | `POST /auth/google` with a Google identity whose `email_verified` claim is false |
+    | `GoogleAuthNotConfiguredError` | 503 | `Google sign-in is not configured` | `POST /auth/google` on a deployment that has no `GOOGLE_CLIENT_ID` set |
+    | `StudentNotFoundError` | 404 | `Student profile not found` | A student-only action is attempted by a user with no student profile. Also raised by `GET /students/{student_id}` when the id is unknown, when the student belongs to another college, or when the caller has no college attached |
     | `ClubNotFoundError` | 404 | `Club not found` | Club id does not exist, belongs to another college, or is not `ACTIVE` when viewed by a student |
     | `ClubNotActiveError` | 403 | `Club is not active` | Joining, posting to, or raising an issue against a club that is `PENDING`, `REJECTED` or `ARCHIVED` |
     | `NotClubLeaderError` | 403 | `Only the club leader can perform this action` | A leader-only action attempted by a non-leader |
@@ -196,6 +200,10 @@ info:
     | `IssueActionNotAllowedError` | 403 | `This action is not allowed for this issue` | Overridden with `A resolved issue cannot be replied to` or `Issue is already resolved` |
     | `NotificationNotFoundError` | 404 | `Notification not found` | Notification id unknown or belongs to another student |
     | `CertificateNotFoundError` | 404 | `Certificate not found` | Serial does not exist, or - on the download route - the certificate belongs to a different student |
+    | `InvalidFileTypeError` | 400 | `This file type is not supported` | An `image` upload (club, event or profile) whose content type is not jpg, png, webp or gif |
+    | `FileTooLargeError` | 413 | `The file is too large` | An `image` upload larger than 5 MB |
+    | `StorageNotConfiguredError` | 500 | `File storage is not configured` | An `image` upload on a deployment with no S3 bucket configured |
+    | `StorageError` | 500 | `File storage is unavailable right now` | Object storage rejected an upload |
     | `AppException` | 500 | `Something went wrong` | Base class. Any unhandled application error |
 
     ### 4.4 Validation errors (422)
@@ -211,6 +219,7 @@ info:
     | `CreateEventRequest` | `ends_at` must be strictly after `starts_at` |
     | `DeclareResultsRequest` | `winner_registration_id` and `runner_up_registration_id` must be two different registrations |
     | `ResetPasswordRequest.token` | Non-empty string. An expired, tampered or already-used link is a `401`, not a `422` - the token is only inspected after the body passes validation |
+    | `UpdateProfileRequest` | All fields optional. `bio` max 500, `roll_no` max 50, `branch` max 100, `year` between 1 and 5, `interests` at most 10 entries of 1-30 characters each. An omitted field is untouched while an explicit `null` clears it, so an empty body is valid and is not a `422` |
     | `RequestActionRequest.action` | Must be `APPROVED` or `REJECTED`. `PENDING` is rejected |
     | `GET /clubs/me` `status` | Must be sent together with `role`, and must be a valid value for that role |
 
@@ -288,14 +297,21 @@ info:
     ### Scope note
 
     This specification documents the endpoints implemented in the current release, which cover
-    Epics 1 to 5 in full. Epic 6 (AI-powered club discovery) and Epic 7 (club activity
-    leaderboard) are scheduled for the next sprint and have no endpoints yet; they are
-    deliberately not documented here so that this file describes only the live API surface.
+    Epics 1 to 5 in full plus Epic 7 (club activity leaderboard), exposed at `GET /leaderboard`.
+    Epic 6 (AI-powered club discovery) is scheduled for the next sprint and has no endpoints yet;
+    it is deliberately not documented here so that this file describes only the live API surface.
 
     Password recovery (`POST /auth/forgot-password`, `POST /auth/reset-password`) is documented
     with the rest of the `Auth` endpoints but carries no `x-user-story`. It was added after
     sprint 1 in response to user feedback rather than from the Milestone-1 story set, so mapping
     it onto a numbered story would misreport the traceability.
+
+    The `Students` endpoints (`GET /students/me`, `PATCH /students/me`,
+    `GET /students/{student_id}`) carry no `x-user-story` for the same reason. They close a gap
+    the story set left open: signup collects only name, email and password, and until these
+    endpoints existed nothing could write `bio`, `interests`, `roll_no`, `branch` or `year`, so
+    the roll number and branch columns on participant lists and club head details were
+    permanently blank.
 
     ---
 
@@ -365,6 +381,17 @@ tags:
     Onboarding is what makes every later request tenant-scoped: the `email_suffix` routes future signups to this college, and the college id derived from it filters every club, event, announcement and issue query.
 
     **Implements user story 1.1.**
+- name: Students
+  description: |-
+    Student profiles: the academic and personal details a student maintains about themselves, and the read-only view other members of the same college get of them.
+
+    A student row is created empty by signup, which collects only name, email and password. Every profile field - `bio`, `interests`, `roll_no`, `branch`, `year` - starts null or empty and is filled in later through `PATCH /students/me`. Until a student does that, the `roll_no`, `branch` and `year` columns that appear on participant lists and club head contact details are blank.
+
+    `PATCH /students/me` is a true partial update: a field omitted from the body keeps its current value, while a field sent explicitly as `null` is cleared. This is the only endpoint in the API with that distinction, so clients should send the changed fields alone rather than a whole profile.
+
+    Names, emails and profile images live on the user account rather than the student profile and are fixed at signup. They are not editable here, because a name is embedded as a claim in every issued access token and changing it would leave live tokens disagreeing with the database.
+
+    **Profile management is not part of the Milestone-1 story set.**
 - name: Clubs
   description: |-
     The club directory, club profiles, the club registration and approval workflow, and membership management.
@@ -415,6 +442,17 @@ tags:
     Storage is private. Both `GET /certificates/me` and `GET /certificates/{serial}/download` return a time-limited signed URL rather than a permanent one, so a link that leaks stops working within the hour.
 
     **Implements user stories 5.1 - 5.3.**
+- name: Leaderboard
+  description: |-
+    A monthly ranking of the `ACTIVE` clubs in the caller's college by activity. Every student sees the same board for their own college; a club from another college never appears.
+
+    Each club's activity score is recomputed on every request from events, membership growth, attendance and resolved issues recorded since the first of the current month - there is no stored total and no scheduled reset job. On the first of each month the counting window rolls forward and every score effectively returns to zero.
+
+    Score = `events_held x 40` + `new_members x 5` + `issues_resolved x 10` + an attendance bonus of up to 200. Events held counts this month's `PUBLISHED` events; new members counts `APPROVED` memberships joined this month; issues resolved counts issues moved to `RESOLVED` this month. The attendance bonus is the club's average per-event check-in rate this month (check-ins / registrations, averaged over events that had at least one registration, so an empty event neither helps nor hurts) multiplied by 200. The final score is an integer.
+
+    Clubs with no activity this month are included with a score of 0 and ranked last. Ties break by new-member count, then club name, so the ordering is stable.
+
+    **Implements Epic 7 - Club Activity Leaderboard.**
 paths:
   /auth/signup:
     post:
@@ -556,9 +594,9 @@ paths:
                 $ref: '#/components/schemas/LoginResponse'
         '401':
           description: |-
-            The bearer token is present but unusable, or the account role is not permitted here.
+            The account exists but the password does not match.
 
-            * `Incorrect email or password` - The email is not registered, or the password does not match. Deliberately indistinguishable.
+            * `Incorrect email or password` - A matching account was found but the supplied password is wrong (or the account has no password because it was created through Google).
           content:
             application/json:
               schema:
@@ -568,6 +606,25 @@ paths:
                   summary: Incorrect email or password
                   value:
                     message: Incorrect email or password
+        '404':
+          description: |-
+            No account could be signed in, and login never creates one.
+
+            * `College not registered` - No account exists for this email and its domain matches no registered college.
+            * `Account does not exist` - The email's college is registered, but no account has been created for it yet. Sign up first.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                college_not_registered:
+                  summary: College not registered
+                  value:
+                    message: College not registered
+                account_not_exist:
+                  summary: Account does not exist
+                  value:
+                    message: Account does not exist
         '422':
           description: The request body, query string or path parameters failed schema validation. Produced
             by the framework before the handler runs, so it uses the `detail` key rather than the `message`
@@ -576,6 +633,130 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+        '500':
+          description: Unhandled server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                server_error:
+                  summary: Something went wrong
+                  value:
+                    message: Something went wrong
+  /auth/google:
+    post:
+      tags:
+      - Auth
+      summary: Sign in with Google
+      description: |-
+        **User story 1.2 - Sign Up and Log In** (Epic 1 - Platform Foundation)
+
+        > As a registered user (new student or club leader), I want to sign in with my Google account, so that I can join the platform without creating and remembering another password.
+
+        Both sign-up and log-in run through this one endpoint; the `intent` field in the body decides which. The client runs Google Sign-In, obtains an ID token, and posts it here. The server verifies the token against Google and returns the same access + refresh token pair every other auth route issues. `is_new_user` tells the client whether an account was just created.
+
+        `intent` defaults to `login`. On `login`, an existing account is signed in and nothing is ever created - a caller with no account gets a `404`, never a silent sign-up. On `signup`, a new account is created when none exists (this is the only path that creates one). An already-existing account is signed in under either intent.
+
+        Role is not sent by the client: on `signup` it is derived from the email exactly as password signup derives it. An email whose domain matches a registered college produces a `STUDENT` scoped to that college; any other verified email produces a `CAMPUS_ADMIN` who is expected to complete college onboarding next.
+
+        **Access.** Public. No token required; the Google ID token in the body is the credential.
+
+        **Notes.**
+
+        * The email must be verified on the Google side (`email_verified`); an unverified Google email is a `403`.
+        * `intent: login` for an email with no account returns `404` - `College not registered` if the email's domain matches no college, otherwise `Account does not exist`. It mirrors `POST /auth/login`.
+        * If an account with that email already exists from password signup, this links the Google identity to it and logs in - it never creates a duplicate. That account keeps its password and can still log in either way.
+        * A Google-only account has no password, so `POST /auth/login` will reject it and `POST /auth/forgot-password` sends nothing for it.
+      operationId: google_auth_auth_google_post
+      x-epic: Epic 1 - Platform Foundation
+      x-user-story: '1.2'
+      x-user-story-title: Sign Up and Log In
+      x-required-role:
+      - public
+      x-required-club-role: none
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GoogleAuthRequest'
+        required: true
+      responses:
+        '200':
+          description: Authenticated. Returns an access token, a refresh token, and whether the account was just created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GoogleAuthResponse'
+        '401':
+          description: |-
+            The Google ID token could not be trusted.
+
+            * `Invalid Google token` - The token is malformed, expired, not issued by Google, or not issued for this application's client id.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalid_google_token:
+                  summary: Invalid Google token
+                  value:
+                    message: Invalid Google token
+        '403':
+          description: |-
+            The Google identity is valid but not usable for sign-in.
+
+            * `Google account email is not verified` - The token's `email_verified` claim is false.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                email_not_verified:
+                  summary: Google account email is not verified
+                  value:
+                    message: Google account email is not verified
+        '404':
+          description: |-
+            `intent: login` for an email that has no account. Login never creates one.
+
+            * `College not registered` - The email's domain matches no registered college.
+            * `Account does not exist` - The college is registered, but no account has been created for this email. Send `intent: signup` to create one.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                college_not_registered:
+                  summary: College not registered
+                  value:
+                    message: College not registered
+                account_not_exist:
+                  summary: Account does not exist
+                  value:
+                    message: Account does not exist
+        '422':
+          description: The request body, query string or path parameters failed schema validation. Produced
+            by the framework before the handler runs, so it uses the `detail` key rather than the `message`
+            envelope.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '503':
+          description: |-
+            Google sign-in is not available on this deployment.
+
+            * `Google sign-in is not configured` - The server has no `GOOGLE_CLIENT_ID` set, so it cannot verify Google tokens.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                not_configured:
+                  summary: Google sign-in is not configured
+                  value:
+                    message: Google sign-in is not configured
         '500':
           description: Unhandled server error.
           content:
@@ -842,6 +1023,306 @@ paths:
                     message: Something went wrong
       security:
       - HTTPBearer: []
+  /students/me:
+    get:
+      tags:
+      - Students
+      summary: Get my profile
+      description: |-
+        Returns the calling student's own profile in full, including the fields no one else can see.
+
+        This is the authenticated self-view. It differs from `GET /students/{student_id}` in two ways: it returns the private fields (`email`, `bio`, `roll_no`, `created_at`) alongside the public ones, and it resolves the student from the token rather than from a path parameter, so a client never needs to know its own student id.
+
+        `joined_clubs` lists only approved memberships in active clubs, newest first. A pending join request does not appear here, and neither does a membership in a club that was archived or rejected after the student joined - the same filter `GET /clubs/me` applies by default.
+
+        **Access.** `STUDENT` token.
+
+        **Notes.**
+
+        * Every profile field except `interests` may be null on a profile that has never been edited. `interests` is an empty array rather than null in that case, because the column is not nullable.
+        * `student_id` is the id other endpoints expect: it is what `GET /students/{student_id}` takes, and what appears as `student_id` on club head details and participant lists.
+        * A `CAMPUS_ADMIN` token is rejected rather than returning an empty profile. Admin accounts have no student row at all.
+      operationId: my_profile_students_me_get
+      x-required-role:
+      - STUDENT
+      x-required-club-role: none
+      responses:
+        '200':
+          description: The calling student's profile.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentProfileResponse'
+        '401':
+          description: |-
+            The bearer token is present but unusable, or the account role is not permitted here.
+
+            * `Invalid token` - The token is malformed, expired, not an `access` token, or its `role` is not permitted on this endpoint. A `CAMPUS_ADMIN` token fails here.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalid_token:
+                  summary: Invalid token
+                  value:
+                    message: Invalid token
+        '403':
+          description: |-
+            The caller is authenticated but not permitted, or the resource state blocks the action.
+
+            * **Missing credentials** - the `Authorization` header is absent or is not a bearer token. This case is produced by the security scheme before application code runs and is the one error that uses the `detail` key: `{"detail": "Not authenticated"}`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotAuthenticated'
+              examples:
+                missing_credentials:
+                  summary: No Authorization header
+                  value:
+                    detail: Not authenticated
+        '404':
+          description: |-
+            The record named in the request does not exist, or is not visible to this caller.
+
+            * `Student profile not found` - The token is valid but the account has no student profile attached.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                student_missing:
+                  summary: Student profile not found
+                  value:
+                    message: Student profile not found
+        '500':
+          description: Unhandled server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                server_error:
+                  summary: Something went wrong
+                  value:
+                    message: Something went wrong
+      security:
+      - HTTPBearer: []
+    patch:
+      tags:
+      - Students
+      summary: Update my profile
+      description: |-
+        Updates one or more fields on the calling student's own profile and returns the whole profile as it now stands.
+
+        This is the only way any profile field is ever written. Signup collects name, email and password only, so `bio`, `interests`, `roll_no`, `branch` and `year` are null or empty on every account until this endpoint is called.
+
+        **Partial update semantics.** A field absent from the request body is left exactly as it was. A field sent explicitly as `null` is cleared. The two are therefore not interchangeable: `{"year": 3}` sets the year and leaves the branch alone, while `{"year": 3, "branch": null}` also erases the branch. Send only the fields being changed.
+
+        An empty body `{}` is accepted and changes nothing. It still returns `200` with the current profile.
+
+        **Access.** `STUDENT` token. A student may only edit their own profile - there is no endpoint, for any role, that edits another student's profile.
+
+        **Notes.**
+
+        * `bio`, `roll_no` and `branch` are trimmed. A value that is empty or whitespace-only after trimming is stored as `null`, so sending `""` clears the field just as `null` does.
+        * `interests` is de-duplicated and its entries trimmed, preserving the order given. Comparison is case-sensitive, so `Chess` and `chess` are kept as two distinct entries. The 10-item limit is applied after de-duplication.
+        * Sending `interests` as `null` stores an empty array rather than null, because the column is not nullable.
+        * `full_name`, `email` and `profile_image_url` are deliberately not accepted. They belong to the user account, and `full_name` is a claim inside every issued access token - editing it would leave tokens already in circulation disagreeing with the database until their holders logged in again.
+        * The response repeats `joined_clubs`, which this endpoint never modifies. Club membership is changed through the `Clubs` endpoints.
+      operationId: update_my_profile_students_me_patch
+      x-required-role:
+      - STUDENT
+      x-required-club-role: none
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                data:
+                  type: string
+                  description: Optional JSON-encoded UpdateProfileRequest (bio, interests, roll_no, branch, year). Omit to change only the image
+                image:
+                  type: string
+                  format: binary
+                  description: Optional new avatar - jpg, png, webp or gif, max 5 MB. Replaces the previous one, which is deleted if it was an uploaded image
+        required: true
+      responses:
+        '200':
+          description: Profile updated. The body is the full profile after the change, plus a confirmation
+            message.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateProfileResponse'
+        '401':
+          description: |-
+            The bearer token is present but unusable, or the account role is not permitted here.
+
+            * `Invalid token` - The token is malformed, expired, not an `access` token, or its `role` is not permitted on this endpoint. A `CAMPUS_ADMIN` token fails here.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalid_token:
+                  summary: Invalid token
+                  value:
+                    message: Invalid token
+        '403':
+          description: |-
+            The caller is authenticated but not permitted, or the resource state blocks the action.
+
+            * **Missing credentials** - the `Authorization` header is absent or is not a bearer token. This case is produced by the security scheme before application code runs and is the one error that uses the `detail` key: `{"detail": "Not authenticated"}`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotAuthenticated'
+              examples:
+                missing_credentials:
+                  summary: No Authorization header
+                  value:
+                    detail: Not authenticated
+        '404':
+          description: |-
+            The record named in the request does not exist, or is not visible to this caller.
+
+            * `Student profile not found` - The token is valid but the account has no student profile attached.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                student_missing:
+                  summary: Student profile not found
+                  value:
+                    message: Student profile not found
+        '422':
+          description: |-
+            The request body, query string or path parameters failed schema validation. Produced by the framework before the handler runs, so it uses the `detail` key rather than the `message` envelope.
+
+            Reached when `year` is outside 1 to 5, `bio` exceeds 500 characters, `roll_no` exceeds 50, `branch` exceeds 100, `interests` holds more than 10 distinct entries, or any single interest exceeds 30 characters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '500':
+          description: Unhandled server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                server_error:
+                  summary: Something went wrong
+                  value:
+                    message: Something went wrong
+      security:
+      - HTTPBearer: []
+  /students/{student_id}:
+    get:
+      tags:
+      - Students
+      summary: Get a student profile
+      description: |-
+        Returns the public view of one student in the caller's college: their name, academic details and the clubs they belong to.
+
+        This is what a member sees when they tap a name on a participant list, a member list or a club head's details. It answers "who is this person and what are they part of here" without exposing contact details.
+
+        **Withheld fields.** `email`, `bio`, `roll_no` and `created_at` are not returned by this endpoint at any role - not to campus admins either. A student's roll number is visible only to the student themselves through `GET /students/me`, and to a campus admin through `GET /clubs/{club_id}` when that student is a club head. Use `GET /events/{event_id}/registrations` for the roll numbers of an event's participants.
+
+        **Access.** `STUDENT` or `CAMPUS_ADMIN` token, restricted to the caller's own college.
+
+        **Notes.**
+
+        * College scoped. A student id belonging to another college returns `404`, identical to an id that does not exist, so the response never confirms that an account exists elsewhere on the platform.
+        * A student may pass their own id here. The result is the trimmed public view, not the full profile - use `GET /students/me` for that.
+        * `joined_clubs` is filtered the same way as on `GET /students/me`: approved memberships in active clubs only, newest first. It shows whether the student leads a club through `membership_role`.
+        * Fields are null on a student who has not filled in their profile. Only `PATCH /students/me` populates them, and only the student themselves can call it.
+      operationId: student_profile_students__student_id__get
+      x-required-role:
+      - STUDENT
+      - CAMPUS_ADMIN
+      x-required-club-role: none
+      parameters:
+      - name: student_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Student Id
+        description: The `student_id` from a participant list, member list or club head details.
+      responses:
+        '200':
+          description: The student's public profile.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicStudentResponse'
+        '401':
+          description: |-
+            The bearer token is present but unusable, or the account role is not permitted here.
+
+            * `Invalid token` - The token is malformed, expired, not an `access` token, or its `role` is not permitted on this endpoint.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalid_token:
+                  summary: Invalid token
+                  value:
+                    message: Invalid token
+        '403':
+          description: |-
+            The caller is authenticated but not permitted, or the resource state blocks the action.
+
+            * **Missing credentials** - the `Authorization` header is absent or is not a bearer token. This case is produced by the security scheme before application code runs and is the one error that uses the `detail` key: `{"detail": "Not authenticated"}`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotAuthenticated'
+              examples:
+                missing_credentials:
+                  summary: No Authorization header
+                  value:
+                    detail: Not authenticated
+        '404':
+          description: |-
+            The record named in the request does not exist, or is not visible to this caller.
+
+            * `Student profile not found` - No student has this id, or the student belongs to a different college, or the calling account is not attached to any college. The three are deliberately indistinguishable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                student_missing:
+                  summary: Student profile not found
+                  value:
+                    message: Student profile not found
+        '422':
+          description: The request body, query string or path parameters failed schema validation. Produced
+            by the framework before the handler runs, so it uses the `detail` key rather than the `message`
+            envelope.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '500':
+          description: Unhandled server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                server_error:
+                  summary: Something went wrong
+                  value:
+                    message: Something went wrong
+      security:
+      - HTTPBearer: []
   /clubs:
     post:
       tags:
@@ -880,9 +1361,19 @@ paths:
       requestBody:
         required: true
         content:
-          application/json:
+          multipart/form-data:
             schema:
-              $ref: '#/components/schemas/CreateClubRequest'
+              type: object
+              properties:
+                data:
+                  type: string
+                  description: JSON-encoded CreateClubRequest (name, description, category, type, links)
+                image:
+                  type: string
+                  format: binary
+                  description: Optional banner image - jpg, png, webp or gif, max 5 MB
+              required:
+              - data
       responses:
         '200':
           description: Club registered. `status` and `message` state whether it is live or awaiting approval.
@@ -1410,9 +1901,19 @@ paths:
       requestBody:
         required: true
         content:
-          application/json:
+          multipart/form-data:
             schema:
-              $ref: '#/components/schemas/UpdateClubRequest'
+              type: object
+              properties:
+                data:
+                  type: string
+                  description: JSON-encoded UpdateClubRequest (description, category, links)
+                image:
+                  type: string
+                  format: binary
+                  description: Optional new banner image - jpg, png, webp or gif, max 5 MB. Replaces the previous one, which is deleted
+              required:
+              - data
       responses:
         '200':
           description: The updated club profile.
@@ -2382,9 +2883,19 @@ paths:
       requestBody:
         required: true
         content:
-          application/json:
+          multipart/form-data:
             schema:
-              $ref: '#/components/schemas/CreateEventRequest'
+              type: object
+              properties:
+                data:
+                  type: string
+                  description: JSON-encoded CreateEventRequest (club_id, title, description, venue, starts_at, ends_at, capacity)
+                image:
+                  type: string
+                  format: binary
+                  description: Optional banner image - jpg, png, webp or gif, max 5 MB
+              required:
+              - data
       responses:
         '200':
           description: Event created as a draft. Publish it separately to make it visible to members.
@@ -2964,9 +3475,19 @@ paths:
       requestBody:
         required: true
         content:
-          application/json:
+          multipart/form-data:
             schema:
-              $ref: '#/components/schemas/UpdateEventRequest'
+              type: object
+              properties:
+                data:
+                  type: string
+                  description: JSON-encoded UpdateEventRequest (title, description, venue, starts_at, ends_at, capacity)
+                image:
+                  type: string
+                  format: binary
+                  description: Optional new banner image - jpg, png, webp or gif, max 5 MB. Replaces the previous one, which is deleted
+              required:
+              - data
       responses:
         '200':
           description: The updated event, in the same shape as `GET /events/{event_id}`.
@@ -6383,6 +6904,99 @@ paths:
                     message: Something went wrong
       security:
       - HTTPBearer: []
+  /leaderboard:
+    get:
+      tags:
+      - Leaderboard
+      summary: Club activity leaderboard
+      description: |-
+        **Epic 7 - Club Activity Leaderboard**
+
+        > As a student, I want to see how the clubs in my college rank by how active they have been this month, so that I can find the clubs worth joining and clubs have a reason to stay active.
+
+        The `ACTIVE` clubs of the caller's college, ordered by their activity score for the current month, highest first. Each entry carries the score and the four raw counts it was built from, so a client can show not just the rank but why a club holds it.
+
+        The score is recomputed on every call from live data - there is no cached total. Every input is counted from the first of the current month, so on the first of each month the board effectively resets to zero without any scheduled job.
+
+        **Score.** `events_held x 40` + `new_members x 5` + `issues_resolved x 10` + an attendance bonus of up to 200, rounded to an integer. `events_held` is this month's `PUBLISHED` events; `new_members` is `APPROVED` memberships joined this month; `issues_resolved` is issues moved to `RESOLVED` this month; the attendance bonus is `attendance_rate` (the club's average per-event check-in rate this month, over events that had at least one registration) times 200.
+
+        **Access.** `STUDENT` token. The college is derived from the caller's account, so there is no query parameter and no way to read another college's board.
+
+        **Notes.**
+
+        * A club with no activity this month is still listed, with a score of 0, ranked last. An empty array means the caller's college has no `ACTIVE` clubs at all.
+        * Ties break by `new_members`, then club name, so repeated calls return a stable order.
+        * `attendance_rate` is a fraction between 0 and 1; `attendance_bonus` is that value scaled to 0-200 and rounded.
+      operationId: leaderboard_leaderboard_get
+      x-epic: Epic 7 - Club Activity Leaderboard
+      x-required-role:
+      - STUDENT
+      x-required-club-role: none
+      responses:
+        '200':
+          description: The college's active clubs ranked by this month's activity score, highest first. Empty array if the college has no active clubs.
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/LeaderboardEntry'
+                type: array
+                title: Response Leaderboard Leaderboard Get
+        '401':
+          description: |-
+            The bearer token is present but unusable, or the account role is not permitted here.
+
+            * `Invalid token` - The token is malformed, expired, not an `access` token, or its `role` is not permitted on this endpoint.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalid_token:
+                  summary: Invalid token
+                  value:
+                    message: Invalid token
+        '403':
+          description: |-
+            The caller is authenticated but not permitted.
+
+            * **Missing credentials** - the `Authorization` header is absent or is not a bearer token. This case is produced by the security scheme before application code runs and is the one error that uses the `detail` key: `{"detail": "Not authenticated"}`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotAuthenticated'
+              examples:
+                missing_credentials:
+                  summary: No Authorization header
+                  value:
+                    detail: Not authenticated
+        '404':
+          description: |-
+            The caller's account has no college to scope the board to.
+
+            * `College not registered` - The token is valid but the account has no college attached, so there is no leaderboard to show.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                college_not_registered:
+                  summary: College not registered
+                  value:
+                    message: College not registered
+        '500':
+          description: Unhandled server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                server_error:
+                  summary: Something went wrong
+                  value:
+                    message: Something went wrong
+      security:
+      - HTTPBearer: []
 components:
   schemas:
     AnnouncementCategory:
@@ -6888,12 +7502,6 @@ components:
           title: Category
         type:
           $ref: '#/components/schemas/ClubType'
-        image_url:
-          anyOf:
-          - type: string
-            maxLength: 500
-          - type: 'null'
-          title: Image Url
         links:
           items:
             $ref: '#/components/schemas/ClubLinkSchema'
@@ -6968,12 +7576,6 @@ components:
             minimum: 1.0
           - type: 'null'
           title: Capacity
-        image_url:
-          anyOf:
-          - type: string
-            maxLength: 500
-          - type: 'null'
-          title: Image Url
       type: object
       required:
       - club_id
@@ -7301,6 +7903,50 @@ components:
       description: 'Fixed acknowledgement. The wording is intentionally conditional - `If that email is
         registered...` - and identical for registered and unregistered addresses, so a client cannot learn
         which emails have accounts. There is nothing here to branch on.'
+    GoogleAuthRequest:
+      properties:
+        id_token:
+          type: string
+          minLength: 1
+          title: Id Token
+        intent:
+          type: string
+          enum:
+          - login
+          - signup
+          default: login
+          title: Intent
+      type: object
+      required:
+      - id_token
+      title: GoogleAuthRequest
+      description: A Google ID token (the JWT credential returned by Google Sign-In on the client), plus the
+        `intent`. The server verifies the token against Google and derives the account's email, name and picture
+        from its claims - nothing else about the user is accepted from the client. `intent` is `login` (default,
+        sign in an existing account only) or `signup` (create the account when none exists).
+    GoogleAuthResponse:
+      properties:
+        access_token:
+          type: string
+          title: Access Token
+        refresh_token:
+          type: string
+          title: Refresh Token
+        is_new_user:
+          type: boolean
+          title: Is New User
+        message:
+          type: string
+          title: Message
+      type: object
+      required:
+      - access_token
+      - refresh_token
+      - is_new_user
+      - message
+      title: GoogleAuthResponse
+      description: Issued token pair for the signed-in account, plus `is_new_user` - true when this call
+        created the account, false when it logged in an existing one.
     HTTPValidationError:
       properties:
         detail:
@@ -7401,6 +8047,61 @@ components:
       - message
       title: JoinResponse
       description: Confirmation that a join request was recorded. Always returns status `PENDING`.
+    LeaderboardEntry:
+      properties:
+        rank:
+          type: integer
+          title: Rank
+        club_id:
+          type: integer
+          title: Club Id
+        name:
+          type: string
+          title: Name
+        image_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Image Url
+        category:
+          type: string
+          title: Category
+        score:
+          type: integer
+          title: Score
+        events_held:
+          type: integer
+          title: Events Held
+        new_members:
+          type: integer
+          title: New Members
+        issues_resolved:
+          type: integer
+          title: Issues Resolved
+        attendance_rate:
+          type: number
+          title: Attendance Rate
+        attendance_bonus:
+          type: integer
+          title: Attendance Bonus
+      type: object
+      required:
+      - rank
+      - club_id
+      - name
+      - image_url
+      - category
+      - score
+      - events_held
+      - new_members
+      - issues_resolved
+      - attendance_rate
+      - attendance_bonus
+      title: LeaderboardEntry
+      description: |-
+        One club's row on the monthly activity leaderboard. `rank` is its 1-based position for the current month, `score` the integer total, and the remaining fields are the raw counts the score was built from so a client can explain the ranking.
+
+        `attendance_rate` is a fraction between 0 and 1 - the club's average per-event check-in rate this month over events that had at least one registration - and `attendance_bonus` is that rate scaled to 0-200 and rounded, the portion of `score` it contributed.
     LeaderIssueItem:
       properties:
         id:
@@ -8041,6 +8742,47 @@ components:
       - message
       title: PinAnnouncementResponse
       description: The announcement after its pinned state was changed.
+    PublicStudentResponse:
+      properties:
+        student_id:
+          type: integer
+          title: Student Id
+        full_name:
+          type: string
+          title: Full Name
+        profile_image_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Profile Image Url
+        branch:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Branch
+        year:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Year
+        joined_clubs:
+          items:
+            $ref: '#/components/schemas/StudentClubItem'
+          type: array
+          title: Joined Clubs
+      type: object
+      required:
+      - student_id
+      - full_name
+      - profile_image_url
+      - branch
+      - year
+      - joined_clubs
+      title: PublicStudentResponse
+      description: |-
+        The public view of a student, returned to anyone in the same college by `GET /students/{student_id}`.
+
+        Deliberately narrower than `StudentProfileResponse`: `email`, `bio`, `roll_no` and `created_at` are withheld from every caller, including campus admins. `branch` and `year` are null until the student fills them in, which only they can do.
     RaiseIssueRequest:
       properties:
         club_id:
@@ -8282,6 +9024,103 @@ components:
       - message
       title: SignupResponse
       description: Issued token pair for the newly created account, plus a confirmation message.
+    StudentClubItem:
+      properties:
+        club_id:
+          type: integer
+          title: Club Id
+        name:
+          type: string
+          title: Name
+        category:
+          type: string
+          title: Category
+        membership_role:
+          $ref: '#/components/schemas/MembershipRole'
+        joined_at:
+          type: string
+          format: date-time
+          title: Joined At
+      type: object
+      required:
+      - club_id
+      - name
+      - category
+      - membership_role
+      - joined_at
+      title: StudentClubItem
+      description: |-
+        One club a student belongs to, as listed on a profile.
+
+        Only approved memberships in active clubs appear, newest first. `joined_at` is when the membership row was created, which for an approved request is when the student applied rather than when the leader approved it. `membership_role` reveals whether the student leads the club.
+    StudentProfileResponse:
+      properties:
+        student_id:
+          type: integer
+          title: Student Id
+        full_name:
+          type: string
+          title: Full Name
+        email:
+          type: string
+          title: Email
+        profile_image_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Profile Image Url
+        bio:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Bio
+        interests:
+          items:
+            type: string
+          type: array
+          title: Interests
+        roll_no:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Roll No
+        branch:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Branch
+        year:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Year
+        joined_clubs:
+          items:
+            $ref: '#/components/schemas/StudentClubItem'
+          type: array
+          title: Joined Clubs
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - student_id
+      - full_name
+      - email
+      - profile_image_url
+      - bio
+      - interests
+      - roll_no
+      - branch
+      - year
+      - joined_clubs
+      - created_at
+      title: StudentProfileResponse
+      description: |-
+        A student's own profile in full, returned only to that student by `GET /students/me`.
+
+        `full_name` and `email` come from the user account and are fixed at signup. Every other editable field is null on an account that has never called `PATCH /students/me`, except `interests`, which is an empty array because the column is not nullable. `created_at` is when the student profile row was created at signup.
     UnreadCountResponse:
       properties:
         count:
@@ -8323,12 +9162,6 @@ components:
             minLength: 2
           - type: 'null'
           title: Category
-        image_url:
-          anyOf:
-          - type: string
-            maxLength: 500
-          - type: 'null'
-          title: Image Url
         links:
           anyOf:
           - items:
@@ -8383,17 +9216,127 @@ components:
             minimum: 1.0
           - type: 'null'
           title: Capacity
-        image_url:
-          anyOf:
-          - type: string
-            maxLength: 500
-          - type: 'null'
-          title: Image Url
       type: object
       title: UpdateEventRequest
       description: Editable event fields. Every field is optional and only the ones supplied are changed.
         The resulting window must still end after it starts, whether the bound comes from this request
         or from the stored event.
+    UpdateProfileRequest:
+      properties:
+        bio:
+          anyOf:
+          - type: string
+            maxLength: 500
+          - type: 'null'
+          title: Bio
+        interests:
+          anyOf:
+          - items:
+              type: string
+              maxLength: 30
+              minLength: 1
+            type: array
+            maxItems: 10
+          - type: 'null'
+          title: Interests
+        roll_no:
+          anyOf:
+          - type: string
+            maxLength: 50
+          - type: 'null'
+          title: Roll No
+        branch:
+          anyOf:
+          - type: string
+            maxLength: 100
+          - type: 'null'
+          title: Branch
+        year:
+          anyOf:
+          - type: integer
+            maximum: 5.0
+            minimum: 1.0
+          - type: 'null'
+          title: Year
+      type: object
+      title: UpdateProfileRequest
+      description: |-
+        Editable student profile fields. Every field is optional, and this is the one request body in the API where omitting a field and sending it as `null` mean different things: an omitted field keeps its current value, while an explicit `null` clears it. An empty body is valid and changes nothing.
+
+        `bio`, `roll_no` and `branch` are trimmed, and a value that is blank after trimming is stored as `null`. `interests` entries are trimmed and de-duplicated in the order given, case-sensitively, with the 10-item cap applied after de-duplication; sending `interests` as `null` stores an empty array rather than null.
+
+        `full_name`, `email` and `profile_image_url` are not accepted here. They belong to the user account, and `full_name` is a claim in every issued access token.
+    UpdateProfileResponse:
+      properties:
+        student_id:
+          type: integer
+          title: Student Id
+        full_name:
+          type: string
+          title: Full Name
+        email:
+          type: string
+          title: Email
+        profile_image_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Profile Image Url
+        bio:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Bio
+        interests:
+          items:
+            type: string
+          type: array
+          title: Interests
+        roll_no:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Roll No
+        branch:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Branch
+        year:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Year
+        joined_clubs:
+          items:
+            $ref: '#/components/schemas/StudentClubItem'
+          type: array
+          title: Joined Clubs
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        message:
+          type: string
+          title: Message
+      type: object
+      required:
+      - student_id
+      - full_name
+      - email
+      - profile_image_url
+      - bio
+      - interests
+      - roll_no
+      - branch
+      - year
+      - joined_clubs
+      - created_at
+      - message
+      title: UpdateProfileResponse
+      description: The full profile as it stands after the update, identical to `StudentProfileResponse`
+        plus a confirmation `message`. Returning the whole record rather than the changed fields lets a
+        client replace its cached profile without a follow-up read.
     UserRole:
       type: string
       enum:

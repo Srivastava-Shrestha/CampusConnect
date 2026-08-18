@@ -1,3 +1,4 @@
+from fastapi import UploadFile
 from app.repository import StudentRepository, UserRepository, MembershipRepository
 from app.models import ClubStatus, MembershipStatus, Student
 from app.schemas import (
@@ -6,14 +7,16 @@ from app.schemas import (
 )
 from app.exceptions import StudentNotFoundError
 from app.core.messages import StudentMessages
+from app.core.storage import Storage, AVATAR_FOLDER
 
 
 class StudentService:
     def __init__(self, student_repo: StudentRepository, user_repo: UserRepository,
-                 membership_repo: MembershipRepository):
+                 membership_repo: MembershipRepository, storage: Storage):
         self.student_repo = student_repo
         self.user_repo = user_repo
         self.membership_repo = membership_repo
+        self.storage = storage
 
     async def my_profile(self, payload: dict) -> StudentProfileResponse:
         student = await self._me(payload)
@@ -22,10 +25,15 @@ class StudentService:
             joined_clubs=await self._joined_clubs(student.id),
         )
 
-    async def update_my_profile(self, payload: dict,
-                                data: UpdateProfileRequest) -> UpdateProfileResponse:
+    async def update_my_profile(self, payload: dict, data: UpdateProfileRequest,
+                                image: UploadFile | None = None) -> UpdateProfileResponse:
         student = await self._me(payload)
         await self.student_repo.update_profile(student, data.model_dump(exclude_unset=True))
+        if image is not None:
+            old_url = student.user.profile_image_url
+            new_url = await self.storage.upload_image(image, AVATAR_FOLDER)
+            await self.user_repo.set_profile_image(student.user, new_url)
+            await self.storage.delete_url(old_url)
         return UpdateProfileResponse(
             **self._profile_fields(student),
             joined_clubs=await self._joined_clubs(student.id),
@@ -41,6 +49,7 @@ class StudentService:
         return PublicStudentResponse(
             student_id=student.id,
             full_name=student.user.full_name,
+            profile_image_url=student.user.profile_image_url,
             branch=student.branch,
             year=student.year,
             joined_clubs=await self._joined_clubs(student.id),
@@ -69,6 +78,7 @@ class StudentService:
             "student_id": student.id,
             "full_name": student.user.full_name,
             "email": student.user.email,
+            "profile_image_url": student.user.profile_image_url,
             "bio": student.bio,
             "interests": student.interests,
             "roll_no": student.roll_no,

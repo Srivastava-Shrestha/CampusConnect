@@ -17,6 +17,7 @@ class StudentClubItem(BaseModel):
 class PublicStudentResponse(BaseModel):
     student_id: int
     full_name: str
+    profile_image_url: str | None
     branch: str | None
     year: int | None
     joined_clubs: list[StudentClubItem]
@@ -26,6 +27,7 @@ class StudentProfileResponse(BaseModel):
     student_id: int
     full_name: str
     email: str
+    profile_image_url: str | None
     bio: str | None
     interests: list[str]
     roll_no: str | None

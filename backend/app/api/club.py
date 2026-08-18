@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query, Security
+from fastapi import APIRouter, Depends, File, Form, Query, Security, UploadFile
 from app.schemas import (
     CreateClubRequest, UpdateClubRequest, CreateClubResponse, ClubStatusResponse,
     ClubListItem, ClubDetailResponse, JoinResponse, RequestActionRequest, RequestActionResponse,
@@ -6,6 +6,7 @@ from app.schemas import (
 )
 from app.services import ClubService, MembershipService
 from app.core.di import get_club_service, get_membership_service, get_user_info
+from app.core.forms import parse_form_model
 from app.models import ClubStatus, ClubType, MembershipRole
 
 club_router = APIRouter(prefix="/clubs", tags=["Clubs"])
@@ -13,11 +14,12 @@ club_router = APIRouter(prefix="/clubs", tags=["Clubs"])
 
 @club_router.post("", response_model=CreateClubResponse)
 async def create_club(
-    data: CreateClubRequest,
+    data: str = Form(..., description="JSON body of CreateClubRequest"),
+    image: UploadFile | None = File(None),
     payload: dict = Security(get_user_info, scopes=["STUDENT"]),
     service: ClubService = Depends(get_club_service),
 ):
-    return await service.create(payload, data)
+    return await service.create(payload, parse_form_model(CreateClubRequest, data), image)
 
 
 @club_router.get("", response_model=list[ClubListItem])
@@ -59,11 +61,12 @@ async def view_club(
 @club_router.put("/{club_id}", response_model=ClubDetailResponse)
 async def edit_club(
     club_id: int,
-    data: UpdateClubRequest,
+    data: str = Form(..., description="JSON body of UpdateClubRequest"),
+    image: UploadFile | None = File(None),
     payload: dict = Security(get_user_info, scopes=["STUDENT"]),
     service: ClubService = Depends(get_club_service),
 ):
-    return await service.update(payload, club_id, data)
+    return await service.update(payload, club_id, parse_form_model(UpdateClubRequest, data), image)
 
 
 @club_router.delete("/{club_id}", response_model=ClubStatusResponse)

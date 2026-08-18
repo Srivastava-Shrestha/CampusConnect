@@ -3,7 +3,7 @@ from app.exceptions import AppException
 from fastapi.responses import JSONResponse
 from app.api import (
     auth_router, college_router, student_router, club_router, event_router, announcement_router,
-    issue_router, notification_router, certificate_router
+    issue_router, notification_router, certificate_router, leaderboard_router
 )
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
@@ -36,4 +36,5 @@ app.include_router(announcement_router)
 app.include_router(issue_router)
 app.include_router(notification_router)
 app.include_router(certificate_router)
+app.include_router(leaderboard_router)
 

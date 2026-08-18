@@ -1,3 +1,4 @@
+from fastapi import UploadFile
 from app.repository import ClubRepository, StudentRepository, UserRepository, MembershipRepository
 from app.models import Club, ClubType, ClubStatus, MembershipRole, MembershipStatus, UserRole
 from app.schemas import (
@@ -9,17 +10,21 @@ from app.exceptions import (
     CollegeNotFoundError, InvalidStatusFilterError
 )
 from app.core.messages import ClubMessages
+from app.core.storage import Storage, CLUB_FOLDER
 
 
 class ClubService:
     def __init__(self, club_repo: ClubRepository, student_repo: StudentRepository,
-                 user_repo: UserRepository, membership_repo: MembershipRepository):
+                 user_repo: UserRepository, membership_repo: MembershipRepository,
+                 storage: Storage):
         self.club_repo = club_repo
         self.student_repo = student_repo
         self.user_repo = user_repo
         self.membership_repo = membership_repo
+        self.storage = storage
 
-    async def create(self, payload: dict, data: CreateClubRequest) -> CreateClubResponse:
+    async def create(self, payload: dict, data: CreateClubRequest,
+                     image: UploadFile | None = None) -> CreateClubResponse:
         user_id = int(payload.get("sub"))
         student = await self.student_repo.get_student_by_user_id(user_id)
         if not student:
@@ -28,6 +33,7 @@ class ClubService:
         college_id = await self._college_id(payload)
         status = ClubStatus.ACTIVE if data.type == ClubType.UNOFFICIAL else ClubStatus.PENDING
 
+        image_url = await self.storage.upload_image(image, CLUB_FOLDER) if image else None
         club = await self.club_repo.create_club(
             college_id=college_id,
             club_head=student.id,
@@ -36,7 +42,7 @@ class ClubService:
             category=data.category,
             type=data.type,
             status=status,
-            image_url=data.image_url,
+            image_url=image_url,
         )
         for link in data.links:
             await self.club_repo.add_link(club.id, link.label, link.url)
@@ -117,7 +123,8 @@ class ClubService:
 
         return await self._detail(club, include_contact=is_admin)
 
-    async def update(self, payload: dict, club_id: int, data: UpdateClubRequest) -> ClubDetailResponse:
+    async def update(self, payload: dict, club_id: int, data: UpdateClubRequest,
+                     image: UploadFile | None = None) -> ClubDetailResponse:
         student = await self._get_student(payload)
         club = await self.club_repo.get_by_id(club_id)
         if not club:
@@ -125,7 +132,11 @@ class ClubService:
         if not await self.membership_repo.is_leader(student.id, club_id):
             raise NotClubLeaderError()
 
-        await self.club_repo.update_club(club, data.description, data.category, data.image_url)
+        old_image_url = club.image_url
+        new_image_url = await self.storage.upload_image(image, CLUB_FOLDER) if image else None
+        await self.club_repo.update_club(club, data.description, data.category, new_image_url)
+        if new_image_url:
+            await self.storage.delete_url(old_image_url)
         if data.links is not None:
             await self.club_repo.replace_links(club_id, data.links)
 
