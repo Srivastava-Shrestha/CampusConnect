@@ -9,3 +9,4 @@ from app.services.announcement import AnnouncementService
 from app.services.issue import IssueService
 from app.services.notification import NotificationService
 from app.services.certificate import CertificateService, issue_certificate_job
+from app.services.leaderboard import LeaderboardService
