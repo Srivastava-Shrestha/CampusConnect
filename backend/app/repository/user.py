@@ -1,26 +1,40 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.models import User, UserRole, Student, CampusAdmin
+from app.models import User, UserRole, AuthProvider, Student, CampusAdmin
 from sqlalchemy import select, exists
 
 class UserRepository:
     def __init__(self, db: AsyncSession):
         self.db = db
-    
+
     async def is_email_exist(self, email: str) -> bool:
         result = await self.db.execute(select(exists().where(User.email==email)))
         return result.scalar()
-    
-    async def create_user(self, full_name: str, hashed_password: str, email: str, role: UserRole, college_id: int | None) -> User:
+
+    async def create_user(self, full_name: str, email: str, role: UserRole, college_id: int | None,
+                          hashed_password: str | None = None,
+                          auth_provider: AuthProvider = AuthProvider.LOCAL,
+                          google_sub: str | None = None,
+                          profile_image_url: str | None = None) -> User:
         new_user = User(
-            email=email, 
-            full_name=full_name, 
-            hashed_password=hashed_password, 
-            role=role, 
-            college_id=college_id
+            email=email,
+            full_name=full_name,
+            hashed_password=hashed_password,
+            role=role,
+            college_id=college_id,
+            auth_provider=auth_provider,
+            google_sub=google_sub,
+            profile_image_url=profile_image_url,
         )
         self.db.add(new_user)
         await self.db.flush()
         return new_user
+
+    async def link_google(self, user: User, google_sub: str,
+                          profile_image_url: str | None = None) -> User:
+        user.google_sub = google_sub
+        if profile_image_url and not user.profile_image_url:
+            user.profile_image_url = profile_image_url
+        return user
     
     async def create_student(self, user_id: int) -> Student:
         new_student = Student(user_id = user_id)
@@ -42,6 +56,10 @@ class UserRepository:
 
     async def set_password(self, user: User, hashed_password: str) -> User:
         user.hashed_password = hashed_password
+        return user
+
+    async def set_profile_image(self, user: User, profile_image_url: str) -> User:
+        user.profile_image_url = profile_image_url
         return user
 
     async def get_college_id(self, user_id: int) -> int | None:
