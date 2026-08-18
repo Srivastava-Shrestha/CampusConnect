@@ -1,16 +1,31 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useRoute } from 'vue-router'
 import { GraduationCap, Compass, ShieldCheck, Sparkles, CheckCircle2 } from 'lucide-vue-next'
 import { signupUser } from '../api/auth'
 import { usePasswordStrength } from '../composables/usePasswordStrength'
 import { useFormValidation } from '../composables/useFormValidation'
+import { useAuthSession } from '../composables/useAuthSession'
+import { useGoogleAuth } from '../composables/useGoogleAuth'
 import { toast } from '../composables/useToast'
 
 const router = useRouter()
 const { strength, updateStrength } = usePasswordStrength()
 const { isValidEmail, allFieldsFilled, isStrongEnough } = useFormValidation()
+const { completeSignIn } = useAuthSession()
+const { renderButton, isConfigured: googleEnabled } = useGoogleAuth()
+
+const googleBtn = ref(null)
+
+onMounted(() => {
+  renderButton(googleBtn.value, {
+    onSuccess: completeSignIn,
+    onError: (message) => toast.error(message || 'Google sign-in failed'),
+    text: 'signup_with',
+    intent: 'signup'
+  })
+})
 
 const selectedRole = ref('student')
 const fullName = ref('')
@@ -165,6 +180,16 @@ async function handleSignup() {
       <button class="btn-auth-submit" @click="handleSignup">
         <Sparkles /> Create account
       </button>
+
+      <div v-show="googleEnabled" class="auth-divider-row">
+        <span class="auth-divider-line"></span>
+        <span>or</span>
+        <span class="auth-divider-line"></span>
+      </div>
+
+      <div v-show="googleEnabled" class="auth-sso-stack">
+        <div ref="googleBtn" class="google-btn-slot"></div>
+      </div>
 
     </section>
 

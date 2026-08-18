@@ -2305,6 +2305,18 @@ button, .btn {
   height: 16px;
 }
 
+.auth-sso-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.google-btn-slot {
+  display: flex;
+  justify-content: center;
+  min-height: 40px;
+}
+
 /* Input wrapper: left icon + text, right toggle icon */
 .input-icon-left {
   display: flex;
