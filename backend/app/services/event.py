@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from fastapi import UploadFile
 from app.repository import (
     EventRepository, EventRegistrationRepository, ClubRepository,
     MembershipRepository, StudentRepository, UserRepository
@@ -13,20 +14,23 @@ from app.exceptions import (
     NotClubLeaderError, StudentNotFoundError, CollegeNotFoundError
 )
 from app.core.messages import EventMessages
+from app.core.storage import Storage, EVENT_FOLDER
 
 
 class EventService:
     def __init__(self, event_repo: EventRepository, registration_repo: EventRegistrationRepository,
                  club_repo: ClubRepository, membership_repo: MembershipRepository,
-                 student_repo: StudentRepository, user_repo: UserRepository):
+                 student_repo: StudentRepository, user_repo: UserRepository, storage: Storage):
         self.event_repo = event_repo
         self.registration_repo = registration_repo
         self.club_repo = club_repo
         self.membership_repo = membership_repo
         self.student_repo = student_repo
         self.user_repo = user_repo
+        self.storage = storage
 
-    async def create(self, payload: dict, data: CreateEventRequest) -> CreateEventResponse:
+    async def create(self, payload: dict, data: CreateEventRequest,
+                     image: UploadFile | None = None) -> CreateEventResponse:
         student = await self._get_student(payload)
         college_id = await self._college_id(payload)
 
@@ -38,6 +42,7 @@ class EventService:
         if not await self.membership_repo.is_leader(student.id, club.id):
             raise NotClubLeaderError()
 
+        image_url = await self.storage.upload_image(image, EVENT_FOLDER) if image else None
         event = await self.event_repo.create_event(
             club_id=club.id,
             created_by=student.id,
@@ -47,7 +52,7 @@ class EventService:
             starts_at=data.starts_at,
             ends_at=data.ends_at,
             capacity=data.capacity,
-            image_url=data.image_url,
+            image_url=image_url,
         )
         return CreateEventResponse(
             id=event.id, club_id=club.id, title=event.title,
@@ -110,7 +115,8 @@ class EventService:
             my_registration_id=registration.id if registration else None,
         )
 
-    async def update(self, payload: dict, event_id: int, data: UpdateEventRequest) -> EventDetailResponse:
+    async def update(self, payload: dict, event_id: int, data: UpdateEventRequest,
+                     image: UploadFile | None = None) -> EventDetailResponse:
         event = await self._managed_event(payload, event_id)
         if event.status == EventStatus.CANCELLED:
             raise EventActionNotAllowedError("A cancelled event cannot be edited")
@@ -120,10 +126,14 @@ class EventService:
         if ends_at <= starts_at:
             raise EventActionNotAllowedError("Event must end after it starts")
 
+        old_image_url = event.image_url
+        new_image_url = await self.storage.upload_image(image, EVENT_FOLDER) if image else None
         await self.event_repo.update_event(
             event, data.title, data.description, data.venue,
-            data.starts_at, data.ends_at, data.capacity, data.image_url,
+            data.starts_at, data.ends_at, data.capacity, new_image_url,
         )
+        if new_image_url:
+            await self.storage.delete_url(old_image_url)
         return await self.get(payload, event_id)
 
     async def publish(self, payload: dict, event_id: int) -> EventStatusResponse:
