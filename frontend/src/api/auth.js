@@ -58,6 +58,13 @@ export async function signupUser(data) {
   });
 }
 
+export async function googleAuth(idToken, intent = "login") {
+  return apiRequest("/auth/google", {
+    method: "POST",
+    body: JSON.stringify({ id_token: idToken, intent }),
+  });
+}
+
 export async function verifyEmailOtp(email, code) {
   return apiRequest("/auth/verify-email", {
     method: "POST",
