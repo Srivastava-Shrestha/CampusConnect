@@ -1,6 +1,7 @@
 from app.schemas.user import (
     SignupRequest, SignupResponse, LoginRequest, LoginResponse,
-    ForgotPasswordRequest, ForgotPasswordResponse, ResetPasswordRequest, ResetPasswordResponse
+    ForgotPasswordRequest, ForgotPasswordResponse, ResetPasswordRequest, ResetPasswordResponse,
+    GoogleAuthRequest, GoogleAuthResponse
 )
 from app.schemas.college import CollegeOnboardingRequest, CollegeOnboardingResponse
 from app.schemas.student import (
@@ -39,3 +40,4 @@ from app.schemas.notification import (
 from app.schemas.certificate import (
     MyCertificateItem, CertificateDownloadResponse, CertificateVerification
 )
+from app.schemas.leaderboard import LeaderboardEntry
