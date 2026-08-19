@@ -13,14 +13,12 @@ class CreateClubRequest(BaseModel):
     description: str = Field(..., min_length=5, max_length=1000)
     category: str = Field(..., min_length=2, max_length=50)
     type: ClubType
-    image_url: str | None = Field(None, max_length=500)
     links: list[ClubLinkSchema] = Field(default_factory=list)
 
 
 class UpdateClubRequest(BaseModel):
     description: str | None = Field(None, min_length=5, max_length=1000)
     category: str | None = Field(None, min_length=2, max_length=50)
-    image_url: str | None = Field(None, max_length=500)
     links: list[ClubLinkSchema] | None = None
 
 

@@ -15,7 +15,6 @@ class CreateEventRequest(BaseModel):
     starts_at: datetime
     ends_at: datetime
     capacity: int | None = Field(None, ge=1, le=100000)
-    image_url: str | None = Field(None, max_length=500)
 
     @field_validator("starts_at", "ends_at")
     @classmethod
@@ -36,7 +35,6 @@ class UpdateEventRequest(BaseModel):
     starts_at: datetime | None = None
     ends_at: datetime | None = None
     capacity: int | None = Field(None, ge=1, le=100000)
-    image_url: str | None = Field(None, max_length=500)
 
     @field_validator("starts_at", "ends_at")
     @classmethod
@@ -70,6 +68,7 @@ class EventListItem(BaseModel):
     club_id: int
     club_name: str
     title: str
+    description: str
     venue: str
     starts_at: datetime
     ends_at: datetime

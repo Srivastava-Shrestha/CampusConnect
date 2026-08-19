@@ -85,7 +85,7 @@ onMounted(async () => {
 
   <div class="main-content">
 
-    <Topbar title="Admin Dashboard" :sub="collegeSubtitle"/>
+    <Topbar title="Admin Dashboard" :sub="collegeSubtitle" :show-bell="false"/>
 
     <main class="content-body custom-scrollbar">
 

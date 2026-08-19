@@ -127,10 +127,12 @@ onMounted(async () => {
 
   <div class="main-content">
 
-    <Topbar title="Announcements" sub="Create and manage announcements">
-      <button class="btn-primary" @click="goToPostAnnouncement">
-        <Plus /> Post Announcement
-      </button>
+    <Topbar title="Announcements" sub="Create and manage announcements" :show-bell="false">
+      <template #actions>
+        <button class="btn-primary" @click="goToPostAnnouncement">
+          <Plus /> Post Announcement
+        </button>
+      </template>
     </Topbar>
 
     <main class="content-body custom-scrollbar">

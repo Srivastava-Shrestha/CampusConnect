@@ -159,10 +159,12 @@ onMounted(async () => {
 
   <div class="main-content">
 
-    <Topbar title="Events" :sub="club ? club.name : 'Loading your club...'">
-      <button class="btn-primary" @click="goToCreateEvent">
-        <Plus /> Create Event
-      </button>
+    <Topbar title="Events" :sub="club ? club.name : 'Loading your club...'" :show-bell="false">
+      <template #actions>
+        <button class="btn-primary" @click="goToCreateEvent">
+          <Plus /> Create Event
+        </button>
+      </template>
     </Topbar>
 
     <main class="content-body custom-scrollbar">

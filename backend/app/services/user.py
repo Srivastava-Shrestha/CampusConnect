@@ -1,13 +1,18 @@
 from fastapi import BackgroundTasks
 from app.schemas import (
     SignupRequest, SignupResponse, LoginRequest, LoginResponse,
-    ForgotPasswordRequest, ForgotPasswordResponse, ResetPasswordRequest, ResetPasswordResponse
+    ForgotPasswordRequest, ForgotPasswordResponse, ResetPasswordRequest, ResetPasswordResponse,
+    GoogleAuthRequest, GoogleAuthResponse
 )
 from app.repository import UserRepository, CollegeRepository
-from app.exceptions import UserAlreadyExistError, CollegeNotFoundError, CollegeAlreadyExistError, IncorrectCredentialError, AuthenticationError
+from app.exceptions import (
+    UserAlreadyExistError, CollegeNotFoundError, CollegeAlreadyExistError,
+    IncorrectCredentialError, AuthenticationError, EmailNotVerifiedError, AccountNotExistError
+)
 from app.utils.hashing import hash_password, verify_password, password_fingerprint
-from app.models import UserRole
+from app.models import UserRole, AuthProvider
 from app.core.config import settings
+from app.core.google import verify_google_id_token
 from app.core.mailer import send_password_reset_job
 from app.core.token import create_access_token, create_refresh_token, create_reset_token, decode_token
 from app.core.messages import AuthMessages
@@ -59,13 +64,11 @@ class UserService:
         return SignupResponse(access_token=access_token, refresh_token=refresh_token, message=AuthMessages.SIGNUP_SUCCESS)
     
     async def login(self, data: LoginRequest):
-        is_exist = await self.user_repo.is_email_exist(data.email)
-        if not is_exist:
-            raise IncorrectCredentialError()
-        
         user = await self.user_repo.get_user_by_email(data.email)
-        
-        if not verify_password(data.password, user.hashed_password):
+        if not user:
+            await self._reject_missing_account(data.email)
+
+        if not user.hashed_password or not verify_password(data.password, user.hashed_password):
             raise IncorrectCredentialError()
         
         slug = await self.college_repo.id_to_slug(user.college_id) if user.college_id else None
@@ -82,11 +85,68 @@ class UserService:
         refresh_token = create_refresh_token(payload=payload)
         return LoginResponse(access_token=access_token, refresh_token=refresh_token, message=AuthMessages.LOGIN_SUCCESS)
 
+    async def google_auth(self, data: GoogleAuthRequest) -> GoogleAuthResponse:
+        claims = await verify_google_id_token(data.id_token)
+
+        if not claims.get("email_verified"):
+            raise EmailNotVerifiedError()
+
+        email = claims["email"].strip().lower()
+        google_sub = claims["sub"]
+        full_name = (claims.get("name") or email.split("@")[0]).strip()
+        picture = claims.get("picture")
+
+        user = await self.user_repo.get_user_by_email(email)
+
+        if user:
+            if not user.google_sub:
+                await self.user_repo.link_google(user, google_sub, picture)
+            is_new_user = False
+            message = AuthMessages.GOOGLE_LOGIN_SUCCESS
+        elif data.intent == "signup":
+            college = await self.college_repo.email_to_college(email)
+            role = UserRole.STUDENT if college else UserRole.CAMPUS_ADMIN
+            college_id = college.id if college else None
+            user = await self.user_repo.create_user(
+                full_name=full_name,
+                email=email,
+                role=role,
+                college_id=college_id,
+                auth_provider=AuthProvider.GOOGLE,
+                google_sub=google_sub,
+                profile_image_url=picture,
+            )
+            if role == UserRole.STUDENT:
+                await self.user_repo.create_student(user_id=user.id)
+            else:
+                await self.user_repo.create_campus_admin(user_id=user.id)
+            is_new_user = True
+            message = AuthMessages.GOOGLE_SIGNUP_SUCCESS
+        else:
+            await self._reject_missing_account(email)
+
+        slug = await self.college_repo.id_to_slug(user.college_id) if user.college_id else None
+        payload = {
+            "sub": str(user.id),
+            "full_name": user.full_name,
+            "email": user.email,
+            "role": user.role,
+            "college_slug": slug,
+        }
+        access_token = create_access_token(payload=payload)
+        refresh_token = create_refresh_token(payload=payload)
+        return GoogleAuthResponse(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            is_new_user=is_new_user,
+            message=message,
+        )
+
     async def forgot_password(self, data: ForgotPasswordRequest,
                               background: BackgroundTasks | None = None) -> ForgotPasswordResponse:
         user = await self.user_repo.get_user_by_email(data.email)
 
-        if user and background is not None:
+        if user and user.hashed_password and background is not None:
             token = create_reset_token(
                 payload={
                     "sub": str(user.id),
@@ -114,6 +174,12 @@ class UserService:
 
         await self.user_repo.set_password(user, hash_password(data.password))
         return ResetPasswordResponse(message=AuthMessages.PASSWORD_RESET)
+
+    async def _reject_missing_account(self, email: str):
+        college = await self.college_repo.email_to_college(email)
+        if not college:
+            raise CollegeNotFoundError()
+        raise AccountNotExistError()
 
     @staticmethod
     def _reset_url(token: str) -> str:

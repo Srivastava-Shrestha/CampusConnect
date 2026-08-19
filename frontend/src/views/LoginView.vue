@@ -1,25 +1,36 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { GraduationCap, Mail, Lock, Eye, EyeOff, Check, ArrowRight, Globe, School, Compass, ShieldCheck } from 'lucide-vue-next'
+import { GraduationCap, Mail, Lock, Eye, EyeOff, Check, ArrowRight, Compass, ShieldCheck } from 'lucide-vue-next'
 import { loginUser } from '../api/auth'
 import { useAuthStore } from '../stores/auth'
-import { getMyClubs } from '../api/clubs'
 import { useFormValidation } from '../composables/useFormValidation'
+import { useAuthSession } from '../composables/useAuthSession'
+import { useGoogleAuth } from '../composables/useGoogleAuth'
 import { toast } from '../composables/useToast'
-
-import { jwtDecode } from 'jwt-decode'
 
 const router = useRouter()
 const auth = useAuthStore()
 const route = useRoute()
 const { isValidEmail } = useFormValidation()
+const { completeSignIn } = useAuthSession()
+const { renderButton, isConfigured: googleEnabled } = useGoogleAuth()
 
 const email = ref('')
 const password = ref('')
 const rememberChecked = ref(true)
 const passwordVisible = ref(false)
 const errorMessage = ref('')
+const googleBtn = ref(null)
+
+onMounted(() => {
+  renderButton(googleBtn.value, {
+    onSuccess: completeSignIn,
+    onError: (message) => toast.error(message || 'Google sign-in failed'),
+    text: 'signin_with',
+    intent: 'login'
+  })
+})
 
 
 
@@ -53,58 +64,10 @@ async function handleLogin() {
 
   try {
     const result = await loginUser(email.value.trim(), password.value)
-
-    auth.setToken(result.access_token)
-
-    const payload = jwtDecode(result.access_token)
-
-    const role = payload.role?.toUpperCase()
-
-    auth.setUser({
-      name: payload.full_name,
-      email: payload.email,
-      collegeSlug: payload.college_slug,
-      collegeName: auth.user.collegeName,
-      initials: payload.full_name
-        .split(" ")
-        .map(word => word[0])
-        .join("")
-        .toUpperCase()
-    })
-    auth.setRole(
-     role === "ADMIN" || role === "CAMPUS_ADMIN"
-    ? "admin"
-    : "student"
-    )
-
-    if (auth.role === "student") {
-      try {
-        const ledClubs = await getMyClubs({ role: "LEADER" })
-        auth.setClubLeader(ledClubs.length > 0)
-    } catch {
-        auth.setClubLeader(false)
-    }
-    }
-
-    if (auth.role === 'admin') {
-  if (payload.college_slug) {
-    router.push(`/${payload.college_slug}/admin`)
-  } else {
-    router.push('/admin/onboard')
+    await completeSignIn(result)
+  } catch (error) {
+    toast.error(error?.message || 'Unable to sign in.')
   }
-  return
-}
-
-const slug = payload.college_slug
-
-if (auth.canManageClubs) {
-  router.push(`/${slug}/leader/club`)
-} else {
-  router.push(auth.homeRoute)
-}
-} catch (error) {
-  toast.error(error?.message || 'Unable to sign in.')
-}
 }
 </script>
 
@@ -202,19 +165,14 @@ if (auth.canManageClubs) {
         <ArrowRight /> Sign in
       </button>
 
-      <div class="auth-divider-row">
+      <div v-show="googleEnabled" class="auth-divider-row">
         <span class="auth-divider-line"></span>
         <span>or</span>
         <span class="auth-divider-line"></span>
       </div>
 
-      <div class="auth-sso-grid">
-        <button class="btn-sso" @click="handleLogin">
-          <Globe /> Google SSO
-        </button>
-        <button class="btn-sso" @click="handleLogin">
-          <School /> College Portal
-        </button>
+      <div v-show="googleEnabled" class="auth-sso-stack">
+        <div ref="googleBtn" class="google-btn-slot"></div>
       </div>
 
     </section>

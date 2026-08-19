@@ -6,10 +6,13 @@ import StudentSidebar from '../components/layout/StudentSidebar.vue'
 import { useEventsStore } from '../stores/events'
 import { registerForEvent, unregisterFromEvent, getMyResults } from '../api/events'
 import { toast } from '../composables/useToast'
+import { useNotificationsStore } from '../stores/notifications'   // add
+
 
 const route = useRoute()
 const router = useRouter()
 const eventsStore = useEventsStore()
+const notificationsStore = useNotificationsStore()  
 
 const submitting = ref(false)
 const myResult = ref(null)
@@ -56,6 +59,7 @@ async function handleRegister() {
     const confirmation = await registerForEvent(route.params.id)
     await reloadEvent()
     await loadMyResult()
+    await notificationsStore.fetchUnreadCount() 
     toast.success(confirmation.message)
   } catch (error) {
     toast.error(error?.message || 'Something went wrong.')

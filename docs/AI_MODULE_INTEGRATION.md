@@ -228,12 +228,14 @@ changed in this branch, since it affects deployment.
 assistant, which is always called by a signed-in student, but it is the reason
 the public landing carousel is empty.
 
-**Event descriptions in list responses.** `EventListItem` has no `description`
-field, only `EventDetailResponse` does. The recommender therefore scores events
-on title and venue alone, and `_recommend_clubs` passes `description=""` for
-events. Adding the field to the list schema, or accepting an N+1 detail fetch,
-would improve event matching. The current behaviour is documented in
-`tools.py` rather than worked around silently.
+**Event descriptions in list responses — closed on this branch.** `EventListItem`
+previously had no `description` field, only `EventDetailResponse` did, so
+events were scored on title and venue alone. This branch adds `description` to
+`EventListItem` (`app/schemas/event.py`) and projects it in
+`EventService.list()` (`app/services/event.py`) — additive, no migration, no
+existing consumer's response shape narrows. `app/agent/tools.py` and
+`app/agent/demo_data.py` (the offline fixture) were updated to use the real
+field instead of a hardcoded empty string.
 
 ---
 

@@ -49,6 +49,9 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str
     MAIL_FROM: str
 
+    # --- Google OAuth ------------------------------------------------------
+    GOOGLE_CLIENT_ID: str = ""
+
     # --- Claude ----------------------------------------------------------
     ANTHROPIC_API_KEY: str = ""
     ANTHROPIC_MODEL: str = "claude-haiku-4-5-20251001"

@@ -13,3 +13,8 @@ class StorageNotConfiguredError(StorageError):
 class InvalidFileTypeError(AppException):
     status_code = 400
     message = "This file type is not supported"
+
+
+class FileTooLargeError(AppException):
+    status_code = 413
+    message = "The file is too large"

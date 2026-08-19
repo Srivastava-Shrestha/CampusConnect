@@ -1,8 +1,13 @@
 from app.schemas.user import (
     SignupRequest, SignupResponse, LoginRequest, LoginResponse,
-    ForgotPasswordRequest, ForgotPasswordResponse, ResetPasswordRequest, ResetPasswordResponse
+    ForgotPasswordRequest, ForgotPasswordResponse, ResetPasswordRequest, ResetPasswordResponse,
+    GoogleAuthRequest, GoogleAuthResponse
 )
 from app.schemas.college import CollegeOnboardingRequest, CollegeOnboardingResponse
+from app.schemas.student import (
+    StudentClubItem, PublicStudentResponse, StudentProfileResponse,
+    UpdateProfileRequest, UpdateProfileResponse
+)
 from app.schemas.club import (
     ClubLinkSchema, CreateClubRequest, UpdateClubRequest, CreateClubResponse,
     ClubStatusResponse, ClubListItem, ClubDetailResponse, ClubHeadInfo, MyClubItem
@@ -35,4 +40,5 @@ from app.schemas.notification import (
 from app.schemas.certificate import (
     MyCertificateItem, CertificateDownloadResponse, CertificateVerification
 )
+from app.schemas.leaderboard import LeaderboardEntry
 from app.schemas.ai import ChatMessage, AgentChatRequest, AgentChatResponse

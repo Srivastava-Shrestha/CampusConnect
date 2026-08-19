@@ -377,6 +377,7 @@ def _event_list_item(event: dict) -> EventListItem:
         club_id=event["club_id"],
         club_name=_CLUB_NAMES[event["club_id"]],
         title=event["title"],
+        description=event.get("description", ""),
         venue=event["venue"],
         starts_at=event["starts_at"],
         ends_at=event["ends_at"],

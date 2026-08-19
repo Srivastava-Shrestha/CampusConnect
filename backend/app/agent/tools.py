@@ -63,6 +63,7 @@ EVENT_FIELDS = [
     "club_id",
     "club_name",
     "title",
+    "description",
     "venue",
     "starts_at",
     "ends_at",
@@ -70,7 +71,6 @@ EVENT_FIELDS = [
     "status",
 ]
 EVENT_DETAIL_FIELDS = EVENT_FIELDS + [
-    "description",
     "capacity",
     "registration_count",
     "is_registered",
@@ -286,16 +286,12 @@ async def _recommend_clubs(payload: dict, services: Services, allow_list: AllowL
         for club in clubs
     ]
 
-    # EventListItem carries no description (only EventDetailResponse does),
-    # so the event scorer sees title-only text here - a real but small
-    # accuracy loss versus a second detail fetch per event, which would
-    # multiply calls for a rarely-used fallback path.
     scored_events = [
         {
             "id": event.id,
             "club_id": event.club_id,
             "title": event.title,
-            "description": "",
+            "description": event.description,
             "club_name": event.club_name,
             "leader_name": "",
         }

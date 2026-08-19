@@ -41,6 +41,7 @@ onMounted(async () => {
     <Topbar
       title="College"
       :sub="`${collegeTitle} · Campus Connect`"
+      :show-bell="false"
     />
 
     <main class="content-body custom-scrollbar">
