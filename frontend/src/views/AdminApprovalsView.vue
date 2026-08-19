@@ -111,7 +111,7 @@ onMounted(async () => {
 
   <div class="main-content">
 
-    <Topbar title="Club Approvals" :sub="`${collegeTitle} · All club registration requests`"/>
+    <Topbar title="Club Approvals" :sub="`${collegeTitle} · All club registration requests`" :show-bell="false"/>
 
     <main class="content-body custom-scrollbar">
 

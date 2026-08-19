@@ -1,5 +1,6 @@
 <script setup>
-import { computed } from 'vue'
+import { onMounted, computed } from 'vue'
+import { useAnnouncementsStore } from '../../stores/announcements'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
 import { GraduationCap, Compass, CalendarDays, Megaphone, Trophy, Sparkles, CircleUserRound, Briefcase } from 'lucide-vue-next'
@@ -9,6 +10,9 @@ const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
 const slug = computed(() => auth.user.collegeSlug)
+
+const announcementsStore = useAnnouncementsStore()
+onMounted(() => announcementsStore.fetchUnreadCount())
 
 // The "Manage Clubs" entry only appears for a member who also leads a club.
 const manageClubsItem = computed(() => ({
@@ -107,6 +111,9 @@ function logout() {
         :class="{ active: isActive(item.to), student: isActive(item.to) }"
       >
         <component :is="item.icon" /> {{ item.label }}
+        <span v-if="item.label === 'Announcements' && announcementsStore.unreadCount > 0" class="nav-badge">
+          {{ announcementsStore.unreadCount > 99 ? '99+' : announcementsStore.unreadCount }}
+        </span>
       </router-link>
     </nav>
 

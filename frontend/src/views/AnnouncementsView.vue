@@ -8,9 +8,12 @@ import FilterChips from '../components/ui/FilterChips.vue'
 import { getAnnouncements } from '../api/announcements'
 import { useChipFilter } from '../composables/useChipFilter'
 import { toast } from '../composables/useToast'
+import { useAnnouncementsStore } from '../stores/announcements'
 
 const announcements = ref([])
 const loading = ref(true)
+
+const announcementsStore = useAnnouncementsStore()
 
 const filterChips = [
   { id: 'all', label: 'All' },
@@ -40,6 +43,9 @@ onMounted(async () => {
       pinned: item.is_pinned,
       category: item.category.toLowerCase()
     }))
+
+    await announcementsStore.markRead()
+    
   } catch (error) {
     toast.error(error?.message || 'Failed to load announcements.')
   } finally {

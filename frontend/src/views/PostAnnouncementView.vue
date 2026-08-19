@@ -15,6 +15,8 @@ const route = useRoute()
 const auth = useAuthStore()
 const { allFieldsFilled } = useFormValidation()
 
+const isSubmitting = ref(false)
+
 const clubName = ref('')
 const clubId = ref(null)
 const clubsStore = useClubsStore()
@@ -69,15 +71,20 @@ function goBackToFeed() {
 }
 
 async function handlePostAnnouncement() {
-  
+  if (isSubmitting.value) return
+
   if (!clubId.value) {
     toast.error('No club selected.')
     return
   }
+
+  const title = announcementTitle.value.trim()
+  const body = announcementBody.value.trim()
+
   const fields = {
-    title: announcementTitle.value,
+    title,
     category: announcementCategory.value,
-    body: announcementBody.value
+    body
   }
 
   if (!allFieldsFilled(fields)) {
@@ -85,11 +92,22 @@ async function handlePostAnnouncement() {
     return
   }
 
+  if (title.length < 3 || title.length > 150) {
+    toast.error('Title must be between 3 and 150 characters.')
+    return
+  }
+
+  if (body.length < 5 || body.length > 5000) {
+    toast.error('Message must be between 5 and 5000 characters.')
+    return
+  }
+
+  isSubmitting.value = true
   try {
     await postAnnouncement({
       club_id: clubId.value,
-      title: announcementTitle.value.trim(),
-      body: announcementBody.value.trim(),
+      title,
+      body,
       category: announcementCategory.value,
       is_pinned: isPinned.value
     })
@@ -103,6 +121,8 @@ async function handlePostAnnouncement() {
     router.push(`/${route.params.slug}/leader/announcements`)
   } catch (error) {
     toast.error(error.message)
+  } finally {
+    isSubmitting.value = false
   }
 }
 
@@ -156,7 +176,7 @@ onMounted(async () => {
 
           <div class="form-group">
             <label for="ann-title">Title</label>
-            <input type="text" id="ann-title" v-model="announcementTitle" class="input-field" placeholder="Short, clear subject line">
+            <input type="text" id="ann-title" v-model="announcementTitle" class="input-field" placeholder="Short, clear subject line" maxlength="150">
           </div>
 
           <div class="form-group">
@@ -166,7 +186,7 @@ onMounted(async () => {
 
           <div class="form-group">
             <label for="ann-body">Message</label>
-            <textarea id="ann-body" v-model="announcementBody" class="textarea-field" rows="5" placeholder="Write your announcement here. Be clear and specific so members know exactly what to do or expect."></textarea>
+            <textarea id="ann-body" v-model="announcementBody" class="textarea-field" rows="5" placeholder="Write your announcement here. Be clear and specific so members know exactly what to do or expect." maxlength="5000"></textarea>
           </div>
 
           <div class="toggle-row">
@@ -177,8 +197,8 @@ onMounted(async () => {
             <div class="toggle-switch" :class="{ on: isPinned }" @click="togglePinned"></div>
           </div>
 
-          <button class="btn-primary" @click="handlePostAnnouncement">
-            <Send /> Post Announcement
+          <button class="btn-primary" @click="handlePostAnnouncement" :disabled="isSubmitting">
+            <Send /> {{ isSubmitting ? 'Posting...' : 'Post Announcement' }}
           </button>
         </div>
 

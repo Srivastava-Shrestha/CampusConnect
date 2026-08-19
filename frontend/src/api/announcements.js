@@ -1,5 +1,15 @@
 const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000"
 
+
+function extractMessage(body) {
+  if (typeof body.message === 'string') return body.message
+  if (typeof body.detail === 'string') return body.detail
+  if (Array.isArray(body.detail) && body.detail.length) {
+    return body.detail[0].msg || 'Request failed'
+  }
+  return 'Request failed'
+}
+
 async function apiRequest(endpoint, options = {}) {
   const token = localStorage.getItem("cc_token")
 
@@ -19,7 +29,7 @@ async function apiRequest(endpoint, options = {}) {
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}))
-    throw new Error(error.detail || error.message || "Request failed")
+    throw new Error(extractMessage(error))
   }
 
   if (response.status === 204) {
