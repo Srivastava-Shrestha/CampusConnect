@@ -7,12 +7,15 @@ import CustomSelect from '../components/ui/CustomSelect.vue'
 import IssueCard from '../components/ui/IssueCard.vue'
 import StatusPill from '../components/ui/StatusPill.vue'
 import { getIssues, raiseIssue } from '../api/issues'
+import { getMyClubs } from '../api/clubs'
 import { useFormValidation } from '../composables/useFormValidation'
 import { toast } from '../composables/useToast'
 
 const { allFieldsFilled } = useFormValidation()
 
 const issues = ref([])
+const clubOptions = ref([])
+const isSubmitting = ref(false)
 
 const issueTitle = ref('')
 const issueCategory = ref('')
@@ -27,13 +30,6 @@ const categoryOptions = [
   { value: 'general', label: 'General' }
 ]
 
-const clubOptions = [
-  { value: 'robotics', label: 'Robotics & Automation Club' },
-  { value: 'music', label: 'Music Collective' },
-  { value: 'photo', label: 'Photography Circle' },
-  { value: 'coding', label: 'Coding Society' }
-]
-
 const openCount = computed(function countOpenIssues() {
   return issues.value.filter((issue) => issue.status !== 'resolved').length
 })
@@ -46,6 +42,10 @@ function clearForm() {
 }
 
 async function submitIssue() {
+  if (isSubmitting.value) {
+    return
+  }
+
   const fields = {
     title: issueTitle.value,
     category: issueCategory.value,
@@ -58,13 +58,62 @@ async function submitIssue() {
     return
   }
 
-  await raiseIssue(fields)
-  toast.success('Issue submitted. The club leader has been notified and will respond within 48 hours.')
-  clearForm()
+  // The API validates these lengths too, but catching them here gives a
+  // readable message instead of a raw 422.
+  if (issueTitle.value.trim().length < 3) {
+    toast.error('Please give your issue a slightly longer title.')
+    return
+  }
+
+  if (issueDesc.value.trim().length < 10) {
+    toast.error('Please describe the issue in a little more detail.')
+    return
+  }
+
+  isSubmitting.value = true
+
+  try {
+    await raiseIssue({
+      club_id: Number(issueClub.value),
+      category: issueCategory.value,
+      title: issueTitle.value.trim(),
+      description: issueDesc.value.trim()
+    })
+
+    toast.success('Issue submitted. The club leader has been notified.')
+    clearForm()
+    await loadIssues()
+  } catch (error) {
+    toast.error(error?.message || 'Could not submit your issue. Please try again.')
+  } finally {
+    isSubmitting.value = false
+  }
 }
 
-onMounted(async function loadIssues() {
-  issues.value = await getIssues()
+async function loadIssues() {
+  try {
+    issues.value = await getIssues()
+  } catch (error) {
+    toast.error(error?.message || 'Could not load your issues.')
+  }
+}
+
+// An issue is always raised against a club, so the picker offers the clubs
+// this student actually belongs to rather than every club on campus.
+async function loadMyClubs() {
+  try {
+    const myClubs = await getMyClubs()
+
+    clubOptions.value = myClubs.map(function toOption(club) {
+      return { value: String(club.id), label: club.name }
+    })
+  } catch (error) {
+    clubOptions.value = []
+  }
+}
+
+onMounted(async function loadPage() {
+  await Promise.all([loadIssues(), loadMyClubs()])
 })
 </script>
 
@@ -85,34 +134,43 @@ onMounted(async function loadIssues() {
             Raise a New Issue
           </p>
 
-          <div class="form-group">
-            <label for="issue-title">Issue Title</label>
-            <input type="text" id="issue-title" v-model="issueTitle" class="input-field" placeholder="Short summary of the problem">
+          <div class="issue-form-fields">
+            <div class="form-group form-group-wide">
+              <label for="issue-title">Issue Title</label>
+              <input type="text" id="issue-title" v-model="issueTitle" class="input-field" placeholder="Short summary of the problem">
+            </div>
+
+            <div class="form-group">
+              <label for="issue-category">Category</label>
+              <CustomSelect v-model="issueCategory" :options="categoryOptions" placeholder="Select category" />
+            </div>
+
+            <div class="form-group">
+              <label for="issue-club">Related Club</label>
+              <CustomSelect v-model="issueClub" :options="clubOptions" placeholder="Select club" />
+              <p v-if="clubOptions.length === 0" class="text-note">
+                You can raise an issue once you have joined a club.
+              </p>
+            </div>
+
+            <div class="form-group form-group-wide">
+              <label for="issue-desc">Description</label>
+              <textarea id="issue-desc" v-model="issueDesc" class="textarea-field" rows="4" placeholder="Describe the issue in detail so the club leader can help you."></textarea>
+            </div>
           </div>
 
-          <div class="form-group">
-            <label for="issue-category">Category</label>
-            <CustomSelect v-model="issueCategory" :options="categoryOptions" placeholder="Select category" />
-          </div>
-
-          <div class="form-group">
-            <label for="issue-club">Related Club</label>
-            <CustomSelect v-model="issueClub" :options="clubOptions" placeholder="Select club" />
-          </div>
-
-          <div class="form-group">
-            <label for="issue-desc">Description</label>
-            <textarea id="issue-desc" v-model="issueDesc" class="textarea-field" rows="4" placeholder="Describe the issue in detail so the club leader can help you."></textarea>
-          </div>
-
-          <button class="btn-primary" @click="submitIssue">
-            <Send /> Submit Issue
+          <button
+            class="btn-primary"
+            :disabled="isSubmitting || clubOptions.length === 0"
+            @click="submitIssue"
+          >
+            <Send /> {{ isSubmitting ? 'Submitting...' : 'Submit Issue' }}
           </button>
 
           <p class="text-note">Issues are sent directly to the club leader. Most are resolved within 48 hours.</p>
         </div>
 
-        <div>
+        <div class="issue-feed-section">
           <div class="issue-feed-header">
             <h2 class="clubs-section-title">Your Issues</h2>
             <StatusPill status="open" :label="openCount + ' open'" />

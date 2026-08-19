@@ -76,6 +76,51 @@ def _item_tokens(*texts: str) -> set[str]:
     return normalize_tokens(" ".join(t for t in texts if t))
 
 
+# How many derived tags a club is allowed to show. Enough to characterise it,
+# few enough to fit a card without wrapping.
+_MAX_DERIVED_TAGS = 4
+
+
+def derive_tags(club: dict) -> list[str]:
+    """
+    Work out a club's topic tags from the data the schema already has.
+
+    There is no tags column on clubs, so rather than inventing one (a
+    migration against a shared database) or letting the model make tags up
+    (ungrounded), tags are read out of the club's own name, category and
+    description using the same vocabulary the recommender already scores
+    against. Every tag returned is therefore a word the club actually used
+    about itself, or the category an admin already assigned it.
+
+    Ordering is deliberate: the category first because it is curated, then
+    matched interest keywords in vocabulary order so the same club always
+    produces the same tags.
+    """
+    tags: list[str] = []
+
+    category = (club.get("category") or "").strip()
+    if category:
+        tags.append(category.title())
+
+    text = _item_tokens(
+        club.get("name", ""), club.get("description", ""),
+    )
+
+    for keyword in INTEREST_CATEGORY_MAP:
+        if len(tags) >= _MAX_DERIVED_TAGS:
+            break
+
+        matched = keyword in text or any(_same_family(tok, keyword) for tok in text)
+        if not matched:
+            continue
+
+        label = keyword.title()
+        if label.lower() not in {t.lower() for t in tags}:
+            tags.append(label)
+
+    return tags[:_MAX_DERIVED_TAGS]
+
+
 # How many leading characters two words must share to count as the same word
 # family. Five is the smallest value that connects robots/robotics and
 # photo/photography without also connecting design/desire.
@@ -117,6 +162,16 @@ def _overlap(a: set[str], b: set[str]) -> float:
         return 0.0
     matched = sum(1 for token in a if _matches_token(token, b))
     return min(matched / min(len(a), _SIGNAL_CAP), 1.0)
+
+
+def mapped_category(token: str) -> str | None:
+    """
+    Public alias of _mapped_category.
+
+    agent/memory.py uses this to decide whether a word is recognisably about
+    an interest before storing it as a durable fact.
+    """
+    return _mapped_category(token)
 
 
 def _mapped_category(token: str) -> str | None:
@@ -263,7 +318,37 @@ def resolve_entities(text: str, allowed_map: dict) -> tuple[str, list[tuple[str,
         unknown.append((kind, sid))
         return "that option"
 
-    return _ENTITY_RE.sub(repl, text), unknown
+    resolved = _ENTITY_RE.sub(repl, text)
+
+    return _collapse_repeated_names(resolved, allowed_map), unknown
+
+
+def _collapse_repeated_names(text: str, allowed_map: dict) -> str:
+    """
+    Fix "Photography Circle Photography Circle".
+
+    Models often write the club's name AND the reference tag next to each
+    other ("you're in Photography Circle [[club:4]]"), and expanding the tag
+    then prints the name twice. Rather than fight it in the prompt - which
+    only ever reduces the odds - collapse an immediate repeat after
+    substitution, where it is unambiguous.
+
+    Only names the allow-list actually produced are collapsed, so this can
+    never alter a student's own words or a legitimate repetition elsewhere in
+    the sentence.
+    """
+    for name in set(allowed_map.values()):
+        if not name:
+            continue
+        # Same name twice in a row, separated only by spaces or punctuation
+        # the model might have put between them.
+        pattern = re.compile(
+            r"\b" + re.escape(name) + r"\b(\s*[,\-–—:]?\s*)\b" + re.escape(name) + r"\b",
+            re.IGNORECASE,
+        )
+        text = pattern.sub(name, text)
+
+    return text
 
 
 def scrub_emails(text: str) -> str:

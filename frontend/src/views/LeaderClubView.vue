@@ -6,7 +6,8 @@ import { useClubsStore } from '../stores/clubs'
 import { Pencil, MapPin, Users, Calendar, CalendarPlus, Megaphone, UsersRound } from 'lucide-vue-next'
 import LeaderSidebar from '../components/layout/LeaderSidebar.vue'
 import ClubIcon from '../components/ui/ClubIcon.vue'
-import { getClubById, updateClub, deleteClub } from '../api/clubs'
+import ClubProposalList from '../components/ui/ClubProposalList.vue'
+import { getClubById, updateClub, deleteClub, getMyClubs } from '../api/clubs'
 import { getEvents, normalizeEvent } from '../api/events'
 import { toast } from '../composables/useToast'
 import CustomSelect from '../components/ui/CustomSelect.vue'
@@ -216,6 +217,26 @@ function goToCreateClub() {
   router.push(`/${auth.user.collegeSlug}/clubs/propose`)
 }
 
+// Every club this student created, in any state, so a leader can see the
+// approval status of proposals that are not live yet alongside the club they
+// already run.
+const proposals = ref([])
+const loadingProposals = ref(true)
+
+async function loadProposals() {
+  loadingProposals.value = true
+
+  try {
+    proposals.value = await getMyClubs({ role: 'LEADER' })
+  } catch (error) {
+    proposals.value = []
+  } finally {
+    loadingProposals.value = false
+  }
+}
+
+onMounted(loadProposals)
+
 onMounted(async () => {
   try {
     await clubsStore.loadLeaderClubs()
@@ -420,6 +441,8 @@ onMounted(async () => {
           </div>
         </div>
       </div>
+
+      <ClubProposalList :proposals="proposals" :loading="loadingProposals" />
 
     </main>
 

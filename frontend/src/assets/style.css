@@ -8798,3 +8798,191 @@ html {
 .auth-sidebar.orange-auth .auth-sidebar-logo {
   margin-bottom: 44px;
 }
+
+/*  57. Club proposal stack (propose-club + leader club pages)
+    ----------------------------------------------------------
+    A student who proposes a club had no way to see what happened to the
+    request. The rows themselves reuse the approval-card styles from section
+    26 so a proposal looks like the admin queue that acts on it; only the
+    spacing around the block is defined here.                                */
+
+.proposal-stack {
+  margin-top: 4px;
+}
+
+/* Propose-club page: the form and the proposal status list belong together
+   in one reading column, with the guidance panel held beside them and kept
+   in view while the form is filled in. Below 1100px the whole thing stacks:
+   guidance first would push the form off-screen, so it follows instead. */
+.propose-grid {
+  max-width: 1500px;
+}
+
+.propose-main {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+
+@media (min-width: 1100px) {
+  .propose-grid {
+    grid-template-columns: minmax(0, 1fr) 340px;
+  }
+
+  .propose-grid .guide-card {
+    position: sticky;
+    top: 24px;
+  }
+}
+
+@media (max-width: 1099px) {
+  .propose-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/*  58. Issues page layout
+    ----------------------
+    The page was a narrow sticky form beside one stretched column of cards,
+    which left a lot of empty space on a wide monitor.
+
+    It is now a simple vertical stack: raise-an-issue on top, your issues
+    below, both the full width of the content area. The feed itself becomes a
+    responsive grid so cards sit side by side instead of one card growing to
+    fill the row.                                                            */
+
+.issues-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+}
+
+/* Both blocks are flex children of a column, so they already share the same
+   width - this just makes it explicit and stops a card's intrinsic size from
+   shrinking it below the row. */
+.issues-layout > * {
+  width: 100%;
+  min-width: 0;
+}
+
+/* The form no longer sits in a side column, so it must not stick. */
+.issue-form-card {
+  position: static;
+}
+
+/* Give the form's fields room to sit side by side now that the card spans
+   the full width, instead of one long ribbon of stacked inputs. */
+@media (min-width: 900px) {
+  .issue-form-card .form-group {
+    margin-bottom: 0;
+  }
+
+  .issue-form-fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px 20px;
+    margin-bottom: 18px;
+  }
+
+  .issue-form-fields .form-group-wide {
+    grid-column: 1 / -1;
+  }
+}
+
+.issue-feed {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+
+@media (min-width: 900px) {
+  .issue-feed {
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  }
+}
+
+@media (min-width: 1600px) {
+  .issue-feed {
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  }
+}
+
+.issue-feed-header {
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+/* Cards in a grid are equal height, so push the reply block to the bottom
+   rather than leaving a gap under short text. */
+.issue-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.issue-card .issue-footer {
+  margin-top: auto;
+}
+
+/*  59. Issue conversation thread (student issues page)
+    ---------------------------------------------------
+    A reply used to render as a loose block under the description with no
+    indication of who wrote what. These turn the card into a short thread:
+    the student's own message, then the leader's reply or a clear note that
+    one has not arrived yet.                                                 */
+
+.issue-thread {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.issue-bubble-mine {
+  background-color: var(--color-bg);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+.issue-bubble-who {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-ink-light);
+  margin-bottom: 5px;
+}
+
+.issue-bubble-who svg {
+  width: 11px;
+  height: 11px;
+}
+
+.issue-bubble-when {
+  font-weight: 600;
+  color: var(--color-ink-light);
+}
+
+/* The thread already spaces its own children, so the reply block does not
+   need the standalone top margin it carries elsewhere. */
+.issue-thread .issue-response {
+  margin-top: 0;
+}
+
+.issue-awaiting {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--color-ink-light);
+  padding: 2px 2px 0;
+}
+
+.issue-awaiting svg {
+  width: 12px;
+  height: 12px;
+}

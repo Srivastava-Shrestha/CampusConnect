@@ -11,9 +11,15 @@ from fastapi import APIRouter, Depends, Security
 
 from app.agent.demo_data import resolve_services
 from app.agent.loop import run_agent_turn
-from app.core.di import get_announcement_service, get_club_service, get_event_service, get_user_info
+from app.core.di import (
+    get_announcement_service,
+    get_club_service,
+    get_event_service,
+    get_student_service,
+    get_user_info,
+)
 from app.schemas import AgentChatRequest, AgentChatResponse
-from app.services import AnnouncementService, ClubService, EventService
+from app.services import AnnouncementService, ClubService, EventService, StudentService
 
 ai_router = APIRouter(prefix="/ai", tags=["AI"])
 
@@ -25,6 +31,7 @@ async def agent_chat(
     club_service: ClubService = Depends(get_club_service),
     event_service: EventService = Depends(get_event_service),
     announcement_service: AnnouncementService = Depends(get_announcement_service),
+    student_service: StudentService = Depends(get_student_service),
 ) -> AgentChatResponse:
     """
     One turn of the bounded agent loop.
@@ -41,7 +48,7 @@ async def agent_chat(
     rather than one "something went wrong" flag.
     """
     services, offline = await resolve_services(
-        payload, club_service, event_service, announcement_service
+        payload, club_service, event_service, announcement_service, student_service
     )
     history = [{"role": m.role, "content": m.content} for m in data.messages]
 

@@ -52,18 +52,49 @@ export async function requestToJoinClub(clubId) {
   })
 }
 
-export async function createClub(clubData) {
-  return apiRequest("/clubs", {
-    method: "POST",
-    body: JSON.stringify(clubData)
+// Club create/update take multipart/form-data, not JSON: the backend reads the
+// body as a JSON string in a `data` field with an optional `image` file beside
+// it. Content-Type is left unset on purpose so the browser adds its own
+// multipart boundary - setting it by hand makes the upload unparseable.
+async function multipartRequest(endpoint, method, payload, image) {
+  const token = localStorage.getItem("cc_token")
+  const headers = {}
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`
+  }
+
+  const form = new FormData()
+  form.append("data", JSON.stringify(payload))
+
+  if (image) {
+    form.append("image", image)
+  }
+
+  const response = await fetch(`${BASE_URL}${endpoint}`, {
+    method,
+    headers,
+    body: form
   })
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}))
+    throw new Error(error.detail || error.message || "Request failed")
+  }
+
+  if (response.status === 204) {
+    return null
+  }
+
+  return response.json()
 }
 
-export async function updateClub(clubId, clubData) {
-  return apiRequest(`/clubs/${clubId}`, {
-    method: "PUT",
-    body: JSON.stringify(clubData)
-  })
+export async function createClub(clubData, image = null) {
+  return multipartRequest("/clubs", "POST", clubData, image)
+}
+
+export async function updateClub(clubId, clubData, image = null) {
+  return multipartRequest(`/clubs/${clubId}`, "PUT", clubData, image)
 }
 
 export async function deleteClub(clubId) {

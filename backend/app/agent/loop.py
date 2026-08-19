@@ -229,6 +229,32 @@ def _serialise_assistant(content_blocks) -> list:
     return serialised
 
 
+async def _seed_profile_interests(
+    payload: dict, services: Services, student_key: str
+) -> None:
+    """
+    Fold the student's saved onboarding interests into durable memory.
+
+    Only runs while no interest is stored yet, so it costs one profile read
+    per student rather than one per turn, and never overwrites the richer
+    picture built from what they have actually asked for since.
+
+    Failures are swallowed on purpose: personalisation is an enhancement, and
+    a profile that cannot be read must not take the assistant down with it.
+    """
+    facts = memory.recall(student_key)
+    if any(key.startswith("interest:") for key in facts):
+        return
+
+    try:
+        profile = await services.student.my_profile(payload)
+    except Exception:
+        return
+
+    for interest in (profile.interests or [])[:3]:
+        memory.record_interest(student_key, interest)
+
+
 async def _deterministic_fallback(
     payload: dict, services: Services, interest_text: str, offline: bool = False
 ) -> AgentResult:
@@ -316,6 +342,11 @@ async def run_agent_turn(
     # model action - the model has no way to reach this code.
     if interest_text:
         memory.record_interest(student_key, interest_text)
+
+    # Same rule for the interests they picked at onboarding: a confirmed,
+    # student-authored fact, folded in once so the very first question of a
+    # session is already personalised rather than starting from nothing.
+    await _seed_profile_interests(payload, services, student_key)
 
     # No key configured means offline/mock mode. Skip straight to the
     # deterministic path rather than pretending to call an API.

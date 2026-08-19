@@ -26,6 +26,7 @@ Two rules keep this honest:
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+from types import SimpleNamespace
 
 from app.agent.tools import Services
 from app.exceptions import ClubNotFoundError, EventNotFoundError
@@ -469,9 +470,10 @@ class DemoEventService:
         event = next((e for e in _EVENTS if e["id"] == event_id), None)
         if event is None:
             raise EventNotFoundError()
+        # description now comes through the list-item dump, since EventListItem
+        # carries it too - passing it again here would be a duplicate keyword.
         return EventDetailResponse(
             **_event_list_item(event).model_dump(),
-            description=event["description"],
             is_registered=False,
             my_registration_id=None,
         )
@@ -507,15 +509,36 @@ class DemoAnnouncementService:
         ]
 
 
+class DemoStudentService:
+    """
+    Stand-in profile for the demo campus.
+
+    Deliberately empty rather than invented: the demo student has not
+    onboarded, so recommendations rank on the question they typed. Putting
+    fake interests here would quietly change what the sample campus
+    recommends and make the demo unrepresentative.
+    """
+
+    async def my_profile(self, payload: dict):
+        return SimpleNamespace(interests=[], branch=None, year=None)
+
+
+# Kept as a private alias so resolve_services can name it without exporting a
+# second public symbol for the same thing.
+_DemoStudentService = DemoStudentService
+
+
 def build_demo_services() -> Services:
     return Services(
         club=DemoClubService(),
         event=DemoEventService(),
         announcement=DemoAnnouncementService(),
+        student=DemoStudentService(),
     )
 
 
-async def resolve_services(payload: dict, club_service, event_service, announcement_service):
+async def resolve_services(payload: dict, club_service, event_service, announcement_service,
+                           student_service=None):
     """
     Pick the tier that serves this turn, and say which one it was.
 
@@ -543,6 +566,11 @@ async def resolve_services(payload: dict, club_service, event_service, announcem
         return build_demo_services(), True
 
     return (
-        Services(club=club_service, event=event_service, announcement=announcement_service),
+        Services(
+            club=club_service,
+            event=event_service,
+            announcement=announcement_service,
+            student=student_service or _DemoStudentService(),
+        ),
         False,
     )

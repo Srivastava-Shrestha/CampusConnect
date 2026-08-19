@@ -10,3 +10,4 @@ tests/reports/results_log.json
 *.db
 
 var/
+.venv-linux/

@@ -59,18 +59,40 @@ export async function getEventById(eventId) {
   return apiRequest(`/events/${eventId}`)
 }
 
-export async function createEvent(eventData) {
-  return apiRequest('/events', {
-    method: 'POST',
-    body: JSON.stringify(eventData)
-  })
+// Event create/update take multipart/form-data for the same reason club
+// create/update do: a JSON string in `data` plus an optional `image` file.
+// Content-Type stays unset so the browser supplies the multipart boundary.
+async function multipartRequest(endpoint, method, payload, image) {
+  const token = localStorage.getItem('cc_token')
+  const headers = {}
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`
+  }
+
+  const form = new FormData()
+  form.append('data', JSON.stringify(payload))
+
+  if (image) {
+    form.append('image', image)
+  }
+
+  const response = await fetch(`${BASE_URL}${endpoint}`, { method, headers, body: form })
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}))
+    throw new Error(extractMessage(body))
+  }
+
+  return response.json()
 }
 
-export async function updateEvent(eventId, eventData) {
-  return apiRequest(`/events/${eventId}`, {
-    method: 'PUT',
-    body: JSON.stringify(eventData)
-  })
+export async function createEvent(eventData, image = null) {
+  return multipartRequest('/events', 'POST', eventData, image)
+}
+
+export async function updateEvent(eventId, eventData, image = null) {
+  return multipartRequest(`/events/${eventId}`, 'PUT', eventData, image)
 }
 
 export async function publishEvent(eventId) {

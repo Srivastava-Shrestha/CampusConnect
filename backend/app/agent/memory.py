@@ -133,22 +133,46 @@ def record_interest(student_key: str, interest_text: str) -> None:
     from app.services import recommender as R
 
     tokens = R.normalize_tokens(interest_text or "")
-    # Store only a few, longest-first: longer tokens are more specific and
-    # more useful than short common ones.
-    ranked = sorted(tokens, key=len, reverse=True)[:3]
+
+    # Keep only words that are recognisably about an interest. Ranking by
+    # length alone stored things like "already", "part" and "option" from
+    # ordinary questions, and those then read back into the system prompt as
+    # "interests they have mentioned before", which is both wrong and, once
+    # the per-student cap is reached, evicts real facts.
+    #
+    # Precision matters more than recall here: a remembered interest is
+    # asserted to the model as fact, so it is better to remember nothing than
+    # to remember noise.
+    recognised = [tok for tok in tokens if R.mapped_category(tok)]
+
+    ranked = sorted(recognised, key=len, reverse=True)[:3]
     for token in ranked:
         remember(student_key, "interest:" + token, token)
 
 
 def record_memberships(student_key: str, membership_rows: list) -> None:
-    """Derive facts from confirmed memberships returned by the upstream API."""
+    """
+    Derive facts from confirmed memberships.
+
+    The rows come from the get_my_clubs tool, which projects MyClubItem down
+    to id / name / category / membership_role / membership_status. The field
+    names below must match that projection - reading a `status` or `club_id`
+    key here would silently record nothing, which is exactly what this used
+    to do.
+    """
+    approved = ("APPROVED", "ACTIVE")
+
     for row in membership_rows or []:
         if not isinstance(row, dict):
             continue
-        if str(row.get("status", "")).upper() not in ("APPROVED", "ACTIVE"):
+
+        status = row.get("membership_status") or row.get("status") or ""
+        if str(status).upper() not in approved:
             continue
-        club_id = row.get("club_id") or row.get("id")
-        club_name = row.get("club_name") or row.get("name")
+
+        club_id = row.get("id") or row.get("club_id")
+        club_name = row.get("name") or row.get("club_name")
+
         if club_id and club_name:
             remember(student_key, "joined_club:" + str(club_id), str(club_name))
 

@@ -114,6 +114,9 @@ by label rather than trusting the number order.
 | 54      | Auth layout fixes (signup scroll, login sidebar alignment)      |
 | 55      | AI Club Finder response variants (event fallback + popularity)  |
 | 56      | Club card artwork (banner icon/image) + AI finder pending state |
+| 57      | Club proposal stack (propose-club + leader club pages)          |
+| 58      | Issues page layout (responsive grid, wide-screen density)       |
+| 59      | Issue conversation thread (student issues page)                 |
 
 ## Conventions
 

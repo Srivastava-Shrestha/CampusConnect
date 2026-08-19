@@ -42,7 +42,7 @@ from typing import Any, Callable
 from app.agent.grounding import AllowList, redact_for_model
 from app.exceptions import AppException
 from app.models import ClubType
-from app.services import AnnouncementService, ClubService, EventService
+from app.services import AnnouncementService, ClubService, EventService, StudentService
 from app.services import recommender as R
 
 # Fields the model is allowed to see. Anything a service adds to its response
@@ -120,16 +120,44 @@ class Tool:
 
 @dataclass
 class Services:
-    """The three read services every tool draws on, bundled for one turn."""
+    """The read services every tool draws on, bundled for one turn."""
 
     club: ClubService
     event: EventService
     announcement: AnnouncementService
+    # Read-only, like the rest: the student's own saved profile, used to seed
+    # recommendations before they have typed anything this session.
+    student: StudentService
 
 
 def _dump(items) -> list:
     """Pydantic response models -> plain dicts, JSON-safe (datetimes, enums)."""
     return [item.model_dump(mode="json") for item in items]
+
+
+# Shape returned when the profile cannot be read. Scoring treats every field
+# as absent, which is exactly how the module behaved before profiles existed.
+_EMPTY_PROFILE = {"interests": [], "branch": "", "year": 0}
+
+
+async def _saved_profile(payload: dict, services: Services) -> dict:
+    """
+    The student's stored interests, branch and year.
+
+    A missing or unreadable profile is not an error here - it just means the
+    student has not onboarded yet, and ranking falls back to the text they
+    typed. Recommendations must never fail because a profile lookup did.
+    """
+    try:
+        profile = await services.student.my_profile(payload)
+    except Exception:  # noqa: BLE001 - a profile read must never sink a recommendation
+        return dict(_EMPTY_PROFILE)
+
+    return {
+        "interests": list(profile.interests or []),
+        "branch": profile.branch or "",
+        "year": profile.year or 0,
+    }
 
 
 def _dump_one(item) -> dict:
@@ -279,7 +307,17 @@ async def _recommend_clubs(payload: dict, services: Services, allow_list: AllowL
             "name": club.name,
             "category": club.category,
             "description": club.description,
-            "tags": [],
+            # The schema has no tags column, so these are read back out of the
+            # club's own name, category and description - see
+            # recommender.derive_tags. Grounded by construction, and no
+            # migration needed to ship the feature.
+            "tags": R.derive_tags(
+                {
+                    "name": club.name,
+                    "category": club.category,
+                    "description": club.description,
+                }
+            ),
             "activity_score": club.member_count,
             "leader_name": club.head_name,
         }
@@ -298,12 +336,16 @@ async def _recommend_clubs(payload: dict, services: Services, allow_list: AllowL
         for event in events
     ]
 
+    # What the student saved at onboarding, so a first question already ranks
+    # against their real interests and branch instead of the typed text alone.
+    saved = await _saved_profile(payload, services)
+
     profile = {
-        "interests": [interest_text],
+        "interests": [interest_text] + saved["interests"],
         "hobbies": [],
         "reason": interest_text,
-        "branch": "",
-        "year": 0,
+        "branch": saved["branch"],
+        "year": saved["year"],
     }
 
     outcome = R.select_recommendations(profile, scored_clubs, scored_events)
