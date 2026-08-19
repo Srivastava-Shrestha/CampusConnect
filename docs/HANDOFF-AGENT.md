@@ -111,22 +111,64 @@ two_degradation_axes:
 ## Changes on this branch
 
 ### Backend, new files
-`app/api/ai.py`, `app/agent/*` (7 files), `app/schemas/ai.py`,
-`app/services/{recommender,llm_client,voice_budget}.py`, `scripts/dev_seed.py`,
-`.env.local.example`.
+`app/api/ai.py`, `app/agent/*` (7 files, includes `recommender.py`/`llm_client.py`/
+`voice_budget.py` — see note above, these do **not** live in `app/services/`),
+`app/schemas/ai.py`.
+`scripts/dev_seed.py` and `.env.local.example` were added, then **deleted** in
+session 2 (Postgres-only, see below) — do not recreate them.
 
 ### Backend, modified shared code
 
 | File | Before | After | Why |
 |---|---|---|---|
-| `app/models/student.py` | `interests: ARRAY(Text)` | `ARRAY(Text).with_variant(JSON,"sqlite")`, `default=list` | SQLite has no array type. **Postgres DDL byte-identical, no migration** (verified against migration `138b941be66b`) |
+| `app/models/student.py` | `ARRAY(Text)` | unchanged (SQLite variant reverted) | Shrestha's review: Postgres-only, no dialect branching |
 | `app/schemas/event.py` | `EventListItem` had no `description` | added `description: str` | Recommender scored events on title+venue only |
 | `app/services/event.py` | list projection omitted description | `description=event.description` | Column already existed; only projection was missing |
-| `app/core/database.py` | `connect_args={"statement_cache_size":0}` unconditional | applied only when `"asyncpg" in DATABASE_URL` | asyncpg-only arg; `TypeError` on every other driver. Postgres path unchanged |
-| `app/core/config.py` | core settings only | + AI/Sarvam/agent settings, all defaulted; `ENV_PATH` resolved absolutely | Plain `load_dotenv()` silently no-ops when uvicorn starts outside `backend/` |
+| `app/core/database.py` | — | unconditional `connect_args={"statement_cache_size":0}` (asyncpg-only, matches prod) | Reverted the dialect guard per review — this file stays untouched otherwise |
+| `app/core/config.py` | core settings only | + AI/Sarvam/agent settings, all defaulted; plain `env_file=".env"` (no `ENV_PATH` resolution) | Reverted the pathlib resolution per review |
 | `main.py`, `app/api/__init__.py`, `app/schemas/__init__.py` | — | register `ai_router`, AI schemas | Alongside dev's routers |
-| `pyproject.toml` | — | `+anthropic`, `+aiosqlite` (dev); `-httpx`, `-websockets` | Neither was imported after the rebuild |
+| `pyproject.toml` | — | `+anthropic` (dev group); `aiosqlite` added then removed | SQLite path banned |
 | `app/agent/recommender.py` | — | `+derive_tags()`, `+mapped_category()`, `+_collapse_repeated_names()` | See below |
+
+### Session 2 (2026-08-19) — real Neon DB, backend feature additions, app-wide manual QA
+
+Full context in `HANDOFF-TEAM.md` §0. Summary for an agent picking this up:
+
+**Backend, additive (new endpoint + fields, nothing removed):**
+
+| File | Change | Why |
+|---|---|---|
+| `app/schemas/club.py` | `ClubListItem` gained `links: list[ClubLinkSchema]` | Frontend needs a club's external links on list pages |
+| `app/repository/club.py`, `app/repository/membership.py` | list queries gained `.options(selectinload(Club.links))` | Avoid N+1 when serializing `links` |
+| `app/services/club.py`, `app/services/membership.py` | list methods populate `links=[...]` | See above |
+| `app/repository/membership.py` | + `async def delete(self, membership)` | Backing method for remove-member |
+| `app/services/membership.py` | + `remove_member(payload, club_id, student_id)` | Leader-only; blocks removing the leader's own row |
+| `app/schemas/membership.py` | + `RemoveMemberResponse` | Response model for the new route |
+| `app/core/messages.py` | + `MembershipMessages.MEMBER_REMOVED` | — |
+| `app/api/club.py` | + `DELETE /clubs/{club_id}/members/{student_id}` | Closed a dead "Remove" stub in `MembersView.vue` |
+| `app/agent/demo_data.py` | fixed duplicate `description=` kwarg (`EventDetailResponse`) | Broke every offline-tier `get_event` call after `EventListItem` gained `description` |
+| `app/agent/memory.py` | `record_memberships` reads `membership_status`/`id` (was `status`/`club_id`) | Tool projects the former field names; memory silently recorded nothing |
+| `app/agent/memory.py` | `record_interest` filters tokens through `mapped_category()` | Was storing words like "already"/"part" as fake interests |
+| `app/agent/recommender.py` | + `_collapse_repeated_names()` | Fixed "Photography Circle Photography Circle" duplication |
+
+**Frontend, root-caused bug fixes:**
+
+| Symptom | Root cause | Fix |
+|---|---|---|
+| Data from account A visible after switching to account B in the same tab | `clubsStore`/`eventsStore` have a `loaded` flag that only clears on hard reload | `auth.js` `logout()` and `useAuthSession.js` `completeSignIn()` now call `useClubsStore().$reset()`, `useEventsStore().$reset()`, `invalidateCache()` |
+| Views briefly show "not found" / "no items" before the real fetch resolves | Guard conditions were `v-if="item"` / `v-else` with no third branch for "still loading" | Added `hasLoaded` ref + `page-loading-state`-wrapped loading branch to `LeaderClubView`, `ClubProfileView`, `EventDetailView`, `ClubDirectoryView`, `EventsView`, and others |
+| `registeredEventIds.has is not a function` crash | `.map(normalizeEvent)` passes `(item, index)` — `normalizeEvent` treats the numeric index as a second arg | `.map(row => normalizeEvent(row))` in `LeaderClubView.vue` |
+| `Failed to resolve component: CustomSelect` | Import removed when swapping in `LeaderClubSwitcher`, but a second unrelated `<CustomSelect>` (category picker) still used it | Re-added the import alongside the new one |
+| Member count on `LeaderClubView`/`ClubProfileView` one too high | `member_count` includes the leader's own auto-created membership row | `Math.max(member_count - 1, 0)` for the displayed "Members" stat |
+| Club-page "Register" button sent students to the Events page instead of registering | `ClubProfileView.vue` had a stub `showRegisterHint()` | Real `toggleEventRegistration()` using `registerForEvent`/`unregisterFromEvent`, matching `EventDetailView`'s registration-window logic |
+| No event editing | Dead route stub | New route `/:slug/leader/events/:id/edit`; `CreateEventView.vue` now doubles as editor (`isEditing` branch, `updateEvent()`) |
+| Every route switch re-fetched everything from the API | No caching layer existed | `utils/apiCache.js` — `cachedFetch(key, fetchFn, ttlMs)` / `invalidateCache(key)`, applied to leaderboard/issues/profile/certificates, invalidated after the relevant mutation |
+| No loading feedback on button-triggered actions | Buttons had no spinner/disabled wiring in most mutation handlers | `.btn-spinner` (CSS §62) + per-item busy `Set` pattern applied app-wide |
+| Empty lists (recommended clubs, pending requests, members, issues, certificates, event history, approvals, leaderboard, attendance, results) rendered nothing when empty | No empty-state markup existed for these branches | `.empty-state-wide` (CSS §65) applied consistently across every list view, member/leader/admin |
+
+**Backend confirmed correct, not a bug (investigated via direct Postgres query against live data):** event registration closing — `_as_utc()` in `app/schemas/event.py` only adds tzinfo to naive datetimes, comparison is timezone-safe; the reported "early close" was real elapsed time on test events. Leaderboard is computed live per-request (`app/services/leaderboard.py`), no staleness possible.
+
+**Local dev, decided:** Postgres-only (Neon), no Docker for local dev (Docker reserved for the eventual PR pipeline), no SQLite anywhere — see Environment section above.
 
 ### Frontend
 

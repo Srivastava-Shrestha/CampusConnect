@@ -122,7 +122,7 @@ onMounted(async () => {
           <StatusPill status="pending" :label="pendingCount + ' pending'" />
         </div>
 
-        <div v-if="hasLoaded && pendingList.length === 0" class="empty-state">
+        <div v-if="hasLoaded && pendingList.length === 0" class="empty-state empty-state-wide">
           <ClipboardCheck />
           <p>No club approvals are waiting on you right now.</p>
         </div>

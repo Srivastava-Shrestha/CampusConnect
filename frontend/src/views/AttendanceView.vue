@@ -156,7 +156,7 @@ onMounted(async function loadAttendancePage() {
         </div>
       </div>
 
-      <div v-if="participants.length === 0" class="empty-state">
+      <div v-if="participants.length === 0" class="empty-state empty-state-wide">
         <p>Nobody has registered for this event yet.</p>
       </div>
 

@@ -150,7 +150,7 @@ onMounted(async function loadLeaderboard() {
               </div>
             </div>
 
-            <div v-if="visibleEntries.length === 0" class="empty-state">
+            <div v-if="visibleEntries.length === 0" class="empty-state empty-state-wide">
               <Trophy />
               <p>No clubs in this category yet.</p>
             </div>
@@ -158,7 +158,7 @@ onMounted(async function loadLeaderboard() {
 
         </template>
 
-        <div v-else class="empty-state">
+        <div v-else class="empty-state empty-state-wide">
           <Trophy />
           <p>Rankings will appear once clubs start earning activity points.</p>
         </div>

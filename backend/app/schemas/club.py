@@ -61,6 +61,18 @@ class ClubListItem(BaseModel):
     links: list[ClubLinkSchema]
 
 
+class TrendingClubItem(BaseModel):
+    """Public, unauthenticated card for the marketing landing page - no
+    description/head/links, just enough to show a live club with which
+    college it belongs to."""
+    id: int
+    name: str
+    category: str
+    member_count: int
+    college_name: str
+    college_slug: str
+
+
 class MyClubItem(ClubListItem):
     membership_id: int
     membership_role: MembershipRole

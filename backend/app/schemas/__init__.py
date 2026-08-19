@@ -10,7 +10,8 @@ from app.schemas.student import (
 )
 from app.schemas.club import (
     ClubLinkSchema, CreateClubRequest, UpdateClubRequest, CreateClubResponse,
-    ClubStatusResponse, ClubListItem, ClubDetailResponse, ClubHeadInfo, MyClubItem
+    ClubStatusResponse, ClubListItem, ClubDetailResponse, ClubHeadInfo, MyClubItem,
+    TrendingClubItem
 )
 from app.schemas.membership import (
     JoinResponse, RequestActionRequest, RequestActionResponse, PendingRequestItem, MemberItem,

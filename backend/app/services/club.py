@@ -3,7 +3,7 @@ from app.repository import ClubRepository, StudentRepository, UserRepository, Me
 from app.models import Club, ClubType, ClubStatus, MembershipRole, MembershipStatus, UserRole
 from app.schemas import (
     CreateClubRequest, UpdateClubRequest, CreateClubResponse, ClubStatusResponse,
-    ClubListItem, ClubDetailResponse, ClubLinkSchema, ClubHeadInfo, MyClubItem
+    ClubListItem, ClubDetailResponse, ClubLinkSchema, ClubHeadInfo, MyClubItem, TrendingClubItem
 )
 from app.exceptions import (
     ClubNotFoundError, NotClubLeaderError, ClubActionNotAllowedError, StudentNotFoundError,
@@ -87,6 +87,20 @@ class ClubService:
                 joined_at=membership.created_at,
             )
             for membership, club, count, head_name in rows
+        ]
+
+    async def trending(self, limit: int = 8) -> list[TrendingClubItem]:
+        rows = await self.club_repo.list_trending(limit)
+        return [
+            TrendingClubItem(
+                id=club.id,
+                name=club.name,
+                category=club.category,
+                member_count=count,
+                college_name=college_name,
+                college_slug=college_slug,
+            )
+            for club, count, college_name, college_slug in rows
         ]
 
     async def list(self, payload: dict, status: ClubStatus | None = None,

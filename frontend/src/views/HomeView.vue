@@ -1,10 +1,10 @@
 <script setup>
 import { useRouter } from 'vue-router'
-import { GraduationCap, Compass, ArrowRight, Users, ShieldCheck, UserPlus, CalendarCheck, Award } from 'lucide-vue-next'
+import { GraduationCap, Compass, ArrowRight, Users, ShieldCheck, UserPlus, CalendarCheck, Award, Building2 } from 'lucide-vue-next'
 import { useScrollReveal } from '../composables/useScrollReveal'
 import { ref, onMounted } from 'vue'
 import ClubIcon from '../components/ui/ClubIcon.vue'
-import { getClubs } from '../api/clubs'
+import { getTrendingClubs } from '../api/clubs'
 
 const router = useRouter()
 const { collectReveal } = useScrollReveal()
@@ -146,6 +146,7 @@ const accountLinks = [
 ]
 
 const trendingClubs = ref([])
+const trendingLoading = ref(true)
 
 function categoryIcon(category) {
   const map = {
@@ -177,11 +178,11 @@ function bannerClass(category) {
 
 onMounted(async () => {
   try {
-    const clubs = await getClubs()
-
-    trendingClubs.value = [...clubs, ...clubs]
+    trendingClubs.value = await getTrendingClubs(8)
   } catch (err) {
     console.error(err)
+  } finally {
+    trendingLoading.value = false
   }
 })
 
@@ -303,21 +304,42 @@ function goTo(path) {
         <span>Live from the club directory</span>
       </div>
 
-      <div class="club-marquee reveal" :ref="collectReveal">
-        <div class="club-marquee-track">
-          <div
-            v-for="(club, index) in trendingClubs"
-            :key="index"
-            class="mini-club-card"
-          >
-            <div class="mini-club-dot" :class="bannerClass(club.category)">
-              <ClubIcon :name="categoryIcon(club.category)" />
-            </div>
+      <div class="reveal" :ref="collectReveal">
+        <div v-if="trendingLoading" class="page-loading-state">
+          <div class="empty-state">
+            <p>Loading trending clubs...</p>
+          </div>
+        </div>
 
-            <p class="mini-club-name"> {{ club.name }} </p>
+        <div v-else-if="trendingClubs.length === 0" class="empty-state empty-state-wide">
+          <Building2 />
+          <p>No active clubs to show yet. Be the first college to register on Campus Connect.</p>
+        </div>
 
-            <p class="mini-club-sub"> {{ club.member_count }} members · {{ club.category }} </p>
+        <div v-else class="club-marquee">
+          <div class="club-marquee-track">
+            <div
+              v-for="(club, index) in [...trendingClubs, ...trendingClubs]"
+              :key="club.id + '-' + index"
+              class="mini-club-card"
+            >
+              <div class="mini-club-card-top">
+                <div class="mini-club-dot" :class="bannerClass(club.category)">
+                  <ClubIcon :name="categoryIcon(club.category)" />
+                </div>
+
+                <div class="mini-club-text">
+                  <p class="mini-club-name"> {{ club.name }} </p>
+                  <p class="mini-club-sub"> {{ club.member_count }} members · {{ club.category }} </p>
+                </div>
+              </div>
+
+              <div class="mini-club-college">
+                <Building2 />
+                <span>{{ club.college_name }}</span>
+              </div>
             </div>
+          </div>
         </div>
       </div>
     </section>

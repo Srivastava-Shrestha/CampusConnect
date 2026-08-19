@@ -6959,7 +6959,7 @@ button, .btn {
   height: 18px;
 }
 
-/* Trending clubs auto-scroll carousel */
+/* Trending clubs auto-scroll carousel - live from the public trending endpoint */
 .club-marquee {
   overflow: hidden;
   -webkit-mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
@@ -6980,15 +6980,25 @@ button, .btn {
 
 .mini-club-card {
   width: 250px;
+  flex-shrink: 0;
   background-color: var(--color-surface);
   border: var(--border-subtle);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
   padding: 16px;
   display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mini-club-card-top {
+  display: flex;
   align-items: center;
   gap: 12px;
-  flex-shrink: 0;
+}
+
+.mini-club-text {
+  min-width: 0;
 }
 
 .mini-club-dot {
@@ -7028,6 +7038,30 @@ button, .btn {
   font-size: 11px;
   color: var(--color-ink-muted);
   margin-top: 2px;
+}
+
+.mini-club-college {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-top: 10px;
+  border-top: var(--border-subtle);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-ink-muted);
+}
+
+.mini-club-college svg {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+  color: var(--color-ink-light);
+}
+
+.mini-club-college span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /*  42. Hero App-Usage Showcase Carousels (replaces static hero graphic)  */

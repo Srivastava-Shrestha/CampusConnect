@@ -1,5 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.models import Club, ClubLink, ClubType, ClubStatus, Membership, MembershipStatus, Student, User
+from app.models import Club, ClubLink, ClubType, ClubStatus, Membership, MembershipStatus, Student, User, College
 from sqlalchemy import select, func, or_
 from sqlalchemy.orm import selectinload
 
@@ -65,6 +65,23 @@ class ClubRepository:
             .where(*conditions)
             .group_by(Club.id, User.full_name)
             .order_by(Club.created_at.desc())
+        )
+        return result.all()
+
+    async def list_trending(self, limit: int = 8) -> list[tuple[Club, int, str, str]]:
+        """Public, cross-college - active clubs ranked by approved member
+        count, for the unauthenticated marketing landing page."""
+        result = await self.db.execute(
+            select(Club, func.count(Membership.id), College.name, College.slug)
+            .join(College, College.id == Club.college_id)
+            .outerjoin(
+                Membership,
+                (Membership.club_id == Club.id) & (Membership.status == MembershipStatus.APPROVED),
+            )
+            .where(Club.status == ClubStatus.ACTIVE)
+            .group_by(Club.id, College.name, College.slug)
+            .order_by(func.count(Membership.id).desc(), Club.created_at.desc())
+            .limit(limit)
         )
         return result.all()
 

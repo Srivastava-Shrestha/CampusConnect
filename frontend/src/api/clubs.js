@@ -36,6 +36,18 @@ export async function getClubs() {
   return apiRequest("/clubs")
 }
 
+// Public, unauthenticated - powers the marketing landing page. No token is
+// sent even if one exists, since this must work for logged-out visitors.
+export async function getTrendingClubs(limit = 8) {
+  const response = await fetch(`${BASE_URL}/clubs/public/trending?limit=${limit}`)
+
+  if (!response.ok) {
+    throw new Error("Failed to load trending clubs")
+  }
+
+  return response.json()
+}
+
 export async function getMyClubs(params = {}) {
   const query = new URLSearchParams(params).toString()
 

@@ -164,7 +164,7 @@ onMounted(async function loadResultsPage() {
         </div>
       </div>
 
-      <div v-if="attendees.length === 0" class="empty-state">
+      <div v-if="attendees.length === 0" class="empty-state empty-state-wide">
         <p>Nobody has been checked in yet. Mark attendance first.</p>
       </div>
 
