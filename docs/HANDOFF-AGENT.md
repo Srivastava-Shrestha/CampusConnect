@@ -82,8 +82,8 @@ files:
   app/agent/memory.py:  deterministic facts; NO model write path
   app/agent/budget.py:  per-turn accounting
   app/agent/demo_data.py: sample campus + resolve_services() tiering
-  app/services/recommender.py: deterministic scoring, derive_tags, resolve_entities
-  app/services/llm_client.py:  Claude client + mock fallback
+  app/agent/recommender.py: deterministic scoring, derive_tags, resolve_entities
+  app/agent/llm_client.py:  Claude client + mock fallback
 ```
 
 ```yaml
@@ -121,7 +121,7 @@ two_degradation_axes:
 | `app/core/config.py` | core settings only | + AI/Sarvam/agent settings, all defaulted; `ENV_PATH` resolved absolutely | Plain `load_dotenv()` silently no-ops when uvicorn starts outside `backend/` |
 | `main.py`, `app/api/__init__.py`, `app/schemas/__init__.py` | — | register `ai_router`, AI schemas | Alongside dev's routers |
 | `pyproject.toml` | — | `+anthropic`, `+aiosqlite` (dev); `-httpx`, `-websockets` | Neither was imported after the rebuild |
-| `app/services/recommender.py` | — | `+derive_tags()`, `+mapped_category()`, `+_collapse_repeated_names()` | See below |
+| `app/agent/recommender.py` | — | `+derive_tags()`, `+mapped_category()`, `+_collapse_repeated_names()` | See below |
 
 ### Frontend
 

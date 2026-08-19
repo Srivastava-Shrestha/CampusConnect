@@ -64,8 +64,8 @@ flowchart TB
         RAI["routers/ai.py<br/>/ai/club-finder, /ai/chat"]
         RDisc["routers/discovery.py<br/>/discovery/context"]
         Deps["deps.py<br/>get_current_user (stub)"]
-        Rec["services/recommender.py<br/>PURE deterministic core"]
-        LLM["services/llm_client.py<br/>Haiku wrapper + mock"]
+        Rec["agent/recommender.py<br/>PURE deterministic core"]
+        LLM["agent/llm_client.py<br/>Haiku wrapper + mock"]
         Disc["services/discovery_mock.py<br/>clubs/events (stub)"]
         RAI --> Deps
         RAI --> Rec
@@ -93,8 +93,8 @@ flowchart TB
 
 | Layer | File | Responsibility |
 |---|---|---|
-| Backend core | `app/services/recommender.py` | **Pure, deterministic**: tokenise, score, select, validate LLM JSON, resolve entities, scrub emails, build prompts. No network, no DB, no email. |
-| Backend LLM | `app/services/llm_client.py` | Haiku wrapper. Real call when `ANTHROPIC_API_KEY` set; deterministic **mock** otherwise. Response cache. |
+| Backend core | `app/agent/recommender.py` | **Pure, deterministic**: tokenise, score, select, validate LLM JSON, resolve entities, scrub emails, build prompts. No network, no DB, no email. |
+| Backend LLM | `app/agent/llm_client.py` | Haiku wrapper. Real call when `ANTHROPIC_API_KEY` set; deterministic **mock** otherwise. Response cache. |
 | Backend data | `app/services/discovery_mock.py` | Stand-in for the clubs/events query, shaped to the real schema. |
 | Backend API | `app/routers/ai.py` | `/ai/club-finder`, `/ai/chat`. Orchestrates the pipeline. |
 | Backend API | `app/routers/discovery.py` | `/discovery/context` — approved clubs + upcoming events, no email. |

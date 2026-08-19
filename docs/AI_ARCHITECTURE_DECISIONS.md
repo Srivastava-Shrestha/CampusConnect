@@ -123,8 +123,8 @@ fetch → cache → deterministicScore → select → buildPrompt → callHaiku 
 
 | Component | File | Role |
 |---|---|---|
-| Scoring + selection | `backend/app/services/recommender.py` | `select_recommendations()` — pure, no imports beyond `json`/`re`/`dataclasses`. Three-tier cascade: matched clubs → event fallback → popularity. |
-| LLM wrapper | `backend/app/services/llm_client.py` | Haiku calls at `temperature` 0.0/0.3/0.4, SHA-256 response cache, deterministic mock fallback when `ANTHROPIC_API_KEY` is absent. |
+| Scoring + selection | `backend/app/agent/recommender.py` | `select_recommendations()` — pure, no imports beyond `json`/`re`/`dataclasses`. Three-tier cascade: matched clubs → event fallback → popularity. |
+| LLM wrapper | `backend/app/agent/llm_client.py` | Haiku calls at `temperature` 0.0/0.3/0.4, SHA-256 response cache, deterministic mock fallback when `ANTHROPIC_API_KEY` is absent. |
 | Data source | `backend/app/services/discovery_mock.py` | **8 hardcoded clubs, 3 hardcoded events.** The gap. |
 | Auth | `backend/app/deps.py` | **Hardcoded literal user.** The other gap. |
 | Endpoints | `backend/app/routers/ai.py` | `/api/v1/ai/club-finder`, `/api/v1/ai/chat` |
@@ -869,7 +869,7 @@ problem: cost is not a rounding error here, it is the binding constraint. ₹5 b
 **ten minutes of speech-to-text, or about 1,600 characters of speech** — enough for a demo,
 and nothing more.
 
-So the spend meter is a product requirement, not a nicety. `backend/app/services/voice_budget.py`
+So the spend meter is a product requirement, not a nicety. `backend/app/agent/voice_budget.py`
 holds a persistent ledger and the router refuses to open a paid session once the cap is
 reached:
 
@@ -983,7 +983,7 @@ flowchart TB
             BUDGET[budget.py<br/>caps + usage log]
         end
 
-        REC[services/recommender.py<br/>deterministic core — unchanged]
+        REC[agent/recommender.py<br/>deterministic core — unchanged]
         DISC[services/discovery.py<br/>real queries]
     end
 

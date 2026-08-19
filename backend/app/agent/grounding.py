@@ -17,7 +17,7 @@ allow-list that never gives the model a club it may not name cannot.
                                       is reachable from the registry)
 
 Gates 3 and 4 are deliberately thin wrappers over the v1 implementations in
-services/recommender.py. Those functions are already covered by the existing
+agent/recommender.py. Those functions are already covered by the existing
 test suite, and rewriting working security code to make it look new would be
 a poor trade.
 """
@@ -25,7 +25,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from app.services import recommender as R
+from app.agent import recommender as R
 
 
 @dataclass

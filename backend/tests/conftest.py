@@ -23,7 +23,7 @@ from sqlalchemy import event
 from app.core.database import Base, get_db
 from app.core.config import settings
 from app.models.college import College
-from app.services import llm_client
+from app.agent import llm_client
 from main import app
 
 

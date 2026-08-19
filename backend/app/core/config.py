@@ -12,20 +12,8 @@ is optional with a safe default:
   assistant demoable with no network at all.
 - An empty SARVAM_API_KEY means the voice router reports realtime voice as
   unavailable, and the frontend falls back to the browser's own narrator.
-
-The .env path is resolved explicitly rather than relying on the process
-working directory. Plain load_dotenv() silently does nothing when uvicorn is
-launched from somewhere other than backend/, which would drop the app into
-mock mode with no visible error.
 """
-from __future__ import annotations
-
-from pathlib import Path
-
 from pydantic_settings import BaseSettings
-
-# backend/app/core/config.py -> parents[2] is backend/
-ENV_PATH = Path(__file__).resolve().parents[2] / ".env"
 
 
 class Settings(BaseSettings):
@@ -68,7 +56,7 @@ class Settings(BaseSettings):
 
     # --- Sarvam spend guard --------------------------------------------
     # We hold a very small amount of Sarvam credit, so the meter is a hard
-    # product requirement rather than a nicety. services/voice_budget.py
+    # product requirement rather than a nicety. agent/voice_budget.py
     # tracks estimated spend and the voice router refuses to open a paid
     # session once the cap is reached - at which point the frontend falls
     # back to the free browser narrator instead of failing.
@@ -95,8 +83,7 @@ class Settings(BaseSettings):
     AGENT_MAX_OUTPUT_TOKENS: int = 400
 
     class Config:
-        env_file = str(ENV_PATH)
-        extra = "ignore"
+        env_file = ".env"
 
 
 settings = Settings()

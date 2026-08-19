@@ -6,7 +6,7 @@ AVAILABLE block using [[club:ID]] / [[event:ID]] tags.
 """
 import json
 
-from app.services.llm_client import call_chat, call_finder
+from app.agent.llm_client import call_chat, call_finder
 
 
 def test_call_finder_returns_json_for_every_candidate_in_prompt():

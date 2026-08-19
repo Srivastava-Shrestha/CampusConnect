@@ -37,9 +37,6 @@ filterwarnings = [
 
 [dependency-groups]
 dev = [
-    # Only for scripts/dev_seed.py, which brings up a throwaway local SQLite
-    # database so the app can be run without Postgres. Production is asyncpg.
-    "aiosqlite>=0.20.0",
     "httpx>=0.28.1",
     "pytest>=9.1.1",
     "pytest-asyncio>=1.4.0",

@@ -130,7 +130,7 @@ def record_interest(student_key: str, interest_text: str) -> None:
     keywords are exactly the ones ranking already uses - no second notion of
     "what counts as an interest" to drift out of step.
     """
-    from app.services import recommender as R
+    from app.agent import recommender as R
 
     tokens = R.normalize_tokens(interest_text or "")
 

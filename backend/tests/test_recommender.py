@@ -9,7 +9,7 @@ chat entity grounding, and privacy (no email leakage).
 """
 import pytest
 
-from app.services.recommender import (
+from app.agent.recommender import (
     normalize_tokens, score_club, score_event, select_recommendations,
     validate_finder_json, resolve_entities, scrub_emails,
 )

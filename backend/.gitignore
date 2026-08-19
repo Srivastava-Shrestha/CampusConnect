@@ -1,13 +1,9 @@
 .env
-.env.local
 .venv/
 __pycache__/
 *.pyc
 tests/reports/results_log.json
 .pytest_cache/
-
-# Throwaway local database built by scripts/dev_seed.py
-*.db
 
 var/
 .venv-linux/

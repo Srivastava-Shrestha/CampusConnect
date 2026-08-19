@@ -25,8 +25,8 @@ Companion documents:
 | `app/agent/budget.py` | Per-turn budget and cost accounting |
 | `app/agent/demo_data.py` | Sample campus used when the database is unreachable or unseeded |
 | `app/schemas/ai.py` | `AgentChatRequest` / `AgentChatResponse` |
-| `app/services/recommender.py` | Deterministic scoring core, grounding helpers |
-| `app/services/llm_client.py` | Claude client with a deterministic mock fallback |
+| `app/agent/recommender.py` | Deterministic scoring core, grounding helpers |
+| `app/agent/llm_client.py` | Claude client with a deterministic mock fallback |
 | `scripts/dev_seed.py` | Throwaway SQLite database — run the whole app without Postgres |
 
 ### Backend — changes to shared code

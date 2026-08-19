@@ -43,7 +43,7 @@ from app.agent.grounding import AllowList, redact_for_model
 from app.exceptions import AppException
 from app.models import ClubType
 from app.services import AnnouncementService, ClubService, EventService, StudentService
-from app.services import recommender as R
+from app.agent import recommender as R
 
 # Fields the model is allowed to see. Anything a service adds to its response
 # later is invisible until someone deliberately adds it here.
