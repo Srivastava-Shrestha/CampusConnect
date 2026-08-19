@@ -163,7 +163,8 @@ onMounted(async function loadAttendancePage() {
       <div class="event-action-bar">
         <p class="text-note">{{ presentCount }} of {{ participants.length }} marked present</p>
         <button class="btn-primary" :disabled="saving || !attendanceOpen" @click="submitAttendance">
-          <Save /> Save Attendance
+          <span v-if="saving" class="btn-spinner"></span>
+          <template v-else><Save /> Save Attendance</template>
         </button>
       </div>
 

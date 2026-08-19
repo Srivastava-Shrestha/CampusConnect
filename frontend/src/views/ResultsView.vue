@@ -8,6 +8,7 @@ import {
   normalizeEvent, normalizeParticipant
 } from '../api/events'
 import { toast } from '../composables/useToast'
+import { invalidateCache } from '../utils/apiCache'
 
 const route = useRoute()
 const router = useRouter()
@@ -56,6 +57,7 @@ async function publishResults() {
 
   try {
     await declareResults(route.params.id, winnerId.value, runnerUpId.value)
+    invalidateCache('leaderboard')
     toast.success('Results published! Every attendee can now see their result on the event page.')
     router.push(`/${route.params.slug}/leader/events`)
   } catch (error) {
@@ -173,7 +175,10 @@ onMounted(async function loadResultsPage() {
           :disabled="saving || !canPublish || alreadyDeclared"
           @click="publishResults"
         >
-          <Award /> {{ alreadyDeclared ? 'Results Published' : 'Publish Results' }}
+          <span v-if="saving" class="btn-spinner"></span>
+          <template v-else>
+            <Award /> {{ alreadyDeclared ? 'Results Published' : 'Publish Results' }}
+          </template>
         </button>
       </div>
 

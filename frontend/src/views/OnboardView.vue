@@ -10,6 +10,7 @@ import {
 } from 'lucide-vue-next'
 import { updateMyProfile } from '../api/students'
 import { toast } from '../composables/useToast'
+import { invalidateCache } from '../utils/apiCache'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -186,7 +187,12 @@ function readableInterests() {
   return labels.slice(0, MAX_INTERESTS)
 }
 
+const isSavingProfile = ref(false)
+
 async function finishOnboarding() {
+  if (isSavingProfile.value) return
+  isSavingProfile.value = true
+
   // Only the fields the students table actually has are sent. The chosen goal
   // is not persisted - there is no column for it - so it stays a UI-only step
   // until the backend adds one.
@@ -203,9 +209,12 @@ async function finishOnboarding() {
 
   try {
     await updateMyProfile(profile)
+    invalidateCache('my-profile')
     isDone.value = true
   } catch (error) {
     toast.error(error?.message || 'Could not save your profile. Please try again.')
+  } finally {
+    isSavingProfile.value = false
   }
 }
 
@@ -351,8 +360,9 @@ function goExploreClubs() {
           <button class="onboard-back-btn" @click="goToStep(2)">
             <ArrowLeft /> Back
           </button>
-          <button class="onboard-next-btn" @click="finishOnboarding">
-            Let's go <ArrowRight />
+          <button class="onboard-next-btn" :disabled="isSavingProfile" @click="finishOnboarding">
+            <span v-if="isSavingProfile" class="btn-spinner"></span>
+            <template v-else>Let's go <ArrowRight /></template>
           </button>
         </div>
       </div>

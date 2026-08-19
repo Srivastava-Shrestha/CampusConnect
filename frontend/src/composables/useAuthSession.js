@@ -3,6 +3,7 @@ import { jwtDecode } from 'jwt-decode'
 import { useAuthStore } from '../stores/auth'
 import { useClubsStore } from '../stores/clubs'
 import { useEventsStore } from '../stores/events'
+import { invalidateCache } from '../utils/apiCache'
 import { getMyClubs } from '../api/clubs'
 import { getMyProfile } from '../api/students'
 
@@ -18,6 +19,7 @@ export function useAuthSession() {
     // the way out.
     useClubsStore().$reset()
     useEventsStore().$reset()
+    invalidateCache()
 
     auth.setToken(result.access_token)
 

@@ -17,6 +17,7 @@ function goToHome() {
 const resetEmail = ref('')
 const sentEmail = ref('')
 const linkSent = ref(false)
+const isSending = ref(false)
 
 async function handleSendResetLink() {
   if (!isValidEmail(resetEmail.value)) {
@@ -24,12 +25,17 @@ async function handleSendResetLink() {
     return
   }
 
+  if (isSending.value) return
+  isSending.value = true
+
   try {
     await sendResetLink(resetEmail.value.trim())
     sentEmail.value = resetEmail.value.trim()
     linkSent.value = true
 } catch (error) {
     toast.error(error?.message || 'Unable to send reset link.')
+} finally {
+    isSending.value = false
 }
 }
 
@@ -90,8 +96,9 @@ function tryAgain() {
           >
         </div>
 
-        <button class="btn-auth-submit" @click="handleSendResetLink">
-          <Send /> Send Reset Link
+        <button class="btn-auth-submit" :disabled="isSending" @click="handleSendResetLink">
+          <span v-if="isSending" class="btn-spinner"></span>
+          <template v-else><Send /> Send Reset Link</template>
         </button>
 
         <p class="auth-switch-text">

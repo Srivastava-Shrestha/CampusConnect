@@ -6,6 +6,7 @@ import Topbar from '../components/layout/Topbar.vue'
 import FilterChips from '../components/ui/FilterChips.vue'
 import ClubIcon from '../components/ui/ClubIcon.vue'
 import { getLeaderboard } from '../api/leaderboard'
+import { cachedFetch } from '../utils/apiCache'
 import { bannerColourFor, iconNameFor } from '../utils/clubVisuals'
 import { toast } from '../composables/useToast'
 
@@ -72,7 +73,7 @@ const rows = computed(function buildRows() {
 
 onMounted(async function loadLeaderboard() {
   try {
-    entries.value = await getLeaderboard()
+    entries.value = await cachedFetch('leaderboard', getLeaderboard)
   } catch (error) {
     toast.error(error.message || 'Could not load the leaderboard.')
     entries.value = []
@@ -95,8 +96,10 @@ onMounted(async function loadLeaderboard() {
 
         <FilterChips :chips="filterChips" v-model="activeFilter" />
 
-        <div v-if="isLoading" class="empty-state">
-          <p>Loading rankings...</p>
+        <div v-if="isLoading" class="page-loading-state">
+          <div class="empty-state">
+            <p>Loading rankings...</p>
+          </div>
         </div>
 
         <template v-else-if="entries.length">

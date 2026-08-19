@@ -207,7 +207,10 @@ onMounted(async function loadDetail() {
                   :disabled="submitting || !registrationOpen"
                   @click="handleRegister"
                 >
-                  <CheckCircle2 /> {{ registrationOpen ? 'Register Now' : 'Registration Closed' }}
+                  <span v-if="submitting" class="btn-spinner"></span>
+                  <template v-else>
+                    <CheckCircle2 /> {{ registrationOpen ? 'Register Now' : 'Registration Closed' }}
+                  </template>
                 </button>
               </div>
 
@@ -225,7 +228,8 @@ onMounted(async function loadDetail() {
                   :disabled="submitting"
                   @click="handleUnregister"
                 >
-                  <XCircle /> Cancel Registration
+                  <span v-if="submitting" class="btn-spinner"></span>
+                  <template v-else><XCircle /> Cancel Registration</template>
                 </button>
 
                 <div v-if="myResult">
@@ -245,10 +249,14 @@ onMounted(async function loadDetail() {
     </main>
 
   </div>
-  <div v-else-if="!hasLoaded" class="empty-state">
-    <p>Loading event...</p>
+  <div v-else-if="!hasLoaded" class="main-content page-loading-state">
+    <div class="empty-state">
+      <p>Loading event...</p>
+    </div>
   </div>
-  <div v-else class="empty-state">
-    <p>Event not found.</p>
-</div>
+  <div v-else class="main-content page-loading-state">
+    <div class="empty-state">
+      <p>Event not found.</p>
+    </div>
+  </div>
 </template>

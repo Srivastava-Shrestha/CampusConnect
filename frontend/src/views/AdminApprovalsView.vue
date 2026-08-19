@@ -46,13 +46,24 @@ const pendingCount = computed(function countPending() {
   }).length
 })
 
+const busyIds = ref(new Set())
+
+function isBusy(id) {
+  return busyIds.value.has(id)
+}
+
 async function handleApprove(approval) {
-  await approveClubRequest(approval.id)
-  approvals.value = approvals.value.map((item) =>
-    item.id === approval.id
-      ? { ...item, status: "approved" }
-      : item
-  )
+  busyIds.value.add(approval.id)
+  try {
+    await approveClubRequest(approval.id)
+    approvals.value = approvals.value.map((item) =>
+      item.id === approval.id
+        ? { ...item, status: "approved" }
+        : item
+    )
+  } finally {
+    busyIds.value.delete(approval.id)
+  }
 }
 
 async function handleReject(approval) {
@@ -62,13 +73,17 @@ async function handleReject(approval) {
 
   if (reason === null) return
 
-  await rejectClubRequest(approval.id)
-
-  approvals.value = approvals.value.map((item) =>
-    item.id === approval.id
-      ? { ...item, status: "rejected" }
-      : item
-  )
+  busyIds.value.add(approval.id)
+  try {
+    await rejectClubRequest(approval.id)
+    approvals.value = approvals.value.map((item) =>
+      item.id === approval.id
+        ? { ...item, status: "rejected" }
+        : item
+    )
+  } finally {
+    busyIds.value.delete(approval.id)
+  }
 }
 
 onMounted(async () => {
@@ -123,12 +138,13 @@ onMounted(async () => {
           :key="approval.id"
           :approval="approval"
           meta-field="metaFull"
+          :busy="isBusy(approval.id)"
           @approve="handleApprove(approval)"
           @reject="handleReject(approval)"
         />
       </div>
 
-      <div v-if="visibleApprovals.length === 0" class="empty-state">
+      <div v-if="visibleApprovals.length === 0" class="empty-state empty-state-wide">
         <CheckCircle2 />
         <p>No approvals match this filter.</p>
       </div>

@@ -24,6 +24,11 @@ vue: Composition API <script setup>, no <style scoped>, multi-line literals, nam
 
 ## Environment
 
+**No SQLite, anywhere.** `scripts/dev_seed.py` and `.env.local.example` were
+deleted after backend review — this project runs Postgres only, including
+local dev (Neon branch or `docker run postgres:16`, then `alembic upgrade
+head`). Do not reintroduce a SQLite path.
+
 Windows cannot import the backend: `app/core/certificate.py` imports `cairosvg`
 at module level, reached via `app/services/__init__.py`, and the native Cairo
 library is not pip-installable there. **Use WSL.**
@@ -33,35 +38,29 @@ library is not pip-installable there. **Use WSL.**
 wsl -e bash -lc "cd /mnt/g/SE-project/FINAL-Campus-Connect/UI/MAY2026-Team-003/backend \
   && UV_PROJECT_ENVIRONMENT=.venv-linux uv sync"
 
-# required env vars for any import of app/ or main
-DATABASE_URL='sqlite+aiosqlite:///./dev.db' TEST_DATABASE_URL='sqlite+aiosqlite:///./t.db'
-JWT_SECRET_KEY=s JWT_ALGORITHM=HS256 FRONTEND_URL=http://localhost:5173
-AWS_REGION=x S3_BUCKET_NAME=x AWS_ACCESS_KEY_ID=x AWS_SECRET_ACCESS_KEY=x
-SMTP_HOST=x SMTP_PORT=25 SMTP_USER=x SMTP_PASSWORD=x MAIL_FROM=x
+# required env vars for any import of app/ or main (all real Postgres now)
+DATABASE_URL='postgresql+asyncpg://user:pass@host/db?ssl=require'
+TEST_DATABASE_URL='postgresql+asyncpg://user:pass@host/db2?ssl=require'  # a SEPARATE db - conftest.py drops all tables on it
+JWT_SECRET_KEY=<random> JWT_ALGORITHM=HS256 FRONTEND_URL=http://localhost:5173
+AWS_REGION=... S3_BUCKET_NAME=... AWS_ACCESS_KEY_ID=... AWS_SECRET_ACCESS_KEY=...
+SMTP_HOST=... SMTP_PORT=... SMTP_USER=... SMTP_PASSWORD=... MAIL_FROM=...
 # GOOGLE_CLIENT_ID and ANTHROPIC_API_KEY have defaults; empty key => deterministic mode
-```
-
-```bash
-# seed a throwaway SQLite campus (stop the API first: Windows locks the file)
-.venv-linux/bin/python scripts/dev_seed.py
-# accounts, all password123:
-#   student@nexmind.edu  (member of Photography Circle only)
-#   riya@nexmind.edu     (heads Robotics & Automation)
-#   admin@nexmind.edu    (campus admin)
-# slug: nexmind-institute-of-technology
+# Neon URLs need ?ssl=require for asyncpg - NOT ?sslmode=require&channel_binding=require
+# (those are libpq-only query params; asyncpg raises TypeError on them)
 ```
 
 Verification commands that are known to work:
 
 ```bash
-.venv-linux/bin/python -c "from main import app; print(len(app.openapi()['paths']))"   # 47
-.venv-linux/bin/python -m pytest tests/test_recommender.py tests/test_llm_client.py tests/unit -q  # 60 passed
+.venv-linux/bin/python -c "from main import app; print(len(app.openapi()['paths']))"   # 48
 cd frontend && npm run build          # passes
-cd frontend && npx vitest run src/api/ai.test.js   # 7 passed
+cd frontend && npx vitest run src/api/ai.test.js src/api/leaderboard.test.js   # 10 passed
 ```
 
-`tests/integration/` fails wholesale (needs real Postgres + MailHog). Not caused
-by this branch — do not treat as a regression.
+**Do not run `pytest` against a `.env` where `TEST_DATABASE_URL` points at the
+same database as `DATABASE_URL`.** `tests/conftest.py`'s `setup_db` fixture
+runs `Base.metadata.drop_all` on `TEST_DATABASE_URL` at session end — pointing
+both URLs at the same database means running the suite wipes real data.
 
 ## AI module architecture
 
@@ -84,6 +83,12 @@ files:
   app/agent/demo_data.py: sample campus + resolve_services() tiering
   app/agent/recommender.py: deterministic scoring, derive_tags, resolve_entities
   app/agent/llm_client.py:  Claude client + mock fallback
+  app/agent/voice_budget.py: Sarvam spend meter, unused until voice mode is built
+# ^ all of app/agent/* - moved here from app/services/ after review flagged
+#   pure functions / a stateless client sitting in the DB-service-class dir.
+#   If you see an import from app.services.recommender or
+#   app.services.llm_client anywhere, that is stale - fix the import, do not
+#   move the files back.
 ```
 
 ```yaml

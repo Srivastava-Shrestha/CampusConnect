@@ -208,6 +208,15 @@ const leaderRoutes = [
     }
   },
   {
+    path: '/:slug/leader/events/:id/edit',
+    name: 'edit-event',
+    component: () => import('../views/CreateEventView.vue'),
+    meta: {
+      role: 'leader',
+      bodyClass: 'portal-body'
+    }
+  },
+  {
     path: '/:slug/leader/events/:id/attend',
     name: 'attendance',
     component: () => import('../views/AttendanceView.vue'),

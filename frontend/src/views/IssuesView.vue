@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { MessageSquareWarning, Send } from 'lucide-vue-next'
+import { MessageSquareWarning, Send, Inbox } from 'lucide-vue-next'
 import StudentSidebar from '../components/layout/StudentSidebar.vue'
 import Topbar from '../components/layout/Topbar.vue'
 import CustomSelect from '../components/ui/CustomSelect.vue'
@@ -8,6 +8,7 @@ import IssueCard from '../components/ui/IssueCard.vue'
 import StatusPill from '../components/ui/StatusPill.vue'
 import { getIssues, raiseIssue } from '../api/issues'
 import { getMyClubs } from '../api/clubs'
+import { cachedFetch, invalidateCache } from '../utils/apiCache'
 import { useFormValidation } from '../composables/useFormValidation'
 import { toast } from '../composables/useToast'
 
@@ -82,6 +83,7 @@ async function submitIssue() {
 
     toast.success('Issue submitted. The club leader has been notified.')
     clearForm()
+    invalidateCache('my-issues')
     await loadIssues()
   } catch (error) {
     toast.error(error?.message || 'Could not submit your issue. Please try again.')
@@ -92,7 +94,7 @@ async function submitIssue() {
 
 async function loadIssues() {
   try {
-    issues.value = await getIssues()
+    issues.value = await cachedFetch('my-issues', getIssues)
   } catch (error) {
     toast.error(error?.message || 'Could not load your issues.')
   }
@@ -175,7 +177,8 @@ onMounted(async function loadPage() {
             :disabled="isSubmitting || clubOptions.length === 0"
             @click="submitIssue"
           >
-            <Send /> {{ isSubmitting ? 'Submitting...' : 'Submit Issue' }}
+            <span v-if="isSubmitting" class="btn-spinner"></span>
+            <template v-else><Send /> Submit Issue</template>
           </button>
 
           <p class="text-note">Issues are sent directly to the club leader. Most are resolved within 48 hours.</p>
@@ -187,7 +190,12 @@ onMounted(async function loadPage() {
             <StatusPill status="open" :label="openCount + ' open'" />
           </div>
 
-          <div class="issue-feed">
+          <div v-if="issues.length === 0" class="empty-state empty-state-wide">
+            <Inbox />
+            <p>You haven't raised any issues yet. Use the form above if something needs a club leader's attention.</p>
+          </div>
+
+          <div v-else class="issue-feed">
             <IssueCard
               v-for="issue in issues"
               :key="issue.id"

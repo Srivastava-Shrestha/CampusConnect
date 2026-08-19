@@ -6,6 +6,7 @@ import Topbar from '../components/layout/Topbar.vue'
 import StatCard from '../components/ui/StatCard.vue'
 import FilterChips from '../components/ui/FilterChips.vue'
 import { getLeaderIssues, replyToIssue, resolveIssue } from '../api/issues'
+import { cachedFetch, invalidateCache } from '../utils/apiCache'
 import { useAuthStore } from '../stores/auth'
 import { toast } from '../composables/useToast'
 
@@ -55,6 +56,14 @@ function closeReply() {
   replyText.value = ''
 }
 
+// Several issues can sit on screen at once, so "in flight" is tracked per
+// issue id rather than one flag for the whole page.
+const busyIssueIds = ref(new Set())
+
+function isIssueBusy(issueId) {
+  return busyIssueIds.value.has(issueId)
+}
+
 async function submitReply(issue) {
   const text = replyText.value.trim()
 
@@ -63,30 +72,54 @@ async function submitReply(issue) {
     return
   }
 
-  await replyToIssue(issue.id, text)
+  busyIssueIds.value.add(issue.id)
 
-  issue.response = {
-    by: auth.user.name,
-    text: text
+  try {
+    await replyToIssue(issue.id, text)
+
+    issue.response = {
+      by: auth.user.name,
+      text: text
+    }
+    issue.status = 'in-progress'
+    issue.statusLabel = 'In Progress'
+
+    invalidateCache('leader-issues')
+    closeReply()
+  } catch (error) {
+    toast.error(error?.message || 'Could not send the reply.')
+  } finally {
+    busyIssueIds.value.delete(issue.id)
   }
-  issue.status = 'in-progress'
-  issue.statusLabel = 'In Progress'
-
-  closeReply()
 }
 
 async function markResolved(issue) {
-  await resolveIssue(issue.id)
+  busyIssueIds.value.add(issue.id)
 
-  issue.status = 'resolved'
-  issue.statusLabel = 'Resolved'
+  try {
+    await resolveIssue(issue.id)
 
-  if (openReplyId.value === issue.id) {
-    closeReply()
+    issue.status = 'resolved'
+    issue.statusLabel = 'Resolved'
+
+    invalidateCache('leader-issues')
+
+    if (openReplyId.value === issue.id) {
+      closeReply()
+    }
+  } catch (error) {
+    toast.error(error?.message || 'Could not resolve this issue.')
+  } finally {
+    busyIssueIds.value.delete(issue.id)
   }
 }
+
 onMounted(async function loadLeaderIssues() {
-  issues.value = await getLeaderIssues()
+  try {
+    issues.value = await cachedFetch('leader-issues', getLeaderIssues)
+  } catch (error) {
+    toast.error(error?.message || 'Could not load issues.')
+  }
 })
 </script>
 
@@ -138,12 +171,13 @@ onMounted(async function loadLeaderIssues() {
           </div>
 
           <div v-if="issue.status !== 'resolved'" class="issue-action-row">
-            <button class="btn-secondary" @click="openReply(issue.id)">
+            <button class="btn-secondary" :disabled="isIssueBusy(issue.id)" @click="openReply(issue.id)">
               <MessageSquare />
               {{ issue.response ? 'Follow Up' : 'Reply' }}
             </button>
-            <button class="btn-success" @click="markResolved(issue)">
-              <Check /> Mark Resolved
+            <button class="btn-success" :disabled="isIssueBusy(issue.id)" @click="markResolved(issue)">
+              <span v-if="isIssueBusy(issue.id)" class="btn-spinner"></span>
+              <template v-else><Check /> Mark Resolved</template>
             </button>
           </div>
 
@@ -155,16 +189,17 @@ onMounted(async function loadLeaderIssues() {
               placeholder="Type your response to the member..."
             ></textarea>
             <div class="issue-action-row">
-              <button class="btn-primary" @click="submitReply(issue)">
-                <Send /> Send Reply
+              <button class="btn-primary" :disabled="isIssueBusy(issue.id)" @click="submitReply(issue)">
+                <span v-if="isIssueBusy(issue.id)" class="btn-spinner"></span>
+                <template v-else><Send /> Send Reply</template>
               </button>
-              <button class="btn-secondary" @click="closeReply">Cancel</button>
+              <button class="btn-secondary" :disabled="isIssueBusy(issue.id)" @click="closeReply">Cancel</button>
             </div>
           </div>
         </div>
       </div>
 
-      <div v-if="visibleIssues.length === 0" class="empty-state">
+      <div v-if="visibleIssues.length === 0" class="empty-state empty-state-wide">
         <Inbox />
         <p>No issues match this filter.</p>
       </div>

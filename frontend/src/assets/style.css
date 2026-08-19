@@ -9059,3 +9059,65 @@ button:disabled {
   cursor: not-allowed;
   opacity: 0.75;
 }
+
+/*  63. Leader club page - club switcher beside Edit/Delete
+    ---------------------------------------------------------
+    CustomSelect's trigger is width:100%, which with no constraint of its own
+    stretched to eat the row and left too little room for Edit Club Info and
+    Delete Club next to it. Capping its width keeps both buttons at full
+    size regardless of how long the selected club's name is.             */
+
+.leader-club-switcher {
+  width: 200px;
+  flex-shrink: 0;
+}
+
+/*  64. Page-level loading / not-found state
+    -------------------------------------------
+    EventDetailView and ClubProfileView show a loading or not-found message
+    as a sibling of .main-content rather than something rendered inside it.
+    Without .main-content's own flex layout, that message sat as a small
+    unstyled box wedged next to the sidebar instead of centred in the page.
+    This gives it the same flex:1 sizing as the real page, plus centering.  */
+
+.page-loading-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Full-page usage (replacing .main-content) already fills the viewport via
+     flex:1, so this is only a floor - it stops the nested usage inside
+     content-body (a loading list, not a whole missing page) from collapsing
+     to a sliver the height of one line of text. */
+  min-height: 240px;
+}
+
+.page-loading-state .empty-state {
+  max-width: 380px;
+}
+
+/*  65. Wide empty state (full-width dashed card)
+    -------------------------------------------
+    Several lists rendered nothing at all when empty - "Recommended for You"
+    with every club already joined, pending requests with none waiting,
+    certificates with none earned yet - rather than saying so. This is the
+    same dashed .empty-state card, just sized to read properly as a full row
+    instead of the compact centred block .page-loading-state uses.          */
+
+.empty-state-wide {
+  width: 100%;
+  padding: 32px 24px;
+}
+
+.empty-state-wide svg {
+  width: 28px;
+  height: 28px;
+  margin: 0 auto 10px auto;
+  color: var(--color-ink-light);
+  display: block;
+}
+
+.empty-state-wide p {
+  max-width: 480px;
+  margin: 0 auto;
+  color: var(--color-ink-muted);
+}

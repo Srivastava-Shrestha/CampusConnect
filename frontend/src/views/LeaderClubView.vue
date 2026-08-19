@@ -10,6 +10,7 @@ import ClubProposalList from '../components/ui/ClubProposalList.vue'
 import { getClubById, updateClub, deleteClub, getMyClubs } from '../api/clubs'
 import { getEvents, normalizeEvent } from '../api/events'
 import { toast } from '../composables/useToast'
+import LeaderClubSwitcher from '../components/ui/LeaderClubSwitcher.vue'
 import CustomSelect from '../components/ui/CustomSelect.vue'
 
 const router = useRouter()
@@ -73,8 +74,14 @@ const quickActions = computed(() => [
 ])
 
 function buildStats(loadedClub) {
+  // member_count comes straight from the backend, which counts every
+  // APPROVED membership - and the leader has one of those too, created
+  // automatically when the club was proposed. "Members" here means the
+  // people the leader is leading, not a headcount that includes themselves.
+  const regularMemberCount = Math.max(loadedClub.member_count - 1, 0)
+
   return [
-    { num: loadedClub.member_count, label: 'Members' },
+    { num: regularMemberCount, label: 'Members' },
     { num: loadedClub.head?.full_name ?? '-', label: 'Club Head' },
     { num: loadedClub.status, label: 'Status' },
     {
@@ -155,6 +162,8 @@ function cancelEditing() {
   editing.value = false
 }
 
+const deleting = ref(false)
+
 async function deleteCurrentClub() {
 
   const confirmed = window.confirm(
@@ -162,6 +171,8 @@ async function deleteCurrentClub() {
   )
 
   if (!confirmed) return
+
+  deleting.value = true
 
   try {
 
@@ -174,6 +185,7 @@ async function deleteCurrentClub() {
   } catch (error) {
 
     toast.error(error.message)
+    deleting.value = false
 
   }
 
@@ -196,7 +208,7 @@ async function loadClubData(clubId) {
     })
 
     upcomingEvents.value = rows
-      .map(normalizeEvent)
+      .map(row => normalizeEvent(row))
       .filter(event => event.status !== 'cancelled')
 
   } catch (error) {
@@ -257,7 +269,13 @@ onMounted(async () => {
 <template>
   <LeaderSidebar />
 
-  <div class="main-content" v-if="hasNoClub">
+  <div v-if="!hasLoaded" class="main-content page-loading-state">
+    <div class="empty-state">
+      <p>Loading your club...</p>
+    </div>
+  </div>
+
+  <div class="main-content" v-else-if="hasNoClub">
 
     <header class="topbar">
       <div class="title-block">
@@ -286,28 +304,32 @@ onMounted(async () => {
     <header class="topbar">
       <div class="title-block">
         <h1 class="page-title">My Club</h1>
-
-        <CustomSelect
-           v-model="selectedClubId" 
-           :options="
-            clubsStore.leaderClubs.map(c => ({ 
-              value: c.id, 
-              label: c.name 
-              }))
-            "
-            placeholder="Select Club"/>
       </div>
       <div class="topbar-spacer"></div>
-      <div style="display:flex;gap:12px;">
+      <div style="display:flex;gap:12px;align-items:center;">
+
+        <div v-if="clubsStore.leaderClubs.length > 1" class="leader-club-switcher">
+          <CustomSelect
+             v-model="selectedClubId"
+             :options="
+              clubsStore.leaderClubs.map(c => ({
+                value: c.id,
+                label: c.name
+                }))
+              "
+              placeholder="Select Club"/>
+        </div>
 
         <button class="btn-secondary" @click="startEditing"> <Pencil />Edit Club Info</button>
 
         <button
           class="btn-secondary"
           style="background:#ef4444;color:white;"
+          :disabled="deleting"
           @click="deleteCurrentClub"
         >
-          Delete Club
+          <span v-if="deleting" class="btn-spinner"></span>
+          <template v-else>Delete Club</template>
         </button>
 
       </div>
@@ -407,13 +429,16 @@ onMounted(async () => {
 
     <button
       class="btn-primary"
+      :disabled="saving"
       @click="saveClubEdits"
     >
-      Save Changes
+      <span v-if="saving" class="btn-spinner"></span>
+      <template v-else>Save Changes</template>
     </button>
 
     <button
       class="btn-secondary"
+      :disabled="saving"
       @click="cancelEditing"
     >
       Cancel

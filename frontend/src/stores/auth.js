@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { useClubsStore } from './clubs'
 import { useEventsStore } from './events'
+import { invalidateCache } from '../utils/apiCache'
 
 const defaultUser = {
   name: "",
@@ -91,6 +92,7 @@ export const useAuthStore = defineStore('auth', {
       // "loaded once, ever."
       useClubsStore().$reset()
       useEventsStore().$reset()
+      invalidateCache()
     }
   }
 })

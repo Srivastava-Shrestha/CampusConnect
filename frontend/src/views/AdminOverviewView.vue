@@ -132,6 +132,7 @@ onMounted(async () => {
             v-for="approval in pendingList"
             :key="approval.id"
             :approval="approval"
+            :busy="isBusy(approval.id)"
             @approve="handleApprove(approval)"
             @reject="handleReject(approval)"
           />

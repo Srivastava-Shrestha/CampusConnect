@@ -1,10 +1,10 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { ArrowLeft, Send, Save } from 'lucide-vue-next'
 import LeaderSidebar from '../components/layout/LeaderSidebar.vue'
-import { createEvent, publishEvent } from '../api/events'
+import { createEvent, publishEvent, updateEvent, getEventById } from '../api/events'
 import { useClubsStore } from '../stores/clubs'
 import { toast } from '../composables/useToast'
 import { useFormValidation } from '../composables/useFormValidation'
@@ -17,6 +17,13 @@ const { allFieldsFilled } = useFormValidation()
 
 const club = ref(null)
 const saving = ref(false)
+
+// This same form doubles as the editor: /leader/events/:id/edit routes here
+// with an id, /leader/events/new does not. Kept as one view rather than a
+// second near-identical form, since the fields and validation are the same.
+const editingEventId = computed(() => route.params.id || null)
+const isEditing = computed(() => Boolean(editingEventId.value))
+const loadingEvent = ref(false)
 
 const eventTitle = ref('')
 const eventDesc = ref('')
@@ -62,6 +69,20 @@ function goBackToEvents() {
 // wants one ISO instant per boundary.
 function toIsoInstant(date, time) {
   return new Date(`${date}T${time}`).toISOString()
+}
+
+// The reverse, for prefilling the form when editing: an ISO instant back into
+// the local date/time strings the <input> elements expect.
+function toLocalDateInput(isoInstant) {
+  const d = new Date(isoInstant)
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
+
+function toLocalTimeInput(isoInstant) {
+  const d = new Date(isoInstant)
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
 function buildPayload() {
@@ -157,7 +178,51 @@ async function publishNewEvent() {
   }
 }
 
+async function saveChanges() {
+  const payload = buildPayload()
+  if (!payload) return
+
+  saving.value = true
+
+  try {
+    await updateEvent(editingEventId.value, payload)
+    toast.success('Event updated.')
+    router.push(`/${route.params.slug}/leader/events`)
+  } catch (error) {
+    toast.error(error?.message || 'Unable to update event.')
+  } finally {
+    saving.value = false
+  }
+}
+
+async function loadEventForEditing() {
+  loadingEvent.value = true
+
+  try {
+    const event = await getEventById(editingEventId.value)
+
+    club.value = { id: event.club_id, name: event.club_name }
+    eventTitle.value = event.title
+    eventDesc.value = event.description
+    eventVenue.value = event.venue
+    eventDate.value = toLocalDateInput(event.starts_at)
+    eventStart.value = toLocalTimeInput(event.starts_at)
+    eventEnd.value = toLocalTimeInput(event.ends_at)
+    eventCapacity.value = event.capacity ?? ''
+  } catch (error) {
+    toast.error(error?.message || 'Unable to load this event.')
+    router.push(`/${route.params.slug}/leader/events`)
+  } finally {
+    loadingEvent.value = false
+  }
+}
+
 onMounted(async () => {
+  if (isEditing.value) {
+    await loadEventForEditing()
+    return
+  }
+
   try {
     await clubsStore.loadLeaderClubs()
 
@@ -186,7 +251,7 @@ onMounted(async () => {
         <ArrowLeft /> Events
       </button>
       <div class="title-block">
-        <h1 class="page-title">Create a New Event</h1>
+        <h1 class="page-title">{{ isEditing ? 'Edit Event' : 'Create a New Event' }}</h1>
         <p class="page-sub">{{ club ? club.name : 'Loading your club...' }}</p>
       </div>
       <div class="topbar-spacer"></div>
@@ -236,12 +301,20 @@ onMounted(async () => {
             <input type="text" id="event-venue" v-model="eventVenue" class="input-field" placeholder="e.g. Seminar Hall, Block A">
           </div>
 
-          <div class="event-action-bar">
+          <div v-if="isEditing" class="event-action-bar">
+            <button class="btn-primary" :disabled="saving || !club" @click="saveChanges">
+              <span v-if="saving" class="btn-spinner"></span>
+              <template v-else><Save /> Save Changes</template>
+            </button>
+          </div>
+          <div v-else class="event-action-bar">
             <button class="btn-secondary" :disabled="saving || !club" @click="saveDraft">
-              <Save /> Save as Draft
+              <span v-if="saving" class="btn-spinner"></span>
+              <template v-else><Save /> Save as Draft</template>
             </button>
             <button class="btn-primary" :disabled="saving || !club" @click="publishNewEvent">
-              <Send /> Publish Event
+              <span v-if="saving" class="btn-spinner"></span>
+              <template v-else><Send /> Publish Event</template>
             </button>
           </div>
         </div>

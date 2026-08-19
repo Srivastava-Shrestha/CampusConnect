@@ -142,6 +142,16 @@ export function iconNameFor(club) {
  */
 const STATUS_MAP = { PENDING: 'pending', ACTIVE: 'approved', REJECTED: 'rejected' }
 
+function formatSubmittedDate(value) {
+  if (!value) return 'recently'
+
+  return new Date(value).toLocaleDateString(undefined, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric'
+  })
+}
+
 export function toApprovalCard(club) {
   const applicationLink = (club.links || []).find(
     (link) => link.label === 'Application Document'
@@ -153,6 +163,10 @@ export function toApprovalCard(club) {
     banner: bannerColourFor(club),
     icon: iconNameFor(club),
     applicationLink: applicationLink ? applicationLink.url : null,
-    meta: `${club.category} · ${club.member_count} members`
+    meta: `${club.category} · ${club.member_count} members`,
+    // The approvals page (not the dashboard summary) shows this longer form -
+    // it was referenced there as metaField="metaFull" but nothing ever set
+    // it, so that line rendered blank.
+    metaFull: `${club.category} · ${club.member_count} members · Submitted ${formatSubmittedDate(club.created_at)}`
   }
 }

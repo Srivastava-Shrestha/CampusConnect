@@ -9,6 +9,149 @@ AI endpoint contract: [`AI_MODULE_INTEGRATION.md`](AI_MODULE_INTEGRATION.md).
 
 ---
 
+## 0. Session update — 2026-08-19
+
+Scope grew well past the AI module during this session, after Shrestha's review
+of the first PR draft (§B below) and then a full manual click-through of every
+role's flows against a real Neon database. This section is what changed since
+§1–§6 were written; those sections are the original AI-module write-up and are
+still accurate for that part.
+
+### A. Local dev setup, now Postgres-only
+
+SQLite is gone. Shrestha's review made the call explicit: this project runs
+against real Postgres everywhere, including local dev — no SQLite fallback, no
+dialect-branching code to support one.
+
+- `scripts/dev_seed.py`, `.env.local.example` — **deleted**.
+- `app/models/student.py` — `interests` reverted to plain `ARRAY(Text)`, no
+  SQLite variant.
+- `app/core/database.py` — reverted to the unconditional
+  `connect_args={"statement_cache_size": 0}` (asyncpg-only, matches how the
+  app is actually deployed — behind Neon's connection pooler).
+- `app/core/config.py` — reverted to a plain `env_file = ".env"`; the
+  `ENV_PATH` pathlib resolution was removed as unnecessary indirection.
+- To run locally now: a real Postgres, either a Neon branch or
+  `docker run postgres:16`, with `alembic upgrade head` applied. **Windows
+  still cannot import the backend at all** — `app/core/certificate.py`'s
+  module-level `import cairosvg` needs the native Cairo library, which is not
+  pip-installable there. WSL remains the only way to run or test the backend
+  on Windows; see §D of `HANDOFF-AGENT.md` for exact commands.
+
+### B. Structural fix — AI code moved out of `app/services/`
+
+Flagged in review: `recommender.py`, `llm_client.py`, `voice_budget.py` are
+pure functions and a stateless API client, not DB-backed service classes like
+everything else `app/services/` holds. They now live in `app/agent/` instead,
+alongside the rest of the AI module. Every import site was updated; nothing
+outside `app/agent/` and `app/api/ai.py` should ever import them.
+
+### C. Additive backend changes since §2
+
+- **`ClubListItem` / `MyClubItem` gained `links`.** The admin approval cards'
+  "View Application" button had nothing to point at — the list endpoints never
+  returned the club's links, only the single-club detail endpoint did. Fixed
+  with `selectinload(Club.links)` on both list queries (one extra batched
+  query, not N+1) and a schema field. No migration; the column already
+  existed, only the projection was missing.
+- **`DELETE /clubs/{club_id}/members/{student_id}`** — new. The "Remove"
+  button on the members page was a stub (`toast.info('not supported yet')`)
+  with no backend counterpart. Leader-only, refuses to remove the club's own
+  leader (`ClubActionNotAllowedError`).
+
+### D. Frontend — root-cause bugs (not just symptoms)
+
+- **Cross-account data leakage.** `clubsStore` and `eventsStore` cache
+  themselves with a `loaded` flag that only cleared on a hard reload.
+  Switching accounts in the same tab left the next account looking at the
+  previous one's data, or a failed unauthenticated fetch's empty result. This
+  was the actual cause of "0 clubs" and "event not found" reports that looked
+  unrelated to each other. **Fixed**: both stores `$reset()` on every login and
+  logout (`stores/auth.js`, `composables/useAuthSession.js`).
+- **"Not found" flashing before the real page loads**, and in one case
+  (`LeaderClubView`) **a fully blank white screen** — several views used a
+  plain `v-if="entity"` where `entity` starts `null` and the fetch can take a
+  few seconds against Neon's real network latency. `v-if` / `v-else` alone
+  means "not found" (or nothing at all) is the literal first paint, every
+  time. Every affected view now has a third state distinguishing "still
+  loading" from "confirmed not found": `EventDetailView`, `ClubProfileView`,
+  `ClubDirectoryView` (both its lists), `LeaderClubView`, `LeaderEventsView`.
+  All of them render through one shared centred `page-loading-state` CSS class
+  (style.css §64) so the loading box looks the same everywhere.
+- **`.map(normalizeEvent)` footgun** (`LeaderClubView.vue`) — `Array.map`
+  calls its callback with `(item, index, array)`, so the numeric `index` was
+  landing in `normalizeEvent`'s second parameter (`registeredEventIds`, which
+  the function then calls `.has()` on) → `TypeError`, silently swallowed by a
+  surrounding try/catch, which is why the page just looked broken with no
+  visible error. Fixed to `.map(row => normalizeEvent(row))`.
+- **Registration "closing before the event started"** — investigated via a
+  direct Postgres query, not assumed. Confirmed **not a bug**: the display
+  code and the `registrationOpen` check both call `new Date()` on the exact
+  same backend-provided instant, so a display/comparison mismatch is
+  structurally impossible. The events in question had simply already started
+  by the time they were viewed (test data created minutes earlier). The UI
+  already disables the button and explains why.
+- **Member counts off by one** (`LeaderClubView`, `ClubProfileView`) —
+  `member_count` from the API counts every `APPROVED` membership, and the
+  club leader has one of those too, created automatically at club creation.
+  Both pages now subtract the leader from the "Members" stat.
+- **Club-profile "Register" button was a dead stub** — `showRegisterHint()`
+  just told the student to go to the Events page instead. Now calls the real
+  register/unregister endpoints directly, with the same open/closed rule as
+  `EventDetailView`.
+- **Event editing existed on the backend, nowhere in the UI.** `updateEvent()`
+  was a working API client function nothing called; `LeaderEventsView` even
+  had a dead `goToEditEvent()` stub pointing at a route that didn't exist.
+  `CreateEventView` now doubles as the editor via `/leader/events/:id/edit`;
+  the Edit button is now available on any event that isn't cancelled
+  (previously gated to drafts only, tighter than the backend's actual rule).
+
+### E. Frontend — UX additions
+
+- **Loading spinners on every action button.** A reusable `.btn-spinner`
+  class (style.css §62) reusing the existing route-loader animation, wired
+  into every button that hits the backend: auth, onboarding, club
+  create/update/delete/join/approve/reject, member approve/reject/remove,
+  event create/edit/publish/register/attendance/results, issue
+  submit/reply/resolve, announcement post/pin/delete. Several of these had a
+  `saving` ref declared but never actually bound to the button — clicking
+  visibly did nothing, which was a real part of why the app felt
+  unresponsive against Neon's latency.
+- **Club switcher relocated to top-right on every leader page that needs
+  one**, via one shared `components/ui/LeaderClubSwitcher.vue` instead of
+  four separate implementations. `LeaderAnnouncementsView` and
+  `LeaderEventsView` previously had no switcher at all — a leader with
+  multiple clubs could only change context via `LeaderClubView` or
+  `MembersView` and hope the choice carried over through the shared store.
+- **In-memory API response cache** (`utils/apiCache.js`), applied to
+  `LeaderboardView`, `IssuesView`, `LeaderIssuesView`, `ProfileView`. These
+  views fetched into a local component ref inside `onMounted()`, which is
+  destroyed and rebuilt on every navigation — unlike `clubsStore`/
+  `eventsStore`, whose Pinia state survives route changes. A 2-minute TTL,
+  cleared by an explicit `invalidateCache(key)` after any mutation that makes
+  the cached read stale (raising an issue, replying/resolving, declaring
+  results → leaderboard, onboarding → profile), and cleared entirely on
+  login/logout so it can't leak between accounts, same as (D)'s fix.
+
+### What's still open after this session
+
+- `app/agent/` and `POST /ai/chat` still have **zero automated tests** — the
+  single largest gap, unchanged from §1.
+- Password reset has no completion half: `sendResetLink()` →
+  `POST /auth/forgot-password` works, but there is no `/reset-password`
+  route, no `resetPassword()` client function, no completion view. Deferred
+  deliberately — the whole feature is gated on real email delivery, which the
+  team has deferred to production setup.
+- `VerifyEmailView` / `verifyEmailOtp()` / `resendOtp()` call endpoints that
+  do not exist on the backend. Confirmed harmless: nothing in the app
+  navigates there (`SignupView` goes straight to `/login`), so it is dead
+  code, not a live broken flow.
+- Certificate PDF generation and image uploads need real AWS credentials —
+  placeholders were used for local testing, so those two actions specifically
+  will fail until production keys are added. Everything else works.
+
+---
+
 ## 1. The short version
 
 The AI Club Finder now works end to end against the real backend. Along the way

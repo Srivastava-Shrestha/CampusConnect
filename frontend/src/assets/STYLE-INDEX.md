@@ -119,6 +119,9 @@ by label rather than trusting the number order.
 | 59      | Issue conversation thread (student issues page)                 |
 | 60      | Results picker (winner / runner-up selection)                   |
 | 61      | Certificate viewer empty state                                  |
+| 62      | Button loading spinner                                          |
+| 63      | Leader club page - club switcher beside Edit/Delete             |
+| 64      | Page-level loading / not-found state                            |
 
 ## Conventions
 

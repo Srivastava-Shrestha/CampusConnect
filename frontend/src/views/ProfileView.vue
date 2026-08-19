@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import { Award } from 'lucide-vue-next'
+import { Award, CalendarClock } from 'lucide-vue-next'
 import StudentSidebar from '../components/layout/StudentSidebar.vue'
 import Topbar from '../components/layout/Topbar.vue'
 import CertCard from '../components/ui/CertCard.vue'
@@ -9,6 +9,7 @@ import { getMyCertificates } from '../api/certificates'
 import { getMyRegistrations } from '../api/events'
 import { getMyProfile } from '../api/students'
 import { toast } from '../composables/useToast'
+import { cachedFetch } from '../utils/apiCache'
 
 // Logging out lives once, in the sidebar - this page used to have its own
 // second button, which meant two logout controls were visible at once
@@ -61,7 +62,7 @@ function toHistoryEntry(registration) {
 
 onMounted(async function loadProfile() {
   try {
-    const profile = await getMyProfile()
+    const profile = await cachedFetch('my-profile', getMyProfile)
 
     profileTags.value = profile.interests || []
     clubCount.value = profile.joined_clubs ? profile.joined_clubs.length : 0
@@ -70,14 +71,14 @@ onMounted(async function loadProfile() {
   }
 
   try {
-    certificates.value = await getMyCertificates()
+    certificates.value = await cachedFetch('my-certificates', getMyCertificates)
   } catch (error) {
     console.error(error)
     certificates.value = []
   }
 
   try {
-    const registrations = await getMyRegistrations()
+    const registrations = await cachedFetch('my-registrations', getMyRegistrations)
 
     eventHistory.value = registrations.map(toHistoryEntry)
   } catch (error) {
@@ -120,7 +121,12 @@ onMounted(async function loadProfile() {
           </router-link>
         </div>
 
-        <div class="cert-grid">
+        <div v-if="certificates.length === 0" class="empty-state empty-state-wide">
+          <Award />
+          <p>No certificates yet. Winning or participating in an event earns you one automatically.</p>
+        </div>
+
+        <div v-else class="cert-grid">
           <CertCard
             v-for="cert in certificates"
             :key="cert.serial"
@@ -135,7 +141,12 @@ onMounted(async function loadProfile() {
           <span class="clubs-count-text">{{ eventHistory.length }} events</span>
         </div>
 
-        <div class="announce-feed">
+        <div v-if="eventHistory.length === 0" class="empty-state empty-state-wide">
+          <CalendarClock />
+          <p>No events yet. Registered events will show up here once you sign up for one.</p>
+        </div>
+
+        <div v-else class="announce-feed">
           <div v-for="entry in eventHistory" :key="entry.id" class="event-history-row">
             <div class="event-history-date">
               <span class="event-history-day">{{ entry.day }}</span>

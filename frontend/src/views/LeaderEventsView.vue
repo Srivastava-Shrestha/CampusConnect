@@ -6,6 +6,7 @@ import { Plus, Clock, MapPin, Users, CalendarX, ClipboardCheck, Trophy, Send, Ba
 import LeaderSidebar from '../components/layout/LeaderSidebar.vue'
 import Topbar from '../components/layout/Topbar.vue'
 import FilterChips from '../components/ui/FilterChips.vue'
+import LeaderClubSwitcher from '../components/ui/LeaderClubSwitcher.vue'
 import { getEvents, publishEvent, cancelEvent, normalizeEvent } from '../api/events'
 import { useClubsStore } from '../stores/clubs'
 import { toast } from '../composables/useToast'
@@ -115,6 +116,11 @@ async function cancel(event) {
   }
 }
 
+function changeClub() {
+  club.value = clubsStore.selectedLeaderClub
+  loadEvents()
+}
+
 async function loadEvents() {
   if (!club.value) return
 
@@ -161,6 +167,7 @@ onMounted(async () => {
 
     <Topbar title="Events" :sub="club ? club.name : 'Loading your club...'" :show-bell="false">
       <template #actions>
+        <LeaderClubSwitcher @change="changeClub" />
         <button class="btn-primary" @click="goToCreateEvent">
           <Plus /> Create Event
         </button>
@@ -193,7 +200,7 @@ onMounted(async () => {
             </div>
 
             <div class="event-card-manage-row">
-              <button v-if="event.lifecycle === 'DRAFT'" class="btn-secondary-sm" @click="goToEditEvent(event)">Edit</button>
+              <button v-if="event.lifecycle !== 'CANCELLED'" class="btn-secondary-sm" @click="goToEditEvent(event)">Edit</button>
               <button
                 v-if="event.lifecycle === 'DRAFT'"
                 class="btn-secondary-sm"
@@ -227,11 +234,13 @@ onMounted(async () => {
         </div>
       </div>
 
-      <div v-if="loading" class="empty-state">
-        <p>Loading events...</p>
+      <div v-if="loading" class="page-loading-state">
+        <div class="empty-state">
+          <p>Loading events...</p>
+        </div>
       </div>
 
-      <div v-else-if="visibleEvents.length === 0" class="empty-state">
+      <div v-else-if="visibleEvents.length === 0" class="empty-state empty-state-wide">
         <CalendarX />
         <p>No events match this filter.</p>
       </div>

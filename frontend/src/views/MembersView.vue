@@ -1,13 +1,13 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { Users, Clock, ShieldCheck, Check, X } from 'lucide-vue-next'
+import { Users, Clock, ShieldCheck, Check, X, Inbox } from 'lucide-vue-next'
 
 import LeaderSidebar from '../components/layout/LeaderSidebar.vue'
 import Topbar from '../components/layout/Topbar.vue'
 import StatCard from '../components/ui/StatCard.vue'
 import StatusPill from '../components/ui/StatusPill.vue'
 import MemberRow from '../components/ui/MemberRow.vue'
-import CustomSelect from '../components/ui/CustomSelect.vue'
+import LeaderClubSwitcher from '../components/ui/LeaderClubSwitcher.vue'
 
 import {
   getClubMembers,
@@ -25,11 +25,6 @@ const members = ref([])
 const requests = ref([])
 const clubsStore = useClubsStore()
 
-const selectedClubId = computed({
-  get: () => clubsStore.selectedLeaderClub?.id ?? null,
-  set: (clubId) => changeClub(clubId)
-})
-
 const totalMembers = computed(() => members.value.length)
 
 const pendingCount = computed(() =>
@@ -40,7 +35,16 @@ const officerCount = computed(() =>
   members.value.filter(member => member.role === 'officer').length
 )
 
+// Several requests can sit on screen at once, so "in flight" is tracked per
+// request id rather than one flag for the whole page.
+const busyRequestIds = ref(new Set())
+
+function isRequestBusy(requestId) {
+  return busyRequestIds.value.has(requestId)
+}
+
 async function approveRequest(request) {
+  busyRequestIds.value.add(request.id)
   try {
     await handleMembershipRequest(
       clubId.value,
@@ -53,10 +57,13 @@ async function approveRequest(request) {
   } catch (error) {
     console.error(error)
     toast.error('Failed to approve request.')
+  } finally {
+    busyRequestIds.value.delete(request.id)
   }
 }
 
 async function rejectRequest(request) {
+  busyRequestIds.value.add(request.id)
   try {
     await handleMembershipRequest(
       clubId.value,
@@ -69,6 +76,8 @@ async function rejectRequest(request) {
   } catch (error) {
     console.error(error)
     toast.error('Failed to reject request.')
+  } finally {
+    busyRequestIds.value.delete(request.id)
   }
 }
 
@@ -84,14 +93,20 @@ async function handleRemoveMember(member) {
   const confirmed = window.confirm(`Remove ${member.name} from this club?`)
   if (!confirmed) return
 
+  busyMemberIds.value.add(member.id)
+
   try {
     await removeMemberRequest(clubId.value, member.studentId)
     toast.success(`${member.name} has been removed from the club.`)
     await loadMembers(clubsStore.selectedLeaderClub)
   } catch (error) {
     toast.error(error?.message || 'Could not remove this member.')
+  } finally {
+    busyMemberIds.value.delete(member.id)
   }
 }
+
+const busyMemberIds = ref(new Set())
 
 
 async function loadMembers(club) {
@@ -173,17 +188,8 @@ onMounted(async () => {
       title="Members"
       :show-bell="false"
     >
-      <template #subtitle>
-        <CustomSelect
-          v-model="selectedClubId"
-          :options="
-            clubsStore.leaderClubs.map(c => ({
-              value: c.id,
-              label: c.name
-            }))
-          "
-          placeholder="Select Club"
-         />
+      <template #actions>
+        <LeaderClubSwitcher @change="changeClub" />
       </template>
     </Topbar>
 
@@ -224,7 +230,12 @@ onMounted(async () => {
           />
         </div>
 
-        <div class="approval-list">
+        <div v-if="requests.length === 0" class="empty-state empty-state-wide">
+          <Inbox />
+          <p>No join requests yet. They'll show up here as students apply.</p>
+        </div>
+
+        <div v-else class="approval-list">
 
           <div
             v-for="request in requests"
@@ -261,18 +272,20 @@ onMounted(async () => {
 
                 <button
                   class="btn-success"
+                  :disabled="isRequestBusy(request.id)"
                   @click="approveRequest(request)"
                 >
-                  <Check />
-                  Approve
+                  <span v-if="isRequestBusy(request.id)" class="btn-spinner"></span>
+                  <template v-else><Check /> Approve</template>
                 </button>
 
                 <button
                   class="btn-danger"
+                  :disabled="isRequestBusy(request.id)"
                   @click="rejectRequest(request)"
                 >
-                  <X />
-                  Reject
+                  <span v-if="isRequestBusy(request.id)" class="btn-spinner"></span>
+                  <template v-else><X /> Reject</template>
                 </button>
 
               </template>
@@ -310,12 +323,18 @@ onMounted(async () => {
 
         </div>
 
-        <div class="member-list">
+        <div v-if="members.length === 0" class="empty-state empty-state-wide">
+          <Users />
+          <p>No approved members yet. Approve a join request above to get started.</p>
+        </div>
+
+        <div v-else class="member-list">
 
           <MemberRow
             v-for="member in members"
             :key="member.id"
             :member="member"
+            :busy="busyMemberIds.has(member.id)"
             @remove="handleRemoveMember(member)"
           />
 
