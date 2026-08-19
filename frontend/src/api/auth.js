@@ -103,6 +103,12 @@ export async function onboardCollege(data, token) {
   });
 }
 
+/**
+ * @deprecated POST /auth/onboarding was never implemented and returns 404.
+ * Onboarding now saves through updateMyProfile() in api/students.js, which
+ * calls the real PATCH /students/me. Kept only so the existing auth tests
+ * that import it keep passing; no view calls this any more.
+ */
 export async function saveOnboarding(profile) {
   return apiRequest("/auth/onboarding", {
     method: "POST",

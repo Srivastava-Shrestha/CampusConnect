@@ -8,7 +8,7 @@ import {
   Cpu, Music, Paintbrush, Dumbbell, BookOpen, Mic2, TrendingUp,
   FlaskConical, Gamepad2, Camera, HeartHandshake, Search, CalendarCheck, Users, Award
 } from 'lucide-vue-next'
-import { saveOnboarding } from '../api/auth'
+import { updateMyProfile } from '../api/students'
 import { toast } from '../composables/useToast'
 
 const router = useRouter()
@@ -144,14 +144,69 @@ function goToStep(stepNumber) {
   currentStep.value = stepNumber
 }
 
-async function finishOnboarding() {
-  await saveOnboarding({
-    dept: selectedDept.value === 'other' ? otherDeptName.value.trim() : selectedDept.value,
-    year: selectedYear.value,
-    interests: selectedInterests.value,
-    goal: selectedGoal.value
+// The backend caps interests at 10 entries (UpdateProfileRequest), and this
+// screen offers 12 options, so a student who picks everything would be
+// rejected. Keep the first 10 rather than failing the whole submission.
+const MAX_INTERESTS = 10
+
+function readableDept() {
+  if (selectedDept.value === 'other') {
+    return otherDeptName.value.trim()
+  }
+
+  const match = deptCards.find(function byId(card) {
+    return card.id === selectedDept.value
   })
-  isDone.value = true
+
+  return match ? match.label : selectedDept.value
+}
+
+// students.year is an integer column (1-5). "PG" and "Diploma" have no numeric
+// equivalent, so they are left unset rather than mapped to a misleading number.
+function numericYear() {
+  const parsed = Number(selectedYear.value)
+
+  if (Number.isInteger(parsed) && parsed >= 1 && parsed <= 5) {
+    return parsed
+  }
+
+  return null
+}
+
+function readableInterests() {
+  const labels = []
+
+  for (const id of selectedInterests.value) {
+    const match = interestOptions.find(function byId(option) {
+      return option.id === id
+    })
+    labels.push(match ? match.label : id)
+  }
+
+  return labels.slice(0, MAX_INTERESTS)
+}
+
+async function finishOnboarding() {
+  // Only the fields the students table actually has are sent. The chosen goal
+  // is not persisted - there is no column for it - so it stays a UI-only step
+  // until the backend adds one.
+  const profile = {
+    branch: readableDept(),
+    interests: readableInterests()
+  }
+
+  const year = numericYear()
+
+  if (year !== null) {
+    profile.year = year
+  }
+
+  try {
+    await updateMyProfile(profile)
+    isDone.value = true
+  } catch (error) {
+    toast.error(error?.message || 'Could not save your profile. Please try again.')
+  }
 }
 
 function goExploreClubs() {
