@@ -96,7 +96,11 @@ function openTemplate() {
   window.open(guidelines.templateLink, '_blank', 'noopener')
 }
 
+const isSubmittingProposal = ref(false)
+
 async function handleSubmit() {
+  if (isSubmittingProposal.value) return
+
   const fields = {
     name: clubName.value,
     category: clubCategory.value,
@@ -116,6 +120,8 @@ async function handleSubmit() {
     )
     return
   }
+
+  isSubmittingProposal.value = true
 
   try {
     const response = await createClub({
@@ -145,6 +151,8 @@ async function handleSubmit() {
 
   } catch (error) {
     toast.error(error.message)
+  } finally {
+    isSubmittingProposal.value = false
   }
 }
 </script>
@@ -203,8 +211,9 @@ async function handleSubmit() {
             </p>
           </div>
 
-          <button class="btn-primary" @click="handleSubmit">
-            <Send /> Submit for Approval
+          <button class="btn-primary" :disabled="isSubmittingProposal" @click="handleSubmit">
+            <span v-if="isSubmittingProposal" class="btn-spinner"></span>
+            <template v-else><Send /> Submit for Approval</template>
           </button>
         </div>
 

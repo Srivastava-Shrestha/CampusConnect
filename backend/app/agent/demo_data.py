@@ -369,6 +369,7 @@ def _club_list_item(club: dict) -> ClubListItem:
         member_count=club["member_count"],
         head_name=club["head_name"],
         created_at=_days(-365),
+        links=[],
     )
 
 

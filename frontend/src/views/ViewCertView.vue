@@ -1,55 +1,74 @@
 <script setup>
-import { computed, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, Printer, GraduationCap } from 'lucide-vue-next'
+import { ArrowLeft, Printer, Download, GraduationCap } from 'lucide-vue-next'
+import { verifyCertificate, getCertificateDownload } from '../api/certificates'
+import { useAuthStore } from '../stores/auth'
+import { toast } from '../composables/useToast'
 
 const route = useRoute()
 const router = useRouter()
+const auth = useAuthStore()
+
+// The download endpoint requires a token and only returns a link for the
+// certificate's own owner - anyone else gets a 404. This page is public
+// (a certificate can be shared with anyone), so downloading only makes
+// sense to offer when a student is signed in; everyone else still has Print.
+const downloading = ref(false)
+
+// The certificate is looked up by its serial through the same public verify
+// endpoint the /verify page uses, rather than trusting whatever a query
+// string claims - a link with hand-edited query params used to be able to
+// display a fabricated certificate.
+const certificate = ref(null)
+const notFound = ref(false)
 
 const actionTextMap = {
-  'winner': 'has been awarded the title of Winner in',
-  'runner-up': 'has been awarded Runner-up in',
-  'participant': 'has successfully participated in'
+  WINNER: 'has been awarded the title of Winner in',
+  RUNNER_UP: 'has been awarded Runner-up in',
+  PARTICIPANT: 'has successfully participated in'
 }
 
 const certTitleMap = {
-  'winner': 'Certificate of Excellence',
-  'runner-up': 'Certificate of Merit',
-  'participant': 'Certificate of Participation'
+  WINNER: 'Certificate of Excellence',
+  RUNNER_UP: 'Certificate of Merit',
+  PARTICIPANT: 'Certificate of Participation'
 }
 
 const resultLabelMap = {
-  'winner': '\u{1F947} Winner',
-  'runner-up': '\u{1F948} Runner-up',
-  'participant': '\u{2B50} Participant'
+  WINNER: '\u{1F947} Winner',
+  RUNNER_UP: '\u{1F948} Runner-up',
+  PARTICIPANT: '\u{2B50} Participant'
 }
 
-function getParam(name, fallback) {
-  const value = route.query[name]
-  return value || fallback
+const resultClassMap = {
+  WINNER: 'winner',
+  RUNNER_UP: 'runner-up',
+  PARTICIPANT: 'participant'
 }
 
-const certName = computed(() => getParam('name', 'Shikha Singh'))
-const certEvent = computed(() => getParam('event', 'Photography Walk: Old City'))
-const certClub = computed(() => getParam('club', 'Photography Circle'))
-const certDate = computed(() => getParam('date', '8 July 2026'))
-const certSerial = computed(() => getParam('serial', 'CC-CERT-2026-1841'))
-const certCollege = computed(() => getParam('college', 'KNIT Sultanpur'))
-const certLeader = computed(() => getParam('leader', 'Aayansh Yadav'))
+function formatDate(value) {
+  if (!value) return ''
 
-const certResult = computed(function readResult() {
-  const raw = String(getParam('result', 'participant')).toLowerCase()
+  return new Date(value).toLocaleDateString(undefined, {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  })
+}
 
-  if (actionTextMap[raw]) {
-    return raw
-  }
+const certName = computed(() => certificate.value?.student_name || '')
+const certEvent = computed(() => certificate.value?.event_title || '')
+const certClub = computed(() => certificate.value?.club_name || '')
+const certDate = computed(() => formatDate(certificate.value?.event_date))
+const certSerial = computed(() => certificate.value?.serial || route.params.serial)
+const certCollege = computed(() => certificate.value?.college_name || '')
 
-  return 'participant'
-})
-
+const certResult = computed(() => certificate.value?.result || 'PARTICIPANT')
 const typeHeading = computed(() => certTitleMap[certResult.value])
 const actionText = computed(() => actionTextMap[certResult.value])
 const resultLabel = computed(() => resultLabelMap[certResult.value])
+const resultClass = computed(() => resultClassMap[certResult.value])
 
 function goBack() {
   router.back()
@@ -59,8 +78,42 @@ function printCert() {
   window.print()
 }
 
-onMounted(function setPageTitle() {
-  document.title = 'Certificate – ' + certName.value + ' – Campus Connect'
+async function downloadCert() {
+  if (downloading.value) return
+
+  downloading.value = true
+
+  try {
+    const result = await getCertificateDownload(certSerial.value)
+    window.open(result.download_url, '_blank', 'noopener')
+  } catch (error) {
+    toast.error(error.message || 'Could not download this certificate. It may not belong to your account.')
+  } finally {
+    downloading.value = false
+  }
+}
+
+onMounted(async function loadCertificate() {
+  const serial = String(route.params.serial || '').trim()
+
+  if (!serial) {
+    notFound.value = true
+    return
+  }
+
+  try {
+    const result = await verifyCertificate(serial)
+
+    if (result.valid) {
+      certificate.value = result.certificate
+      document.title = 'Certificate – ' + certificate.value.student_name + ' – Campus Connect'
+    } else {
+      notFound.value = true
+    }
+  } catch (error) {
+    toast.error(error.message || 'Could not load this certificate.')
+    notFound.value = true
+  }
 })
 </script>
 
@@ -70,12 +123,24 @@ onMounted(function setPageTitle() {
       <ArrowLeft /> Back
     </button>
     <div class="cert-toolbar-spacer"></div>
+    <button
+      v-if="auth.isLoggedIn"
+      class="btn-secondary"
+      :disabled="downloading"
+      @click="downloadCert"
+    >
+      <Download /> {{ downloading ? 'Preparing...' : 'Download PDF' }}
+    </button>
     <button class="btn-secondary" @click="printCert">
-      <Printer /> Print / Save PDF
+      <Printer /> Print
     </button>
   </div>
 
-  <div class="cert-page">
+  <div v-if="notFound" class="cert-page cert-page-empty">
+    <p class="empty-state">No certificate found for this serial number.</p>
+  </div>
+
+  <div v-else-if="certificate" class="cert-page">
 
     <div class="cert-top-strip"></div>
     <div class="cert-bot-strip"></div>
@@ -151,7 +216,7 @@ onMounted(function setPageTitle() {
         <p class="cert-event-title">{{ certEvent }}</p>
         <p class="cert-event-sub">{{ certClub }} · {{ certDate }}</p>
 
-        <div class="cert-result-pill" :class="certResult">
+        <div class="cert-result-pill" :class="resultClass">
           {{ resultLabel }}
         </div>
 
@@ -176,8 +241,10 @@ onMounted(function setPageTitle() {
 
           <div class="cert-sig-block">
             <div class="cert-sig-line"></div>
-            <p class="cert-sig-name">{{ certLeader }}</p>
-            <p class="cert-sig-role">Club Leader</p>
+            <!-- The verify endpoint identifies the club, not the leader who
+                 signed off - showing a specific name here would be a guess. -->
+            <p class="cert-sig-name">{{ certClub }}</p>
+            <p class="cert-sig-role">On behalf of the club</p>
           </div>
 
           <div class="cert-seal">

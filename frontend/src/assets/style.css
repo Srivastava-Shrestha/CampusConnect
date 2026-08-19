@@ -8986,3 +8986,76 @@ html {
   width: 12px;
   height: 12px;
 }
+
+/*  60. Results picker (winner / runner-up selection)
+    ---------------------------------------------------
+    Set Results used to give every attendee an independent dropdown, which
+    let the leader assign more outcomes than the API accepts (one winner, up
+    to two runner-ups declared separately). The real endpoint takes exactly
+    one winner and one runner-up in a single call, so the picker is now two
+    per-row toggle buttons instead of a free-choice select.                  */
+
+.result-pick-group {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.result-pick-btn svg {
+  width: 13px;
+  height: 13px;
+}
+
+.result-pick-btn.result-pick-winner {
+  background-color: var(--color-yellow-tint);
+  border-color: var(--color-yellow-text);
+  color: var(--color-yellow-text);
+}
+
+.result-pick-btn.result-pick-runner-up {
+  background-color: var(--color-surface-alt);
+  border-color: var(--color-ink-light);
+  color: var(--color-ink);
+}
+
+/*  61. Certificate viewer empty state  */
+
+.cert-page-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40vh;
+}
+
+/*  62. Button loading spinner
+    ---------------------------
+    Every action that hits the backend now shows this while it is in flight.
+    Neon's connection latency made unlabelled buttons look like the click had
+    not registered at all - nothing told the student their tap had worked.
+
+    Usage in any button:
+      <button :disabled="isLoading" @click="run">
+        <span v-if="isLoading" class="btn-spinner"></span>
+        <template v-else><Icon /> Label</template>
+      </button>
+
+    currentColor means one class works on every button style - orange
+    primary, secondary, danger - with no per-button colour override needed.
+    Reuses the route loader's existing spin animation rather than adding a
+    second one.                                                              */
+
+.btn-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  opacity: 0.85;
+  animation: cc-buffer-spin 0.7s linear infinite;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.75;
+}

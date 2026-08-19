@@ -128,3 +128,31 @@ export function iconNameFor(club) {
 
   return 'school'
 }
+
+/**
+ * Shape a raw ClubListItem/MyClubItem from the API into what ApprovalCard.vue
+ * renders: a lower-case status (the API sends PENDING/ACTIVE/REJECTED, the
+ * card template checks against 'pending'/'approved'/'rejected'), a derived
+ * banner/icon, and the application document link pulled out of the club's
+ * links array.
+ *
+ * Both admin approval screens need this exact shape, so it lives here once
+ * rather than being reimplemented per view - which is how the dashboard card
+ * ended up missing its buttons while the approvals page had them.
+ */
+const STATUS_MAP = { PENDING: 'pending', ACTIVE: 'approved', REJECTED: 'rejected' }
+
+export function toApprovalCard(club) {
+  const applicationLink = (club.links || []).find(
+    (link) => link.label === 'Application Document'
+  ) || (club.links || [])[0]
+
+  return {
+    ...club,
+    status: STATUS_MAP[club.status] || String(club.status || '').toLowerCase(),
+    banner: bannerColourFor(club),
+    icon: iconNameFor(club),
+    applicationLink: applicationLink ? applicationLink.url : null,
+    meta: `${club.category} · ${club.member_count} members`
+  }
+}

@@ -1,4 +1,6 @@
 import { defineStore } from 'pinia'
+import { useClubsStore } from './clubs'
+import { useEventsStore } from './events'
 
 const defaultUser = {
   name: "",
@@ -80,7 +82,16 @@ export const useAuthStore = defineStore('auth', {
       localStorage.removeItem("cc_token")
       localStorage.removeItem("cc_user")
       localStorage.removeItem("cc_isClubLeader")
-}
+
+      // Clubs and events cache themselves with a "loaded" flag that only
+      // resets on a hard page reload, so switching accounts in the same tab
+      // left the next student looking at the previous account's list - or a
+      // failed unauthenticated fetch's empty one. Clearing both here is what
+      // makes "loaded" mean "loaded for the current session" rather than
+      // "loaded once, ever."
+      useClubsStore().$reset()
+      useEventsStore().$reset()
+    }
   }
 })
 

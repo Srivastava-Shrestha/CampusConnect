@@ -100,13 +100,24 @@ async function loadIssues() {
 
 // An issue is always raised against a club, so the picker offers the clubs
 // this student actually belongs to rather than every club on campus.
+//
+// getMyClubs() with no filter returns every membership row regardless of
+// status - a still-PENDING join request included - so it is filtered to
+// APPROVED here. Otherwise a student could raise an issue "from" a club
+// before they were ever actually let in. A club the student leads is an
+// APPROVED membership too (see ClubService.create), so this naturally
+// includes those without a second call.
 async function loadMyClubs() {
   try {
     const myClubs = await getMyClubs()
 
-    clubOptions.value = myClubs.map(function toOption(club) {
-      return { value: String(club.id), label: club.name }
-    })
+    clubOptions.value = myClubs
+      .filter(function isApprovedMember(club) {
+        return club.membership_status === 'APPROVED'
+      })
+      .map(function toOption(club) {
+        return { value: String(club.id), label: club.name }
+      })
   } catch (error) {
     clubOptions.value = []
   }

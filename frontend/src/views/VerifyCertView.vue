@@ -11,6 +11,26 @@ const serialInput = ref('')
 const foundCert = ref(null)
 const showInvalid = ref(false)
 
+const RESULT_LABELS = {
+  WINNER: 'Winner',
+  RUNNER_UP: 'Runner-up',
+  PARTICIPANT: 'Participant'
+}
+
+function resultLabel(result) {
+  return RESULT_LABELS[result] || result
+}
+
+function formatDate(value) {
+  if (!value) return ''
+
+  return new Date(value).toLocaleDateString(undefined, {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  })
+}
+
 function clearResult() {
   foundCert.value = null
   showInvalid.value = false
@@ -24,14 +44,20 @@ async function verifyCert() {
     return
   }
 
-  const result = await verifyCertificate(cleaned)
+  try {
+    const result = await verifyCertificate(cleaned)
 
-  if (result.valid && result.certificate) {
-    foundCert.value = result.certificate
-    showInvalid.value = false
-  } else {
+    if (result.valid && result.certificate) {
+      foundCert.value = result.certificate
+      showInvalid.value = false
+    } else {
+      foundCert.value = null
+      showInvalid.value = true
+    }
+  } catch (error) {
     foundCert.value = null
     showInvalid.value = true
+    toast.error(error.message || 'Could not verify this certificate.')
   }
 }
 
@@ -87,29 +113,29 @@ onMounted(function prefillFromRoute() {
         <div class="cert-display-rows">
           <div class="cert-display-item">
             <span class="cert-display-label">Issued to</span>
-            <span class="cert-display-value">{{ foundCert.name }}</span>
+            <span class="cert-display-value">{{ foundCert.student_name }}</span>
           </div>
           <div class="cert-display-divider"></div>
           <div class="cert-display-item">
             <span class="cert-display-label">Event</span>
-            <span class="cert-display-value">{{ foundCert.event }}</span>
+            <span class="cert-display-value">{{ foundCert.event_title }}</span>
           </div>
           <div class="cert-display-item">
             <span class="cert-display-label">Club</span>
-            <span class="cert-display-value">{{ foundCert.club }}</span>
+            <span class="cert-display-value">{{ foundCert.club_name }}</span>
           </div>
           <div class="cert-display-divider"></div>
           <div class="cert-display-item">
             <span class="cert-display-label">Result</span>
-            <span class="cert-display-value">{{ foundCert.result }}</span>
+            <span class="cert-display-value">{{ resultLabel(foundCert.result) }}</span>
           </div>
           <div class="cert-display-item">
             <span class="cert-display-label">Date issued</span>
-            <span class="cert-display-value">{{ foundCert.date }}</span>
+            <span class="cert-display-value">{{ formatDate(foundCert.issued_at) }}</span>
           </div>
           <div class="cert-display-item">
             <span class="cert-display-label">College</span>
-            <span class="cert-display-value">KNIT Sultanpur</span>
+            <span class="cert-display-value">{{ foundCert.college_name }}</span>
           </div>
         </div>
       </div>

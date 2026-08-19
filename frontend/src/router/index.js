@@ -58,7 +58,7 @@ const publicRoutes = [
     }
   },
   {
-    path: '/cert/view',
+    path: '/cert/view/:serial',
     name: 'view-cert',
     component: () => import('../views/ViewCertView.vue'),
     meta: {

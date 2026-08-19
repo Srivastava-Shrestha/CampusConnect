@@ -20,6 +20,7 @@ const email = ref('')
 const password = ref('')
 const rememberChecked = ref(true)
 const passwordVisible = ref(false)
+const isSigningIn = ref(false)
 const errorMessage = ref('')
 const googleBtn = ref(null)
 
@@ -62,11 +63,16 @@ async function handleLogin() {
     return
   }
 
+  if (isSigningIn.value) return
+  isSigningIn.value = true
+
   try {
     const result = await loginUser(email.value.trim(), password.value)
     await completeSignIn(result)
   } catch (error) {
     toast.error(error?.message || 'Unable to sign in.')
+  } finally {
+    isSigningIn.value = false
   }
 }
 </script>
@@ -161,8 +167,9 @@ async function handleLogin() {
         <router-link to="/forgot-password" class="auth-forgot-link">Forgot password?</router-link>
       </div>
 
-      <button class="btn-auth-submit" @click="handleLogin">
-        <ArrowRight /> Sign in
+      <button class="btn-auth-submit" :disabled="isSigningIn" @click="handleLogin">
+        <span v-if="isSigningIn" class="btn-spinner"></span>
+        <template v-else><ArrowRight /> Sign in</template>
       </button>
 
       <div v-show="googleEnabled" class="auth-divider-row">

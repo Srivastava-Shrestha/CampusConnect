@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, File, Form, Query, Security, UploadFile
 from app.schemas import (
     CreateClubRequest, UpdateClubRequest, CreateClubResponse, ClubStatusResponse,
     ClubListItem, ClubDetailResponse, JoinResponse, RequestActionRequest, RequestActionResponse,
-    PendingRequestItem, MemberItem, MyClubItem
+    PendingRequestItem, MemberItem, MyClubItem, RemoveMemberResponse
 )
 from app.services import ClubService, MembershipService
 from app.core.di import get_club_service, get_membership_service, get_user_info
@@ -131,3 +131,13 @@ async def club_members(
     service: MembershipService = Depends(get_membership_service),
 ):
     return await service.members(club_id)
+
+
+@club_router.delete("/{club_id}/members/{student_id}", response_model=RemoveMemberResponse)
+async def remove_member(
+    club_id: int,
+    student_id: int,
+    payload: dict = Security(get_user_info, scopes=["STUDENT"]),
+    service: MembershipService = Depends(get_membership_service),
+):
+    return await service.remove_member(payload, club_id, student_id)

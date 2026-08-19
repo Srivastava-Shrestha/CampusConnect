@@ -7,6 +7,7 @@ import CertCard from '../components/ui/CertCard.vue'
 import { useAuthStore } from '../stores/auth'
 import { getMyCertificates } from '../api/certificates'
 import { getMyRegistrations } from '../api/events'
+import { getMyProfile } from '../api/students'
 import { toast } from '../composables/useToast'
 
 // Logging out lives once, in the sidebar - this page used to have its own
@@ -15,11 +16,14 @@ import { toast } from '../composables/useToast'
 const auth = useAuthStore()
 
 const certificates = ref([])
+const clubCount = ref(0)
 
+// Interests picked at onboarding, shown as tags on the profile header. Was
+// always an empty array before - nothing ever populated it.
 const profileTags = ref([])
 
 const profileStats = computed(() => [
-  { num: '-', label: 'Clubs' },
+  { num: clubCount.value, label: 'Clubs' },
   { num: eventHistory.value.length, label: 'Events' },
   { num: certificates.value.length, label: 'Certs' }
 ])
@@ -56,6 +60,15 @@ function toHistoryEntry(registration) {
 }
 
 onMounted(async function loadProfile() {
+  try {
+    const profile = await getMyProfile()
+
+    profileTags.value = profile.interests || []
+    clubCount.value = profile.joined_clubs ? profile.joined_clubs.length : 0
+  } catch (error) {
+    console.error(error)
+  }
+
   try {
     certificates.value = await getMyCertificates()
   } catch (error) {

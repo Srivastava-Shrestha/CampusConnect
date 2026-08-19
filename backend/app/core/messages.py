@@ -32,6 +32,7 @@ class MembershipMessages:
     JOIN_REQUESTED = "Join request sent"
     REQUEST_APPROVED = "Join request approved"
     REQUEST_REJECTED = "Join request rejected"
+    MEMBER_REMOVED = "Member removed from the club"
 
 
 class EventMessages:

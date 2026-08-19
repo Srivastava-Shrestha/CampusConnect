@@ -122,10 +122,17 @@ export async function markAttendance(eventId, registrationId, checkedIn) {
   })
 }
 
-export async function setResult(eventId, registrationId, result) {
-  return apiRequest(`/events/${eventId}/registrations/${registrationId}/result`, {
+// Declares the whole event's results in one call: the backend takes exactly
+// one winner and one runner-up, and marks every other checked-in attendee
+// PARTICIPANT itself. There is no per-row result endpoint - trying to PATCH
+// one registration at a time 404s, since that route does not exist.
+export async function declareResults(eventId, winnerRegistrationId, runnerUpRegistrationId) {
+  return apiRequest(`/events/${eventId}/results`, {
     method: 'PATCH',
-    body: JSON.stringify({ result })
+    body: JSON.stringify({
+      winner_registration_id: winnerRegistrationId,
+      runner_up_registration_id: runnerUpRegistrationId
+    })
   })
 }
 

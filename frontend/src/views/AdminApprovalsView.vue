@@ -8,6 +8,7 @@ import StatCard from '../components/ui/StatCard.vue'
 import ApprovalCard from '../components/ui/ApprovalCard.vue'
 import FilterChips from '../components/ui/FilterChips.vue'
 import { getClubApprovals, approveClubRequest, rejectClubRequest } from '../api/clubs'
+import { toApprovalCard } from '../utils/clubVisuals'
 
 const approvals = ref([])
 const activeFilter = ref('all')
@@ -79,18 +80,11 @@ onMounted(async () => {
 
     ])
 
-    console.log("Pending:", pending)
-    console.log("Approved:", approved)
-    console.log("Rejected:", rejected)
-
     approvals.value = [
       ...pending,
       ...approved,
       ...rejected
-    ].map(approval => ({
-      ...approval,
-      status: approval.status.toLowerCase()
-    }))
+    ].map(toApprovalCard)
 
     approvedCount.value = approved.length
     rejectedCount.value = rejected.length

@@ -13,7 +13,8 @@ from app.schemas.club import (
     ClubStatusResponse, ClubListItem, ClubDetailResponse, ClubHeadInfo, MyClubItem
 )
 from app.schemas.membership import (
-    JoinResponse, RequestActionRequest, RequestActionResponse, PendingRequestItem, MemberItem
+    JoinResponse, RequestActionRequest, RequestActionResponse, PendingRequestItem, MemberItem,
+    RemoveMemberResponse
 )
 from app.schemas.event import (
     CreateEventRequest, UpdateEventRequest, CreateEventResponse, EventStatusResponse,

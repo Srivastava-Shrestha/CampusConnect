@@ -61,6 +61,7 @@ class ClubRepository:
             )
             .join(Student, Student.id == Club.club_head)
             .join(User, User.id == Student.user_id)
+            .options(selectinload(Club.links))
             .where(*conditions)
             .group_by(Club.id, User.full_name)
             .order_by(Club.created_at.desc())

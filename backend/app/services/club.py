@@ -77,6 +77,10 @@ class ClubService:
                 member_count=count,
                 head_name=head_name,
                 created_at=club.created_at,
+                links=[
+                    ClubLinkSchema(label=link.label, url=link.url)
+                    for link in club.links
+                ],
                 membership_id=membership.id,
                 membership_role=membership.role,
                 membership_status=membership.status,
@@ -104,6 +108,10 @@ class ClubService:
                 member_count=count,
                 head_name=head_name,
                 created_at=club.created_at,
+                links=[
+                    ClubLinkSchema(label=link.label, url=link.url)
+                    for link in club.links
+                ],
             )
             for club, count, head_name in rows
         ]

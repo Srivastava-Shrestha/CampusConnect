@@ -12,7 +12,8 @@ import CustomSelect from '../components/ui/CustomSelect.vue'
 import {
   getClubMembers,
   getPendingRequests,
-  handleMembershipRequest
+  handleMembershipRequest,
+  removeMember as removeMemberRequest
 } from '../api/clubs'
 
 import { useClubsStore } from '../stores/clubs'
@@ -71,8 +72,25 @@ async function rejectRequest(request) {
   }
 }
 
-function handleRemoveMember() {
-  toast.info('Removing members is not supported yet.')
+async function handleRemoveMember(member) {
+  // The club leader's own row is never shown with a working remove action -
+  // the backend also refuses it - but guard here too so the confirm dialog
+  // never even offers it.
+  if (member.role === 'officer') {
+    toast.error('The club leader cannot be removed.')
+    return
+  }
+
+  const confirmed = window.confirm(`Remove ${member.name} from this club?`)
+  if (!confirmed) return
+
+  try {
+    await removeMemberRequest(clubId.value, member.studentId)
+    toast.success(`${member.name} has been removed from the club.`)
+    await loadMembers(clubsStore.selectedLeaderClub)
+  } catch (error) {
+    toast.error(error?.message || 'Could not remove this member.')
+  }
 }
 
 
@@ -84,6 +102,7 @@ async function loadMembers(club) {
 
   members.value = rawMembers.map(item => ({
     id: item.id,
+    studentId: item.student_id,
     name: item.full_name,
     initials: item.full_name
       .split(' ')

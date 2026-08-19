@@ -1,6 +1,8 @@
 import { useRouter } from 'vue-router'
 import { jwtDecode } from 'jwt-decode'
 import { useAuthStore } from '../stores/auth'
+import { useClubsStore } from '../stores/clubs'
+import { useEventsStore } from '../stores/events'
 import { getMyClubs } from '../api/clubs'
 import { getMyProfile } from '../api/students'
 
@@ -9,6 +11,14 @@ export function useAuthSession() {
   const auth = useAuthStore()
 
   async function completeSignIn(result) {
+    // Belt and braces alongside the reset in auth.logout(): a session can
+    // also reach login without going through an explicit logout first (an
+    // expired token redirecting back here, or the very first sign-in of the
+    // tab), so the clubs/events caches are cleared on the way in as well as
+    // the way out.
+    useClubsStore().$reset()
+    useEventsStore().$reset()
+
     auth.setToken(result.access_token)
 
     const payload = jwtDecode(result.access_token)

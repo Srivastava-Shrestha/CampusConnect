@@ -18,6 +18,12 @@ function removeMember() {
       <p class="member-sub">{{ member.sub }}</p>
     </div>
     <span class="member-role-badge" :class="member.role">{{ member.roleLabel }}</span>
-    <button class="member-remove-btn" @click="removeMember">Remove</button>
+    <button
+      v-if="member.role !== 'officer'"
+      class="member-remove-btn"
+      @click="removeMember"
+    >
+      Remove
+    </button>
   </div>
 </template>

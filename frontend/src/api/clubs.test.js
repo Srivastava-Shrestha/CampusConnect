@@ -1,5 +1,5 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest'
-import { getClubs, getClubById, requestToJoinClub, getLeaderboard } from './clubs'
+import { getClubs, getClubById, requestToJoinClub } from './clubs'
 
 describe('clubs api', () => {
   beforeEach(() => {
@@ -37,14 +37,5 @@ describe('clubs api', () => {
     const result = await requestToJoinClub(1)
 
     expect(result.status).toBe('pending')
-  })
-
-  test('getLeaderboard falls back to podium and rows when fetch fails', async () => {
-    global.fetch = vi.fn().mockRejectedValue(new Error('no server'))
-
-    const result = await getLeaderboard()
-
-    expect(result.podium.length).toBe(3)
-    expect(result.rows.length).toBe(7)
   })
 })

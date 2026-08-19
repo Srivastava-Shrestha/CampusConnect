@@ -58,6 +58,7 @@ class ClubListItem(BaseModel):
     member_count: int
     head_name: str
     created_at: datetime
+    links: list[ClubLinkSchema]
 
 
 class MyClubItem(ClubListItem):

@@ -117,6 +117,8 @@ by label rather than trusting the number order.
 | 57      | Club proposal stack (propose-club + leader club pages)          |
 | 58      | Issues page layout (responsive grid, wide-screen density)       |
 | 59      | Issue conversation thread (student issues page)                 |
+| 60      | Results picker (winner / runner-up selection)                   |
+| 61      | Certificate viewer empty state                                  |
 
 ## Conventions
 
