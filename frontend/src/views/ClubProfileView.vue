@@ -9,6 +9,7 @@ import { useEventsStore } from '../stores/events'
 import { requestToJoinClub } from '../api/clubs'
 import { registerForEvent, unregisterFromEvent } from '../api/events'
 import { toast } from '../composables/useToast'
+import { bannerColourFor } from '../utils/clubVisuals'
 
 const route = useRoute()
 const router = useRouter()
@@ -34,6 +35,18 @@ const clubEvents = computed(function eventsForThisClub() {
     return event.club_id === club.value.id && event.status !== 'past'
   })
 })
+
+const pastClubEvents = computed(function pastEventsForThisClub() {
+  if (!club.value) return []
+  return eventsStore.events.filter(function belongsToClub(event) {
+    return event.club_id === club.value.id && event.status === 'past'
+  })
+})
+
+// "Events Run" was reading clubEvents.length alone, but clubEvents excludes
+// past events by design (it only feeds the Upcoming Events list) - a club
+// whose only event had already happened showed 0 events run.
+const totalClubEvents = computed(() => clubEvents.value.length + pastClubEvents.value.length)
 
 watch(
   () => route.params.id,
@@ -171,10 +184,16 @@ onMounted(async function loadProfile() {
     <main class="content-body custom-scrollbar">
 
       <div>
-        <div class="club-profile-banner">
-          <div class="club-card-circle-1"></div>
-          <div class="club-card-circle-2"></div>
-          <div class="club-card-circle-3"></div>
+        <div
+          class="club-profile-banner"
+          :class="{ [bannerColourFor(club)]: !club.image_url }"
+          :style="club.image_url ? { backgroundImage: `url(${club.image_url})` } : {}"
+        >
+          <template v-if="!club.image_url">
+            <div class="club-card-circle-1"></div>
+            <div class="club-card-circle-2"></div>
+            <div class="club-card-circle-3"></div>
+          </template>
           <div class="club-profile-icon">
             <ClubIcon :name="categoryIcon(club.category)" />
           </div>
@@ -198,7 +217,7 @@ onMounted(async function loadProfile() {
           <p class="club-stat-label">Members</p>
         </div>
         <div class="club-stat-card">
-          <p class="club-stat-num">{{ clubEvents.length }}</p>
+          <p class="club-stat-num">{{ totalClubEvents }}</p>
           <p class="club-stat-label">Events Run</p>
         </div>
         <div class="club-stat-card">
@@ -245,6 +264,33 @@ onMounted(async function loadProfile() {
               <span v-if="isEventBusy(event.id)" class="btn-spinner"></span>
               <template v-else>{{ isRegistrationOpen(event) ? 'Register' : 'Closed' }}</template>
             </button>
+          </div>
+
+          <div v-if="clubEvents.length === 0" class="empty-state empty-state-wide">
+            <p>No upcoming events right now.</p>
+          </div>
+
+        </div>
+      </div>
+
+      <div>
+        <p class="section-heading">Past Events</p>
+        <div class="club-event-list">
+
+          <div v-for="event in pastClubEvents" :key="event.id" class="club-event-row">
+            <div class="club-event-date-box">
+              <span class="club-event-date-day">{{ event.day }}</span>
+              <span class="club-event-date-month">{{ event.month }}</span>
+            </div>
+            <div class="club-event-info">
+              <p class="club-event-title">{{ event.title }}</p>
+              <p class="club-event-sub">{{ event.venue }} · {{ event.time }}</p>
+            </div>
+            <span class="event-status past">Completed</span>
+          </div>
+
+          <div v-if="pastClubEvents.length === 0" class="empty-state empty-state-wide">
+            <p>No past events yet.</p>
           </div>
 
         </div>

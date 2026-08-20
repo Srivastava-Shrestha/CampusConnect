@@ -340,6 +340,15 @@ const routes = [
 ]
 
 function resolveGuardTarget(to, auth) {
+  // "Remember me" at login persists a flag alongside the token. A signed-in
+  // visitor who checked it and lands on the bare landing page - a bookmark,
+  // a new tab, reopening the browser - goes straight to their dashboard
+  // instead of seeing the marketing page again. Left unchecked, "/" behaves
+  // exactly as before even while still logged in this session.
+  if (to.path === '/' && auth.isLoggedIn && localStorage.getItem('cc_remember') === 'true') {
+    return auth.homeRoute
+  }
+
   if (to.meta.role === 'public') {
     return null
   }

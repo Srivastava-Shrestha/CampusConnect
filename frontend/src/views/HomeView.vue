@@ -1,6 +1,6 @@
 <script setup>
 import { useRouter } from 'vue-router'
-import { GraduationCap, Compass, ArrowRight, Users, ShieldCheck, UserPlus, CalendarCheck, Award, Building2 } from 'lucide-vue-next'
+import { GraduationCap, Compass, ArrowRight, Users, ShieldCheck, UserPlus, CalendarCheck, Award, Building2, QrCode, Download, CheckCircle2 } from 'lucide-vue-next'
 import { useScrollReveal } from '../composables/useScrollReveal'
 import { ref, onMounted } from 'vue'
 import ClubIcon from '../components/ui/ClubIcon.vue'
@@ -341,6 +341,52 @@ function goTo(path) {
             </div>
           </div>
         </div>
+      </div>
+    </section>
+
+    <section class="landing-sections">
+      <div class="cert-showcase reveal" :ref="collectReveal">
+
+        <div class="cert-showcase-copy">
+          <h2 class="cert-showcase-title">Certificates that verify themselves.</h2>
+          <p class="cert-showcase-desc">
+            The moment a club leader declares results, every attendee gets a real, signed
+            PDF certificate automatically — no design tool, no typing names one by one.
+            Every certificate carries a unique serial number that anyone can check,
+            no account required.
+          </p>
+
+          <div class="cert-showcase-points">
+            <div class="cert-showcase-point">
+              <CheckCircle2 />
+              <span>Auto-generated the instant results are declared</span>
+            </div>
+            <div class="cert-showcase-point">
+              <Download />
+              <span>Downloadable anytime from a student's own profile</span>
+            </div>
+            <div class="cert-showcase-point">
+              <ShieldCheck />
+              <span>Publicly verifiable by serial number — no login needed</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="cert-verify-card">
+          <div class="cert-verify-icon">
+            <QrCode />
+          </div>
+          <p class="cert-verify-title">Verify a certificate</p>
+          <p class="cert-verify-desc">
+            Have a certificate serial number? Confirm it's authentic and see who it
+            belongs to — publicly, instantly, no sign-in required.
+          </p>
+          <button class="btn-primary cert-verify-btn" @click="goTo('/verify')">
+            <ShieldCheck /> Verify a Certificate
+          </button>
+          <p class="cert-verify-hint">e.g. CC-GHP-2026-46275</p>
+        </div>
+
       </div>
     </section>
 

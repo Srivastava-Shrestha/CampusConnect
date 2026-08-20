@@ -22,7 +22,7 @@ const auth = useAuthStore()
 const filterChips = [
   { id: 'all', label: 'All' },
   { id: 'pending', label: 'Pending' },
-  { id: 'active', label: 'Approved' },
+  { id: 'approved', label: 'Approved' },
   { id: 'rejected', label: 'Rejected' }
 ]
 

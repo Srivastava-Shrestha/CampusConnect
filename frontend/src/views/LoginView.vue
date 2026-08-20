@@ -64,6 +64,9 @@ async function handleLogin() {
 
   try {
     const result = await loginUser(email.value.trim(), password.value)
+    // Read by the router guard: only when this is set does landing on "/"
+    // while already signed in skip straight to the dashboard.
+    localStorage.setItem('cc_remember', rememberChecked.value ? 'true' : 'false')
     await completeSignIn(result)
   } catch (error) {
     toast.error(error?.message || 'Unable to sign in.')

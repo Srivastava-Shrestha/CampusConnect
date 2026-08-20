@@ -17,7 +17,12 @@ from dataclasses import dataclass, field
 
 _TOKEN_RE = re.compile(r"[a-z0-9]+")
 _EMAIL_RE = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
-_ENTITY_RE = re.compile(r"\[\[(club|event):(\d+)\]\]")
+# The trailing (?:\|[^\]]*)? tolerates a model writing [[club:7|Some Label]]
+# instead of the bare [[club:7]] it was told to - a real drift we saw in
+# production output. Whatever label the model put there is discarded; the
+# allow-list's own name is always what gets substituted in, so a stale or
+# invented label can never leak through.
+_ENTITY_RE = re.compile(r"\[\[(club|event):(\d+)(?:\|[^\]]*)?\]\]")
 
 # Small, dependency-free stopword set. Keep deterministic.
 _STOP = {
