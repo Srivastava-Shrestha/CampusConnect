@@ -145,18 +145,20 @@ async function handleReset() {
           <span class="brand">Campus Connect</span>
         </div>
 
-        <div class="finder-hero">
-          <CheckCircle2 />
+        <div class="auth-success-block">
+          <div class="auth-hero-icon">
+            <CheckCircle2 />
+          </div>
+
+          <h2 class="auth-form-title">Password reset</h2>
+          <p class="auth-form-sub">Your password has been updated. Sign in with your new password.</p>
+
+          <router-link to="/login" custom v-slot="{ navigate }">
+            <button class="btn-auth-submit" @click="navigate">
+              <Lock /> Back to Sign In
+            </button>
+          </router-link>
         </div>
-
-        <h2 class="auth-form-title">Password reset</h2>
-        <p class="auth-form-sub">Your password has been updated. Sign in with your new password.</p>
-
-        <router-link to="/login" custom v-slot="{ navigate }">
-          <button class="btn-auth-submit" @click="navigate">
-            <Lock /> Back to Sign In
-          </button>
-        </router-link>
       </div>
 
     </div>

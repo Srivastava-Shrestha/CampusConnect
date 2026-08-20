@@ -1,13 +1,12 @@
 <script setup>
 import { ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { GraduationCap, Mail, Shield, Lock, Send, MailCheck, ArrowRight } from 'lucide-vue-next'
 import { sendResetLink } from '../api/auth'
 import { useFormValidation } from '../composables/useFormValidation'
 import { toast } from '../composables/useToast'
 
 const router = useRouter()
-const route = useRoute()
 const { isValidEmail } = useFormValidation()
 
 function goToHome() {
@@ -63,7 +62,7 @@ function tryAgain() {
           <Mail /> Reset link sent to your email
         </div>
         <div class="auth-sidebar-list-item">
-          <Shield /> Link expires in 30 minutes
+          <Shield /> Link expires in 15 minutes
         </div>
         <div class="auth-sidebar-list-item">
           <Lock /> Choose a new strong password
@@ -115,25 +114,27 @@ function tryAgain() {
           <span class="brand">Campus Connect</span>
         </div>
 
-        <div class="finder-hero">
-          <MailCheck />
+        <div class="auth-success-block">
+          <div class="auth-hero-icon">
+            <MailCheck />
+          </div>
+
+          <h2 class="auth-form-title">Check your inbox</h2>
+          <p class="auth-form-sub">We sent a password reset link to <strong>{{ sentEmail }}</strong>. Open the email and click the link to choose a new password.</p>
+
+          <p class="auth-form-sub">The link expires in 15 minutes. If you do not see it, check your spam folder.</p>
+
+          <router-link to="/login" custom v-slot="{ navigate }">
+            <button class="btn-auth-submit" @click="navigate">
+              <ArrowRight /> Back to Sign In
+            </button>
+          </router-link>
+
+          <p class="auth-switch-text">
+            Wrong email?
+            <span class="auth-switch-link" @click="tryAgain">Try again</span>
+          </p>
         </div>
-
-        <h2 class="auth-form-title">Check your inbox</h2>
-        <p class="auth-form-sub">We sent a password reset link to <strong>{{ sentEmail }}</strong>. Open the email and click the link to choose a new password.</p>
-
-        <p class="auth-form-sub">The link expires in 30 minutes. If you do not see it, check your spam folder.</p>
-
-        <router-link :to="`/${route.params.slug}/login`" custom v-slot="{ navigate }">
-          <button class="btn-auth-submit" @click="navigate">
-            <ArrowRight /> Back to Sign In
-          </button>
-        </router-link>
-
-        <p class="auth-switch-text">
-          Wrong email?
-          <span class="auth-switch-link" @click="tryAgain">Try again</span>
-        </p>
 
       </div>
 

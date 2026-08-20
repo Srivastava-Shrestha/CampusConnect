@@ -71,7 +71,7 @@ function logout() {
         <div class="user-avatar admin-av">{{ auth.user.initials }}</div>
         <div class="user-info">
           <p class="user-name">{{ auth.user.name }}</p>
-          <p class="user-sub">{{ auth.user.sub }}</p>
+          <p class="user-sub">{{ auth.user.email }}</p>
         </div>
       </div>
 

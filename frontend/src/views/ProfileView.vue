@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import { Award, CalendarClock } from 'lucide-vue-next'
+import { useRouter } from 'vue-router'
+import { Award, CalendarClock, KeyRound, LogOut } from 'lucide-vue-next'
 import StudentSidebar from '../components/layout/StudentSidebar.vue'
 import Topbar from '../components/layout/Topbar.vue'
 import CertCard from '../components/ui/CertCard.vue'
@@ -8,13 +9,39 @@ import { useAuthStore } from '../stores/auth'
 import { getMyCertificates } from '../api/certificates'
 import { getMyRegistrations } from '../api/events'
 import { getMyProfile } from '../api/students'
+import { sendResetLink } from '../api/auth'
 import { toast } from '../composables/useToast'
 import { cachedFetch } from '../utils/apiCache'
 
-// Logging out lives once, in the sidebar - this page used to have its own
-// second button, which meant two logout controls were visible at once
-// whenever this page was open. See issue #46.
 const auth = useAuthStore()
+const router = useRouter()
+
+const sendingReset = ref(false)
+
+// There is no "change password while signed in" endpoint - only the email
+// token flow. Reusing it here means the account keeps a single, well-tested
+// path for changing a password instead of a second one that needs the
+// current password re-entered.
+async function handleResetPassword() {
+  if (sendingReset.value) return
+  sendingReset.value = true
+
+  try {
+    await sendResetLink(auth.user.email)
+    toast.success('Reset link sent to ' + auth.user.email)
+  } catch (error) {
+    toast.error(error?.message || 'Could not send the reset link.')
+  } finally {
+    sendingReset.value = false
+  }
+}
+
+function handleLogout() {
+  const collegeSlug = auth.user.collegeSlug
+
+  auth.logout()
+  router.push(`/${collegeSlug}/login`)
+}
 
 const certificates = ref([])
 const clubCount = ref(0)
@@ -161,6 +188,19 @@ onMounted(async function loadProfile() {
               <Award /> {{ resultLabels[entry.result] }}
             </div>
           </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="section-heading">Account</p>
+        <div class="profile-account-actions">
+          <button class="btn-secondary" :disabled="sendingReset" @click="handleResetPassword">
+            <span v-if="sendingReset" class="btn-spinner"></span>
+            <template v-else><KeyRound /> Reset Password</template>
+          </button>
+          <button class="logout-btn profile-logout-btn" @click="handleLogout">
+            <LogOut /> Logout
+          </button>
         </div>
       </div>
 

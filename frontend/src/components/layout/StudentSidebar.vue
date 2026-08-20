@@ -127,6 +127,7 @@ function logout() {
       <div class="user-avatar student-av">{{ auth.user.initials }}</div>
       <div class="user-info">
         <p class="user-name">{{ auth.user.name }}</p>
+        <p class="user-sub">{{ auth.user.email }}</p>
       </div>
     </router-link>
 

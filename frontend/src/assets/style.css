@@ -9006,3 +9006,93 @@ button:disabled {
     radial-gradient(720px 420px at 112% -8%, rgba(91, 168, 105, 0.10), transparent 58%),
     radial-gradient(680px 480px at 100% 116%, rgba(91, 168, 105, 0.09), transparent 60%);
 }
+
+/*  69. Auth form title/sub/switch text - used by ForgotPasswordView and
+    ResetPasswordView but never had CSS definitions before, so they rendered
+    as bare unstyled elements with no vertical rhythm between them.  */
+.auth-form-title {
+  margin-bottom: 8px;
+}
+
+.auth-form-sub {
+  font-size: 13px;
+  color: var(--color-ink-muted);
+  line-height: 1.55;
+  margin-bottom: 16px;
+}
+
+.auth-form-sub:last-of-type {
+  margin-bottom: 28px;
+}
+
+.auth-switch-text {
+  font-size: 12px;
+  color: var(--color-ink-muted);
+  text-align: center;
+  margin-top: 20px;
+}
+
+.auth-switch-link {
+  color: var(--color-orange);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.auth-switch-link:hover {
+  text-decoration: underline;
+}
+
+/* The success-state icon (mail sent / password reset) - a properly sized
+   circle instead of the oversized .finder-hero card these pages used to
+   misuse (that card bundles icon+title+desc as one block; here the title
+   and description are separate elements below it). */
+.auth-hero-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 20px;
+  background-color: var(--color-orange-tint);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+}
+
+.auth-hero-icon svg {
+  width: 28px;
+  height: 28px;
+  color: var(--color-orange);
+}
+
+.auth-success-block {
+  text-align: center;
+}
+
+/*  70. Profile page - account actions (reset password / logout)  */
+.profile-account-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.profile-logout-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: auto;
+  margin-top: 0;
+  padding: 9px 16px;
+  font-size: 13px;
+  border-radius: 12px;
+}
+
+@media (max-width: 767px) {
+  .profile-account-actions {
+    flex-direction: column;
+  }
+
+  .profile-account-actions .btn-secondary,
+  .profile-logout-btn {
+    width: 100%;
+  }
+}
