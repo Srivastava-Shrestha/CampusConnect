@@ -274,7 +274,7 @@ def build_table(results):
     grouped_results = {}
     for r in results:
         node_id = r["test"]
-        test_file, _ = node_id.split("::")
+        test_file = node_id.split("::")[0]
         cat = get_category_name(test_file)
         grouped_results.setdefault(cat, []).append(r)
 
@@ -295,7 +295,9 @@ def build_table(results):
 
         for r in grouped_results[cat]:
             node_id = r["test"]
-            test_file, func_name = node_id.split("::")
+            parts = node_id.split("::")
+            test_file = parts[0]
+            func_name = parts[-1]
             outcome = r["outcome"]
 
             if test_file not in docstring_cache:

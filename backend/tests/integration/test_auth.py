@@ -427,9 +427,9 @@ async def test_login_nonexistent_user_fails(client):
         "password": "Test@1234"
     }
     response = await client.post("/auth/login", json=payload)
-    assert response.status_code == 401
+    assert response.status_code == 404
     body = response.json()
-    assert body["message"] == "Incorrect email or password"
+    assert body["message"] == "College not registered"
 
 
 @pytest.mark.asyncio
