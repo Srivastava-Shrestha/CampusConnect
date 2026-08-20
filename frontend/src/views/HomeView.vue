@@ -142,7 +142,7 @@ const accountLinks = [
   { label: 'Log in', to: '/login' },
   { label: 'Create account', to: '/signup' },
   { label: 'For club leaders', to: '/signup' },
-  { label: 'Verify a certificate', to: '/verify/lookup' }
+  { label: 'Verify a certificate', to: '/verify' }
 ]
 
 const trendingClubs = ref([])

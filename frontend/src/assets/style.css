@@ -9074,8 +9074,13 @@ button:disabled {
   margin-top: 4px;
 }
 
+/* Hidden by default - the sidebar already has its own always-visible logout
+   button on desktop, so a second one here would be redundant. It only
+   appears once the sidebar itself hides and MobileNav takes over (same
+   767px breakpoint as .sidebar/.mobile-nav in section 39), since at that
+   point this becomes the only logout control on screen. */
 .profile-logout-btn {
-  display: inline-flex;
+  display: none;
   align-items: center;
   justify-content: center;
   gap: 8px;
@@ -9091,8 +9096,12 @@ button:disabled {
     flex-direction: column;
   }
 
-  .profile-account-actions .btn-secondary,
+  .profile-account-actions .btn-secondary {
+    width: 100%;
+  }
+
   .profile-logout-btn {
+    display: inline-flex;
     width: 100%;
   }
 }

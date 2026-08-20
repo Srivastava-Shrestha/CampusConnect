@@ -58,7 +58,10 @@ const publicRoutes = [
     }
   },
   {
-    path: '/verify/:serial',
+    // :serial is optional - /verify alone is the public lookup form (anyone
+    // types a serial in); /verify/CC-XXXX-YYYY-ZZZZZ auto-verifies on load
+    // (what the certificate itself links to, and what shared links use).
+    path: '/verify/:serial?',
     name: 'verify-cert',
     component: () => import('../views/VerifyCertView.vue'),
     meta: {

@@ -18,19 +18,20 @@ const router = useRouter()
 
 const sendingReset = ref(false)
 
-// There is no "change password while signed in" endpoint - only the email
-// token flow. Reusing it here means the account keeps a single, well-tested
-// path for changing a password instead of a second one that needs the
-// current password re-entered.
-async function handleResetPassword() {
+// There is no "change password with current password" endpoint - only the
+// email token flow "forgot password" uses. Reusing it here (labelled Change
+// Password, since the user is already signed in - "reset" implies you've
+// lost access, which isn't true here) keeps the account on one well-tested
+// path for changing a password instead of building a second one.
+async function handleChangePassword() {
   if (sendingReset.value) return
   sendingReset.value = true
 
   try {
     await sendResetLink(auth.user.email)
-    toast.success('Reset link sent to ' + auth.user.email)
+    toast.success('Password change link sent to ' + auth.user.email)
   } catch (error) {
-    toast.error(error?.message || 'Could not send the reset link.')
+    toast.error(error?.message || 'Could not send the password change link.')
   } finally {
     sendingReset.value = false
   }
@@ -143,7 +144,7 @@ onMounted(async function loadProfile() {
       <div>
         <div class="clubs-section-header">
           <h2 class="clubs-section-title">Certificates Earned</h2>
-          <router-link to="/verify/lookup" class="clubs-section-link">
+          <router-link to="/verify" class="clubs-section-link">
             Verify a certificate
           </router-link>
         </div>
@@ -194,9 +195,9 @@ onMounted(async function loadProfile() {
       <div class="card">
         <p class="section-heading">Account</p>
         <div class="profile-account-actions">
-          <button class="btn-secondary" :disabled="sendingReset" @click="handleResetPassword">
+          <button class="btn-secondary" :disabled="sendingReset" @click="handleChangePassword">
             <span v-if="sendingReset" class="btn-spinner"></span>
-            <template v-else><KeyRound /> Reset Password</template>
+            <template v-else><KeyRound /> Change Password</template>
           </button>
           <button class="logout-btn profile-logout-btn" @click="handleLogout">
             <LogOut /> Logout
