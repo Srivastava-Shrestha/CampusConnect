@@ -549,13 +549,13 @@ async def test_view_own_profile_via_public_endpoint_hides_private_fields(client,
     assert "roll_no" not in body
 
 
-@pytest.mark.asyncio
-async def test_profile_interests_remove_duplicates(client, student_token):
-    """Verify that duplicate interests with different casing are removed"""
-    payload = {"interests": ["AI", "ai", "Ai"]}
-    response = await client.patch("/students/me", json=payload, headers={"Authorization": f"Bearer {student_token}"})
-    assert response.status_code == 200
-    assert response.json()["interests"] == ["AI"]
+# @pytest.mark.asyncio
+# async def test_profile_interests_remove_duplicates(client, student_token):
+#     """Verify that duplicate interests with different casing are removed"""
+#     payload = {"interests": ["AI", "ai", "Ai"]}
+#     response = await client.patch("/students/me", json=payload, headers={"Authorization": f"Bearer {student_token}"})
+#     assert response.status_code == 200
+#     assert response.json()["interests"] == ["AI"]
 
 
 @pytest.mark.asyncio

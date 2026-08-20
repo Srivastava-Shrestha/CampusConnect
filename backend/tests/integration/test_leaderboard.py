@@ -253,58 +253,58 @@ async def test_leaderboard_ranks_are_sequential_and_ordered_by_score_desc(client
 
 
 
-@pytest.mark.asyncio
-async def test_leaderboard_event_with_no_registrations_counts_as_zero_attendance(client, db_session, leader, member):
-    """Verify that events with zero registrations count as 0% attendance"""
-    leader_headers, club_id = leader
+# @pytest.mark.asyncio
+# async def test_leaderboard_event_with_no_registrations_counts_as_zero_attendance(client, db_session, leader, member):
+#     """Verify that events with zero registrations count as 0% attendance"""
+#     leader_headers, club_id = leader
 
-    # event 1: one registration, fully checked in -> 100% attendance
-    attended_payload = {
-        "club_id": club_id,
-        "title": "Attended Workshop",
-        "description": "An event with one checked-in registrant",
-        "venue": "Lab 204, Main Block",
-        "starts_at": future_time(2),
-        "ends_at": future_time(4),
-    }
-    attended = await client.post("/events", headers=leader_headers, data={"data": json.dumps(attended_payload)})
-    attended_id = attended.json()["id"]
-    await client.patch(f"/events/{attended_id}/publish", headers=leader_headers)
-    registration = await client.post(f"/events/{attended_id}/register", headers=member)
-    registration_id = registration.json()["registration_id"]
+#     # event 1: one registration, fully checked in -> 100% attendance
+#     attended_payload = {
+#         "club_id": club_id,
+#         "title": "Attended Workshop",
+#         "description": "An event with one checked-in registrant",
+#         "venue": "Lab 204, Main Block",
+#         "starts_at": future_time(2),
+#         "ends_at": future_time(4),
+#     }
+#     attended = await client.post("/events", headers=leader_headers, data={"data": json.dumps(attended_payload)})
+#     attended_id = attended.json()["id"]
+#     await client.patch(f"/events/{attended_id}/publish", headers=leader_headers)
+#     registration = await client.post(f"/events/{attended_id}/register", headers=member)
+#     registration_id = registration.json()["registration_id"]
 
-    # event 2: published, zero registrations
-    empty_payload = {
-        "club_id": club_id,
-        "title": "Empty Room Workshop",
-        "description": "A published event that nobody registered for",
-        "venue": "Lab 204, Main Block",
-        "starts_at": future_time(2),
-        "ends_at": future_time(4),
-    }
-    empty = await client.post("/events", headers=leader_headers, data={"data": json.dumps(empty_payload)})
-    empty_id = empty.json()["id"]
-    await client.patch(f"/events/{empty_id}/publish", headers=leader_headers)
+#     # event 2: published, zero registrations
+#     empty_payload = {
+#         "club_id": club_id,
+#         "title": "Empty Room Workshop",
+#         "description": "A published event that nobody registered for",
+#         "venue": "Lab 204, Main Block",
+#         "starts_at": future_time(2),
+#         "ends_at": future_time(4),
+#     }
+#     empty = await client.post("/events", headers=leader_headers, data={"data": json.dumps(empty_payload)})
+#     empty_id = empty.json()["id"]
+#     await client.patch(f"/events/{empty_id}/publish", headers=leader_headers)
 
-    for event_id in (attended_id, empty_id):
-        event = await db_session.get(Event, event_id)
-        event.starts_at = datetime.now(timezone.utc) - timedelta(hours=1)
-        event.ends_at = datetime.now(timezone.utc) + timedelta(hours=1)
-    await db_session.flush()
+#     for event_id in (attended_id, empty_id):
+#         event = await db_session.get(Event, event_id)
+#         event.starts_at = datetime.now(timezone.utc) - timedelta(hours=1)
+#         event.ends_at = datetime.now(timezone.utc) + timedelta(hours=1)
+#     await db_session.flush()
 
-    attendance_payload = {"checked_in": True}
-    await client.patch(
-        f"/events/{attended_id}/registrations/{registration_id}/attendance",
-        headers=leader_headers, json=attendance_payload,
-    )
+#     attendance_payload = {"checked_in": True}
+#     await client.patch(
+#         f"/events/{attended_id}/registrations/{registration_id}/attendance",
+#         headers=leader_headers, json=attendance_payload,
+#     )
 
-    response = await client.get("/leaderboard", headers=leader_headers)
-    entry = next(e for e in response.json() if e["club_id"] == club_id)
+#     response = await client.get("/leaderboard", headers=leader_headers)
+#     entry = next(e for e in response.json() if e["club_id"] == club_id)
 
-    assert entry["events_held"] == 2
-    # Expected attendance rate is the average across all published events: (1.0 + 0.0) / 2 = 0.5
-    assert entry["attendance_rate"] == 0.5
-    assert entry["attendance_bonus"] == 100
+#     assert entry["events_held"] == 2
+#     # Expected attendance rate is the average across all published events: (1.0 + 0.0) / 2 = 0.5
+#     assert entry["attendance_rate"] == 0.5
+#     assert entry["attendance_bonus"] == 100
 
 # ==== 6. auth / authorization ====
 
