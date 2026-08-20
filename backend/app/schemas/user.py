@@ -1,3 +1,4 @@
+from typing import Literal
 from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 from app.models import UserRole
 
@@ -66,4 +67,14 @@ class ResetPasswordRequest(BaseModel):
         return self
 
 class ResetPasswordResponse(BaseModel):
+    message: str
+
+class GoogleAuthRequest(BaseModel):
+    id_token: str = Field(..., min_length=1)
+    intent: Literal["login", "signup"] = "login"
+
+class GoogleAuthResponse(BaseModel):
+    access_token: str
+    refresh_token: str
+    is_new_user: bool
     message: str

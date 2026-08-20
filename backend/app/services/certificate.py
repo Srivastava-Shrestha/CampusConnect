@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from app.core.certificate import (
     CertificateContext, certificate_key, make_serial, render_pdf
 )
+from app.core.config import settings
 from app.core.database import SessionLocal
 from app.core.messages import NotificationMessages
 from app.core.storage import CERTIFICATE_CONTENT_TYPE, CERTIFICATE_FOLDER, Storage, storage
@@ -13,7 +14,7 @@ from app.repository import CertificateRepository, StudentRepository, Notificatio
 from app.schemas import (
     MyCertificateItem, CertificateDownloadResponse, CertificateVerification
 )
-from app.exceptions import CertificateNotFoundError, StudentNotFoundError
+from app.exceptions import CertificateNotFoundError, StudentNotFoundError, StorageError
 
 logger = logging.getLogger(__name__)
 
@@ -58,15 +59,29 @@ class CertificateService:
             signatory_role=f"{SIGNATORY_ROLE}, {club.name}",
         ))
 
-        await self.storage.upload(pdf, CERTIFICATE_FOLDER, CERTIFICATE_CONTENT_TYPE,
-                                  key=certificate_key(serial))
+        # Generation always happens locally either way. Upload to S3 when it's
+        # configured; if that fails (e.g. no real AWS credentials yet), fall back to
+        # storing the PDF bytes directly in Postgres so certificates still work end to
+        # end. Once real S3 credentials are set, uploads succeed again with no code
+        # change, and pdf_data simply stays unused for anything issued afterwards.
+        stored_locally = False
+        try:
+            await self.storage.upload(pdf, CERTIFICATE_FOLDER, CERTIFICATE_CONTENT_TYPE,
+                                      key=certificate_key(serial))
+        except StorageError:
+            logger.warning("S3 unavailable, storing certificate %s in Postgres instead", serial)
+            stored_locally = True
 
         if existing:
-            return await self.certificate_repo.set_result(existing, registration.result)
+            updated = await self.certificate_repo.set_result(existing, registration.result)
+            await self.certificate_repo.set_pdf_data(updated, pdf if stored_locally else None)
+            return updated
 
         certificate = await self.certificate_repo.create(
             registration_id, serial, registration.result, issued_at
         )
+        if stored_locally:
+            await self.certificate_repo.set_pdf_data(certificate, pdf)
         await self.notification_repo.create_notification(
             student_id=registration.student_id,
             type=NotificationType.CERTIFICATE_ISSUED,
@@ -87,7 +102,7 @@ class CertificateService:
                 event_title=event.title,
                 club_name=club_name,
                 issued_at=certificate.issued_at,
-                download_url=self._download_url(certificate.serial),
+                download_url=self._download_url(certificate),
             )
             for certificate, event, club_name in rows
         ]
@@ -101,7 +116,7 @@ class CertificateService:
         return CertificateDownloadResponse(
             serial=certificate.serial,
             filename=f"{certificate.serial}.pdf",
-            download_url=self._download_url(certificate.serial),
+            download_url=self._download_url(certificate),
             expires_in=DOWNLOAD_URL_TTL,
         )
 
@@ -117,6 +132,11 @@ class CertificateService:
             club_name=club.name,
             college_name=college.name,
             issued_at=certificate.issued_at,
+            # A certificate serial is already the public credential (same
+            # trust model as _download_url/file_bytes below), so the actual
+            # rendered PDF can be shown on the public /verify and /cert/view
+            # pages without requiring the viewer to be signed in as its owner.
+            pdf_url=self._download_url(certificate),
         )
 
     async def _by_serial(self, serial: str):
@@ -132,9 +152,24 @@ class CertificateService:
                 return serial
         raise RuntimeError(f"could not find a free serial for {event_title!r}")
 
-    def _download_url(self, serial: str) -> str:
-        return self.storage.get_url(certificate_key(serial), signed=True,
+    def _download_url(self, certificate: Certificate) -> str:
+        if certificate.pdf_data is not None:
+            # Same trust model as the public verify-by-serial route: the serial is
+            # itself the unguessable credential, same as an S3 presigned URL. The
+            # frontend opens download_url directly via window.open with no auth
+            # header attached, so this route can't require one either.
+            return f"{settings.BACKEND_BASE_URL}/certificates/{certificate.serial}/file"
+        return self.storage.get_url(certificate_key(certificate.serial), signed=True,
                                     expires_in=DOWNLOAD_URL_TTL)
+
+    async def file_bytes(self, serial: str) -> bytes:
+        row = await self.certificate_repo.get_by_serial(serial)
+        if row is None:
+            raise CertificateNotFoundError()
+        certificate = row[-1]
+        if certificate.pdf_data is None:
+            raise CertificateNotFoundError()
+        return certificate.pdf_data
 
     async def _get_student(self, payload: dict):
         student = await self.student_repo.get_student_by_user_id(int(payload.get("sub")))

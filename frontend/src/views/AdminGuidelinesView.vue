@@ -71,7 +71,7 @@ function removePoint(item) {
 
   <div class="main-content">
 
-    <Topbar title="Club Guidelines" sub="Rules and application guidance for club leaders" />
+    <Topbar title="Club Guidelines" sub="Rules and application guidance for club leaders" :show-bell="false" />
 
     <main class="content-body custom-scrollbar">
 

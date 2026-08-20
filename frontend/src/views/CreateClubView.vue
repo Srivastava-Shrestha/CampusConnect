@@ -1,10 +1,11 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ArrowLeft, Send, FileText } from 'lucide-vue-next'
 import StudentSidebar from '../components/layout/StudentSidebar.vue'
 import CustomSelect from '../components/ui/CustomSelect.vue'
-import { createClub } from '../api/clubs'
+import ClubProposalList from '../components/ui/ClubProposalList.vue'
+import { createClub, getMyClubs } from '../api/clubs'
 import { useAuthStore } from '../stores/auth'
 import { useClubsStore } from '../stores/clubs'
 import { toast } from '../composables/useToast'
@@ -18,11 +19,39 @@ const clubsStore = useClubsStore()
 const { allFieldsFilled, isValidEmail } = useFormValidation()
 const guidelines = useGuidelinesStore()
 
+// Clubs this student proposed, in every state. role=LEADER returns the ones
+// they created, including PENDING ones the admin has not reviewed yet, which
+// is exactly what the status stack below the form needs.
+const proposals = ref([])
+const loadingProposals = ref(true)
+
+async function loadProposals() {
+  loadingProposals.value = true
+
+  try {
+    proposals.value = await getMyClubs({ role: 'LEADER' })
+  } catch (error) {
+    proposals.value = []
+  } finally {
+    loadingProposals.value = false
+  }
+}
+
+onMounted(loadProposals)
+
 const clubName = ref('')
 const clubCategory = ref('')
 const clubTagline = ref('')
 const clubAbout = ref('')
 const applicationLink = ref('')
+
+function clearForm() {
+  clubName.value = ''
+  clubCategory.value = ''
+  clubTagline.value = ''
+  clubAbout.value = ''
+  applicationLink.value = ''
+}
 
 const categoryOptions = [
   'Tech',
@@ -67,7 +96,11 @@ function openTemplate() {
   window.open(guidelines.templateLink, '_blank', 'noopener')
 }
 
+const isSubmittingProposal = ref(false)
+
 async function handleSubmit() {
+  if (isSubmittingProposal.value) return
+
   const fields = {
     name: clubName.value,
     category: clubCategory.value,
@@ -88,13 +121,14 @@ async function handleSubmit() {
     return
   }
 
+  isSubmittingProposal.value = true
+
   try {
     const response = await createClub({
       name: clubName.value.trim(),
       description: clubAbout.value.trim(),
       category: clubCategory.value,
       type: 'OFFICIAL',
-      image_url: null,
       links: [
         {
           label: 'Application Document',
@@ -109,10 +143,16 @@ async function handleSubmit() {
 
     toast.success(response.message)
 
-    router.push(`/${route.params.slug}/clubs`)
-    
+    // Stay on the page rather than redirecting: the proposal stack below now
+    // shows the submission with its "Pending approval" status, which is the
+    // answer to "what happened to my request?" that the redirect used to hide.
+    clearForm()
+    await loadProposals()
+
   } catch (error) {
     toast.error(error.message)
+  } finally {
+    isSubmittingProposal.value = false
   }
 }
 </script>
@@ -135,7 +175,9 @@ async function handleSubmit() {
 
     <main class="content-body custom-scrollbar">
 
-      <div class="form-guide-grid">
+      <div class="form-guide-grid propose-grid">
+
+        <div class="propose-main">
 
         <div class="form-card">
           <p class="form-card-title">Club Details</p>
@@ -169,9 +211,14 @@ async function handleSubmit() {
             </p>
           </div>
 
-          <button class="btn-primary" @click="handleSubmit">
-            <Send /> Submit for Approval
+          <button class="btn-primary" :disabled="isSubmittingProposal" @click="handleSubmit">
+            <span v-if="isSubmittingProposal" class="btn-spinner"></span>
+            <template v-else><Send /> Submit for Approval</template>
           </button>
+        </div>
+
+        <ClubProposalList :proposals="proposals" :loading="loadingProposals" />
+
         </div>
 
         <div class="guide-card">

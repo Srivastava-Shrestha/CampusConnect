@@ -1,153 +1,161 @@
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1'
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
-const mockIssues = [
-  {
-    id: 1,
-    title: 'Registration ID not received after signing up for Open Mic Night',
-    meta: 'Music Collective · Event · Raised 2 days ago',
-    status: 'open',
-    statusLabel: 'Open',
-    desc: 'I registered for Open Mic Night on 8 July but never received a confirmation email with my Registration ID. The registration page showed success but I have no record of the ID. I need it to enter the event.',
-    tags: ['Event', 'Registration'],
-    response: null
-  },
-  {
-    id: 2,
-    title: 'Event date conflict between Arduino Workshop and CS Lab mid-semester exam',
-    meta: 'Robotics & Automation Club · Event · Raised 5 days ago',
-    status: 'in-progress',
-    statusLabel: 'In Progress',
-    desc: 'The Introduction to Arduino workshop on 28 July clashes with our department\'s mid-semester practical exam for CS3401. Many first-year CS students will not be able to attend. Could the date be moved or an alternate slot be offered?',
-    tags: ['Event', 'Scheduling'],
-    response: {
-      by: 'Aayansh Yadav',
-      text: 'Thanks for flagging this. I have contacted the department office to confirm the practical schedule. We will announce a revised date by 14 July. Your attendance will not be marked if the exam clashes.'
-    }
-  },
-  {
-    id: 3,
-    title: 'Cannot find meeting minutes from June club general body session',
-    meta: 'Robotics & Automation Club · Club · Raised 12 days ago',
-    status: 'resolved',
-    statusLabel: 'Resolved',
-    desc: 'The minutes from the June 18 general body meeting were supposed to be shared on the club page but I cannot find them. I need them for the project proposal I am submitting.',
-    tags: ['Club', 'Documents'],
-    response: {
-      by: 'Aayansh Yadav',
-      text: 'Sorry for the delay. Minutes have been uploaded to the club page under Documents. I have also emailed the PDF to all members. Issue closed.'
-    }
+function extractMessage(body) {
+  // AppException replies with {"message": ...}; FastAPI validation errors with
+  // {"detail": [{msg, loc}, ...]} and auth failures with {"detail": "..."}.
+  if (typeof body.message === 'string') return body.message
+  if (typeof body.detail === 'string') return body.detail
+  if (Array.isArray(body.detail) && body.detail.length) {
+    return body.detail[0].msg || 'Request failed'
   }
-]
+  return 'Request failed'
+}
 
-const mockLeaderIssues = [
-  {
-    id: 1,
-    title: 'Registration ID not received after signing up for Open Mic Night',
-    raisedBy: 'Shikha Singh',
-    meta: 'Music Collective · Event · Raised 2 days ago',
-    status: 'open',
-    statusLabel: 'Open',
-    desc: 'I registered for Open Mic Night on 8 July but never received a confirmation email with my Registration ID. The registration page showed success but I have no record of the ID. I need it to enter the event.',
-    tags: ['Event', 'Registration'],
-    response: null
-  },
-  {
-    id: 2,
-    title: 'Event date conflict between Arduino Workshop and CS Lab mid-semester exam',
-    raisedBy: 'Shikha Singh',
-    meta: 'Robotics & Automation Club · Event · Raised 5 days ago',
-    status: 'in-progress',
-    statusLabel: 'In Progress',
-    desc: 'The Introduction to Arduino workshop on 28 July clashes with our department\'s mid-semester practical exam for CS3401. Many first-year CS students will not be able to attend. Could the date be moved or an alternate slot be offered?',
-    tags: ['Event', 'Scheduling'],
-    response: {
-      by: 'Aayansh Yadav',
-      text: 'Thanks for flagging this. I have contacted the department office to confirm the practical schedule. We will announce a revised date by 14 July. Your attendance will not be marked if the exam clashes.'
-    }
-  },
-  {
-    id: 3,
-    title: 'Club WhatsApp group link is expired, cannot join the community',
-    raisedBy: 'Riya Verma',
-    meta: 'Robotics & Automation Club · General · Raised 1 day ago',
-    status: 'open',
-    statusLabel: 'Open',
-    desc: 'I recently got approved as a club member but the WhatsApp group link shared in the welcome email has expired. I cannot join the group where meeting updates are shared. Please send a fresh invite link or add me manually.',
-    tags: ['Club', 'Communication'],
-    response: null
-  },
-  {
-    id: 4,
-    title: 'Cannot find meeting minutes from June club general body session',
-    raisedBy: 'Dhruv Malhotra',
-    meta: 'Robotics & Automation Club · Club · Raised 12 days ago',
-    status: 'resolved',
-    statusLabel: 'Resolved',
-    desc: 'The minutes from the June 18 general body meeting were supposed to be shared on the club page but I cannot find them. I need them for the project proposal I am submitting.',
-    tags: ['Club', 'Documents'],
-    response: {
-      by: 'Aayansh Yadav',
-      text: 'Sorry for the delay. Minutes have been uploaded to the club page under Documents. I have also emailed the PDF to all members. Issue closed.'
-    }
+async function apiRequest(endpoint, options = {}) {
+  const token = localStorage.getItem('cc_token')
+
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(options.headers || {})
   }
-]
 
-// TODO: replace with real endpoint when backend is ready
-export async function getLeaderIssues() {
-  try {
-    const response = await fetch(BASE_URL + '/issues/club')
-    return await response.json()
-  } catch (error) {
-    return mockLeaderIssues
+  if (token) {
+    headers.Authorization = `Bearer ${token}`
+  }
+
+  const response = await fetch(`${BASE_URL}${endpoint}`, { ...options, headers })
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}))
+    throw new Error(extractMessage(body))
+  }
+
+  if (response.status === 204) {
+    return null
+  }
+
+  return response.json()
+}
+
+// The API uses upper-case enum members; the UI works in lower case for its
+// status pills and select options. These two helpers are the only place that
+// difference is allowed to matter.
+export function toApiCategory(category) {
+  return String(category || '').toUpperCase()
+}
+
+// IN_PROGRESS becomes "in-progress", not "in_progress": the status pill CSS
+// and the leader queue's filters were already written against the hyphenated
+// form, so the API value is normalised to match rather than restyling them.
+function toUiStatus(status) {
+  return String(status || '').toLowerCase().replace(/_/g, '-')
+}
+
+const STATUS_LABELS = {
+  'open': 'Open',
+  'in-progress': 'In Progress',
+  'resolved': 'Resolved'
+}
+
+function formatDate(value) {
+  if (!value) return ''
+
+  return new Date(value).toLocaleDateString(undefined, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric'
+  })
+}
+
+/**
+ * Shape one API issue into what IssueCard renders.
+ *
+ * The card was written against the old mock shape (meta, desc, statusLabel),
+ * so the mapping happens here rather than changing every template that uses
+ * it.
+ */
+function toCardIssue(issue) {
+  const status = toUiStatus(issue.status)
+
+  return {
+    id: issue.id,
+    title: issue.title,
+    desc: issue.description,
+    status,
+    statusLabel: STATUS_LABELS[status] || issue.status,
+    meta: `${issue.club_name} · ${formatDate(issue.created_at)}`,
+    tags: issue.category ? [String(issue.category).toLowerCase()] : [],
+    response: issue.response
+      ? {
+          by: issue.response.by,
+          text: issue.response.text,
+          at: issue.response.at,
+          atLabel: formatDate(issue.response.at)
+        }
+      : null,
+    clubId: issue.club_id,
+    createdAt: issue.created_at,
+    resolvedAt: issue.resolved_at
   }
 }
 
-// TODO: replace with real endpoint when backend is ready
-export async function getIssues() {
-  try {
-    const response = await fetch(BASE_URL + '/issues')
-    return await response.json()
-  } catch (error) {
-    return mockIssues
-  }
+/** Issues raised by the signed-in student. */
+export async function getIssues(params = {}) {
+  const query = new URLSearchParams(params).toString()
+  const rows = await apiRequest(`/issues${query ? `?${query}` : ''}`)
+
+  return rows.map(toCardIssue)
 }
 
-// TODO: replace with real endpoint when backend is ready
+/** The queue of issues raised against clubs the caller leads. */
+export async function getLeaderIssues(params = {}) {
+  const query = new URLSearchParams(params).toString()
+  const rows = await apiRequest(`/issues/club${query ? `?${query}` : ''}`)
+
+  return rows.map(function toLeaderCard(issue) {
+    return {
+      ...toCardIssue(issue),
+      raisedBy: issue.raised_by || ''
+    }
+  })
+}
+
+/** How many open issues are waiting on the caller's clubs. */
+export async function getOpenIssueCount() {
+  const body = await apiRequest('/issues/club/open-count')
+
+  return body?.count ?? 0
+}
+
+/**
+ * Raise an issue against a club.
+ *
+ * `issue` must carry club_id, category, title and description - the shape of
+ * RaiseIssueRequest. event_id is optional and only used when the query is
+ * about a specific event.
+ */
 export async function raiseIssue(issue) {
-  try {
-    const response = await fetch(BASE_URL + '/issues', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(issue)
+  return apiRequest('/issues', {
+    method: 'POST',
+    body: JSON.stringify({
+      club_id: issue.club_id,
+      category: toApiCategory(issue.category),
+      title: issue.title,
+      description: issue.description,
+      ...(issue.event_id ? { event_id: issue.event_id } : {})
     })
-    return await response.json()
-  } catch (error) {
-    return { ok: true, issue: { ...issue, status: 'open' } }
-  }
+  })
 }
 
-// TODO: replace with real endpoint when backend is ready
 export async function replyToIssue(issueId, reply) {
-  try {
-    const response = await fetch(BASE_URL + '/issues/' + issueId + '/reply', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ reply })
-    })
-    return await response.json()
-  } catch (error) {
-    return { ok: true, status: 'in-progress', reply }
-  }
+  return apiRequest(`/issues/${issueId}/reply`, {
+    method: 'POST',
+    body: JSON.stringify({ reply })
+  })
 }
 
-// TODO: replace with real endpoint when backend is ready
 export async function resolveIssue(issueId) {
-  try {
-    const response = await fetch(BASE_URL + '/issues/' + issueId + '/resolve', { method: 'PATCH' })
-    return await response.json()
-  } catch (error) {
-    return { ok: true, status: 'resolved' }
-  }
+  return apiRequest(`/issues/${issueId}/resolve`, { method: 'PATCH' })
 }
 
-export { BASE_URL, mockIssues, mockLeaderIssues }
+export { BASE_URL }

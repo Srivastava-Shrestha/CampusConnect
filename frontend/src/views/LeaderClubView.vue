@@ -6,10 +6,13 @@ import { useClubsStore } from '../stores/clubs'
 import { Pencil, MapPin, Users, Calendar, CalendarPlus, Megaphone, UsersRound } from 'lucide-vue-next'
 import LeaderSidebar from '../components/layout/LeaderSidebar.vue'
 import ClubIcon from '../components/ui/ClubIcon.vue'
-import { getClubById, updateClub, deleteClub } from '../api/clubs'
+import ClubProposalList from '../components/ui/ClubProposalList.vue'
+import { getClubById, updateClub, deleteClub, getMyClubs } from '../api/clubs'
 import { getEvents, normalizeEvent } from '../api/events'
 import { toast } from '../composables/useToast'
+import LeaderClubSwitcher from '../components/ui/LeaderClubSwitcher.vue'
 import CustomSelect from '../components/ui/CustomSelect.vue'
+import Modal from '../components/ui/Modal.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -34,10 +37,14 @@ const editing = ref(false)
 const saving = ref(false)
 const clubStats = ref([])
 
+// member_count includes the leader's own auto-created membership row - the
+// banner's "N members" badge should exclude the leader same as the stat card
+// does, otherwise it reads one higher than the actual roster.
+const regularMemberCount = computed(() => Math.max((club.value?.member_count ?? 0) - 1, 0))
+
 const editForm = ref({
   description: '',
-  category: '',
-  image_url: ''
+  category: ''
 })
 
 const selectedClubId = computed({
@@ -72,8 +79,14 @@ const quickActions = computed(() => [
 ])
 
 function buildStats(loadedClub) {
+  // member_count comes straight from the backend, which counts every
+  // APPROVED membership - and the leader has one of those too, created
+  // automatically when the club was proposed. "Members" here means the
+  // people the leader is leading, not a headcount that includes themselves.
+  const regularMemberCount = Math.max(loadedClub.member_count - 1, 0)
+
   return [
-    { num: loadedClub.member_count, label: 'Members' },
+    { num: regularMemberCount, label: 'Members' },
     { num: loadedClub.head?.full_name ?? '-', label: 'Club Head' },
     { num: loadedClub.status, label: 'Status' },
     {
@@ -93,12 +106,35 @@ function manageEvent(event) {
   }
 }
 
+const bannerFileInput = ref(null)
+const uploadingBanner = ref(false)
+
+function changeBannerImage() {
+  bannerFileInput.value?.click()
+}
+
+async function handleBannerFileSelected(event) {
+  const file = event.target.files?.[0]
+  event.target.value = ''
+  if (!file) return
+
+  uploadingBanner.value = true
+  try {
+    const updated = await updateClub(club.value.id, {}, file)
+    club.value.image_url = updated.image_url
+    toast.success('Banner image updated.')
+  } catch (error) {
+    toast.error(error?.message || 'Could not update the banner image.')
+  } finally {
+    uploadingBanner.value = false
+  }
+}
+
 function startEditing() {
 
   editForm.value = {
     description: club.value.description,
-    category: club.value.category,
-    image_url: club.value.image_url || ''
+    category: club.value.category
   }
 
   editing.value = true
@@ -124,14 +160,12 @@ async function saveClubEdits() {
       club.value.id,
     {
       description: editForm.value.description.trim(),
-      category: editForm.value.category,
-      image_url: editForm.value.image_url.trim() || null
+      category: editForm.value.category
     }
   )
 
     club.value.description = editForm.value.description.trim()
     club.value.category = editForm.value.category
-    club.value.image_url = editForm.value.image_url.trim() || null
 
     clubStats.value = buildStats(club.value)
 
@@ -154,6 +188,8 @@ function cancelEditing() {
   editing.value = false
 }
 
+const deleting = ref(false)
+
 async function deleteCurrentClub() {
 
   const confirmed = window.confirm(
@@ -161,6 +197,8 @@ async function deleteCurrentClub() {
   )
 
   if (!confirmed) return
+
+  deleting.value = true
 
   try {
 
@@ -173,6 +211,7 @@ async function deleteCurrentClub() {
   } catch (error) {
 
     toast.error(error.message)
+    deleting.value = false
 
   }
 
@@ -195,7 +234,7 @@ async function loadClubData(clubId) {
     })
 
     upcomingEvents.value = rows
-      .map(normalizeEvent)
+      .map(row => normalizeEvent(row))
       .filter(event => event.status !== 'cancelled')
 
   } catch (error) {
@@ -215,6 +254,26 @@ const hasNoClub = computed(() => hasLoaded.value && clubsStore.leaderClubs.lengt
 function goToCreateClub() {
   router.push(`/${auth.user.collegeSlug}/clubs/propose`)
 }
+
+// Every club this student created, in any state, so a leader can see the
+// approval status of proposals that are not live yet alongside the club they
+// already run.
+const proposals = ref([])
+const loadingProposals = ref(true)
+
+async function loadProposals() {
+  loadingProposals.value = true
+
+  try {
+    proposals.value = await getMyClubs({ role: 'LEADER' })
+  } catch (error) {
+    proposals.value = []
+  } finally {
+    loadingProposals.value = false
+  }
+}
+
+onMounted(loadProposals)
 
 onMounted(async () => {
   try {
@@ -236,7 +295,13 @@ onMounted(async () => {
 <template>
   <LeaderSidebar />
 
-  <div class="main-content" v-if="hasNoClub">
+  <div v-if="!hasLoaded" class="main-content page-loading-state">
+    <div class="empty-state">
+      <p>Loading your club...</p>
+    </div>
+  </div>
+
+  <div class="main-content" v-else-if="hasNoClub">
 
     <header class="topbar">
       <div class="title-block">
@@ -265,28 +330,32 @@ onMounted(async () => {
     <header class="topbar">
       <div class="title-block">
         <h1 class="page-title">My Club</h1>
-
-        <CustomSelect
-           v-model="selectedClubId" 
-           :options="
-            clubsStore.leaderClubs.map(c => ({ 
-              value: c.id, 
-              label: c.name 
-              }))
-            "
-            placeholder="Select Club"/>
       </div>
       <div class="topbar-spacer"></div>
-      <div style="display:flex;gap:12px;">
+      <div style="display:flex;gap:12px;align-items:center;">
+
+        <div v-if="clubsStore.leaderClubs.length > 1" class="leader-club-switcher">
+          <CustomSelect
+             v-model="selectedClubId"
+             :options="
+              clubsStore.leaderClubs.map(c => ({
+                value: c.id,
+                label: c.name
+                }))
+              "
+              placeholder="Select Club"/>
+        </div>
 
         <button class="btn-secondary" @click="startEditing"> <Pencil />Edit Club Info</button>
 
         <button
           class="btn-secondary"
           style="background:#ef4444;color:white;"
+          :disabled="deleting"
           @click="deleteCurrentClub"
         >
-          Delete Club
+          <span v-if="deleting" class="btn-spinner"></span>
+          <template v-else>Delete Club</template>
         </button>
 
       </div>
@@ -295,20 +364,42 @@ onMounted(async () => {
     <main class="content-body custom-scrollbar">
 
       <div>
-        <div class="club-profile-banner banner-blue">
-          <div class="club-card-circle-1"></div>
-          <div class="club-card-circle-2"></div>
-          <div class="club-card-circle-3"></div>
+        <div
+          class="club-profile-banner"
+          :class="{ 'banner-green': !club.image_url }"
+          :style="club.image_url ? { backgroundImage: `url(${club.image_url})` } : {}"
+        >
+          <template v-if="!club.image_url">
+            <div class="club-card-circle-1"></div>
+            <div class="club-card-circle-2"></div>
+            <div class="club-card-circle-3"></div>
+          </template>
           <div class="club-profile-icon">
             <ClubIcon name="users" />
           </div>
+          <input
+            ref="bannerFileInput"
+            type="file"
+            accept="image/*"
+            class="hidden-file-input"
+            @change="handleBannerFileSelected"
+          >
+          <button
+            class="banner-edit-btn"
+            title="Change banner image"
+            :disabled="uploadingBanner"
+            @click="changeBannerImage"
+          >
+            <span v-if="uploadingBanner" class="btn-spinner"></span>
+            <Pencil v-else />
+          </button>
         </div>
         <div class="club-profile-meta">
           <p class="club-profile-name">{{ club.name }}</p>
           <div class="club-profile-sub">
             <span class="cat-chip">{{ club.category }}</span>
             <span><MapPin /> {{ club.type }}</span>
-            <span><Users /> {{ club.member_count }} members</span>
+            <span><Users /> {{ regularMemberCount }} members</span>
             <span><Calendar /> {{ new Date(club.created_at).getFullYear() }}</span>
           </div>
         </div>
@@ -340,69 +431,56 @@ onMounted(async () => {
       </div>
 
       <div class="card">
+        <p class="section-heading">About the Club</p>
+        <p>{{ club.description }}</p>
+      </div>
 
-  <p class="section-heading">About the Club</p>
+      <Modal v-if="editing" title="Edit Club Info" @close="cancelEditing">
+        <div class="form-group">
+          <label>Category</label>
 
-  <div v-if="!editing">
-  <p>{{ club.description }}</p>
-</div>
+          <select v-model="editForm.category" class="input-field">
+            <option
+              v-for="category in categoryOptions"
+              :key="category"
+              :value="category"
+            >
+              {{ category }}
+            </option>
+          </select>
+        </div>
 
-<div v-if="editing">
+        <div class="form-group">
+          <label>Description</label>
 
-  <div class="form-group">
-    <label>Category</label>
+          <textarea
+            v-model="editForm.description"
+            rows="6"
+            class="input-field"
+          ></textarea>
+        </div>
 
-    <select v-model="editForm.category" class="input-field">
-      <option
-        v-for="category in categoryOptions"
-        :key="category"
-        :value="category"
-      >
-        {{ category }}
-      </option>
-    </select>
-  </div>
+        <p class="form-hint">To change the banner image, use the pencil icon on the banner itself.</p>
 
-  <div class="form-group">
-    <label>Description</label>
+        <template #footer>
+          <button
+            class="btn-primary"
+            :disabled="saving"
+            @click="saveClubEdits"
+          >
+            <span v-if="saving" class="btn-spinner"></span>
+            <template v-else>Save Changes</template>
+          </button>
 
-    <textarea
-      v-model="editForm.description"
-      rows="6"
-      class="input-field"
-    ></textarea>
-  </div>
-
-  <div class="form-group">
-    <label>Image URL</label>
-
-    <input
-      v-model="editForm.image_url"
-      class="input-field"
-    />
-  </div>
-
-  <div style="display:flex;gap:10px;margin-top:20px;">
-
-    <button
-      class="btn-primary"
-      @click="saveClubEdits"
-    >
-      Save Changes
-    </button>
-
-    <button
-      class="btn-secondary"
-      @click="cancelEditing"
-    >
-      Cancel
-    </button>
-
-  </div>
-
-</div>
-
-</div>
+          <button
+            class="btn-secondary"
+            :disabled="saving"
+            @click="cancelEditing"
+          >
+            Cancel
+          </button>
+        </template>
+      </Modal>
 
       <div>
         <p class="section-heading">Upcoming Events</p>
@@ -420,6 +498,8 @@ onMounted(async () => {
           </div>
         </div>
       </div>
+
+      <ClubProposalList :proposals="proposals" :loading="loadingProposals" />
 
     </main>
 

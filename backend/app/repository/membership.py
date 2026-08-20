@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import Club, ClubStatus, Membership, MembershipRole, MembershipStatus, Student, User
 from sqlalchemy import select, func
-from sqlalchemy.orm import aliased
+from sqlalchemy.orm import aliased, selectinload
 
 
 class MembershipRepository:
@@ -66,6 +66,7 @@ class MembershipRepository:
             .join(Club, Club.id == Membership.club_id)
             .join(Student, Student.id == Club.club_head)
             .join(User, User.id == Student.user_id)
+            .options(selectinload(Club.links))
             .where(*conditions)
             .order_by(Membership.created_at.desc())
         )
@@ -94,3 +95,14 @@ class MembershipRepository:
     async def set_status(self, membership: Membership, status: MembershipStatus) -> Membership:
         membership.status = status
         return membership
+
+    async def delete(self, membership: Membership) -> None:
+        """
+        Remove a membership outright rather than setting a status for it.
+
+        There is no "REMOVED" member state - once gone, a former member is
+        indistinguishable from someone who never joined, and can request to
+        join again like anyone else.
+        """
+        await self.db.delete(membership)
+        await self.db.flush()

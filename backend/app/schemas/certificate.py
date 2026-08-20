@@ -30,3 +30,4 @@ class CertificateVerification(BaseModel):
     club_name: str
     college_name: str
     issued_at: datetime
+    pdf_url: str

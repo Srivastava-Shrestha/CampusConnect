@@ -1,21 +1,57 @@
+"""
+Shared pytest fixtures.
+
+Includes an autouse fixture that pins the AI module's LLM client to
+deterministic mock mode for the entire suite, regardless of whether
+ANTHROPIC_API_KEY happens to be set in backend/.env. Tests must stay
+offline, deterministic and free - they exercise the mock fallback
+contract, not the real Anthropic API. The real key is still used by the
+running dev server; only tests are pinned to the mock.
+"""
 import json
 from pathlib import Path
 from typing import AsyncGenerator
 
+import httpx
+import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
+from sqlalchemy import event
 
 from app.core.database import Base, get_db
 from app.core.config import settings
 from app.models.college import College
+from app.agent import llm_client
 from main import app
+
+
+MAILHOG_API_BASE = "http://localhost:8025/api"
+
+
+@pytest_asyncio.fixture()
+async def clear_mailhog():
+    try:
+        httpx.delete(f"{MAILHOG_API_BASE}/v1/messages")
+    except Exception:
+        pass
+    yield
 
 
 TEST_DATABASE_URL = settings.TEST_DATABASE_URL
 test_engine = create_async_engine(TEST_DATABASE_URL, echo=False, poolclass=NullPool)
 TestSessionLocal = async_sessionmaker(bind=test_engine, class_=AsyncSession, expire_on_commit=False)
+
+
+@pytest.fixture(autouse=True)
+def force_llm_mock_mode(monkeypatch):
+    monkeypatch.setattr(llm_client, "_API_KEY", "")
+    # Clear the response cache so a value cached by a real call in a prior
+    # run cannot leak into a mock-mode assertion.
+    llm_client._cache.clear()
+    yield
+    llm_client._cache.clear()
 
 
 @pytest_asyncio.fixture(scope="session")
@@ -28,11 +64,35 @@ async def setup_db():
     await test_engine.dispose()
 
 
+# Simple fixture — fast, used by most tests (no internal commits happen)
 @pytest_asyncio.fixture()
 async def db_session(setup_db) -> AsyncGenerator[AsyncSession, None]:
     async with TestSessionLocal() as session:
         yield session
         await session.rollback()
+
+
+# SAVEPOINT-based fixture — only for tests that hit an endpoint calling db.commit() internally
+@pytest_asyncio.fixture()
+# async def db_session_committing(setup_db) -> AsyncGenerator[AsyncSession, None]:
+async def db_session(setup_db) -> AsyncGenerator[AsyncSession, None]:
+    async with test_engine.connect() as connection:
+        outer_transaction = await connection.begin()
+        session = TestSessionLocal(bind=connection)
+        nested = await connection.begin_nested()
+
+        @event.listens_for(session.sync_session, "after_transaction_end")
+        def restart_savepoint(sess, transaction):
+            nonlocal nested
+            if not nested.is_active:
+                nested = connection.sync_connection.begin_nested()
+
+        try:
+            yield session
+        finally:
+            await session.close()
+            await outer_transaction.rollback()
+            await connection.close()
 
 
 @pytest_asyncio.fixture()

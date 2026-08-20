@@ -7,6 +7,7 @@ import StatCard from '../components/ui/StatCard.vue'
 import StatusPill from '../components/ui/StatusPill.vue'
 import ApprovalCard from '../components/ui/ApprovalCard.vue'
 import { getClubApprovals, approveClubRequest, rejectClubRequest } from '../api/clubs'
+import { toApprovalCard } from '../utils/clubVisuals'
 import { toast } from '../composables/useToast'
 import { useAuthStore } from '../stores/auth'
 
@@ -24,9 +25,23 @@ const auth = useAuthStore()
 
 const pendingCount = computed(() => pendingList.value.length)
 
+// Multiple cards can sit on screen at once, so "in flight" is tracked per
+// club id rather than one flag for the whole page - approving one club must
+// not grey out the button on every other pending card.
+const busyIds = ref(new Set())
+
+function isBusy(id) {
+  return busyIds.value.has(id)
+}
+
 async function handleApprove(approval) {
-  await approveClubRequest(approval.id)
-  approval.status = 'approved'
+  busyIds.value.add(approval.id)
+  try {
+    await approveClubRequest(approval.id)
+    approval.status = 'approved'
+  } finally {
+    busyIds.value.delete(approval.id)
+  }
 }
 
 const collegeSubtitle = computed(() => {
@@ -39,8 +54,13 @@ async function handleReject(approval) {
     return
   }
 
-  await rejectClubRequest(approval.id, reason)
-  approval.status = 'rejected'
+  busyIds.value.add(approval.id)
+  try {
+    await rejectClubRequest(approval.id, reason)
+    approval.status = 'rejected'
+  } finally {
+    busyIds.value.delete(approval.id)
+  }
 }
 
 // Each status is fetched independently, on purpose. The three calls used to
@@ -50,7 +70,8 @@ async function handleReject(approval) {
 // them separately means one failing call only blanks its own number.
 async function loadPending() {
   try {
-    pendingList.value = await getClubApprovals("PENDING")
+    const rows = await getClubApprovals("PENDING")
+    pendingList.value = rows.map(toApprovalCard)
   } catch (error) {
     toast.error('Could not load pending approvals: ' + error.message)
   }
@@ -85,7 +106,7 @@ onMounted(async () => {
 
   <div class="main-content">
 
-    <Topbar title="Admin Dashboard" :sub="collegeSubtitle"/>
+    <Topbar title="Admin Dashboard" :sub="collegeSubtitle" :show-bell="false"/>
 
     <main class="content-body custom-scrollbar">
 
@@ -101,7 +122,7 @@ onMounted(async () => {
           <StatusPill status="pending" :label="pendingCount + ' pending'" />
         </div>
 
-        <div v-if="hasLoaded && pendingList.length === 0" class="empty-state">
+        <div v-if="hasLoaded && pendingList.length === 0" class="empty-state empty-state-wide">
           <ClipboardCheck />
           <p>No club approvals are waiting on you right now.</p>
         </div>
@@ -111,6 +132,7 @@ onMounted(async () => {
             v-for="approval in pendingList"
             :key="approval.id"
             :approval="approval"
+            :busy="isBusy(approval.id)"
             @approve="handleApprove(approval)"
             @reject="handleReject(approval)"
           />

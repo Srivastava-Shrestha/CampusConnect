@@ -9,3 +9,4 @@ from app.repository.announcement import AnnouncementRepository
 from app.repository.issue import IssueRepository
 from app.repository.notification import NotificationRepository
 from app.repository.certificate import CertificateRepository
+from app.repository.leaderboard import LeaderboardRepository

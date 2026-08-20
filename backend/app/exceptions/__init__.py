@@ -1,7 +1,9 @@
 from app.exceptions.base import AppException
 from app.exceptions.user import (
     UserAlreadyExistError, CollegeNotFoundError, AuthenticationError,
-    CollegeAlreadyExistError, IncorrectCredentialError, AuthorizationError
+    CollegeAlreadyExistError, IncorrectCredentialError, AuthorizationError,
+    InvalidGoogleTokenError, EmailNotVerifiedError, GoogleAuthNotConfiguredError,
+    AccountNotExistError
 )
 from app.exceptions.club import (
     ClubNotFoundError, ClubNotActiveError, NotClubLeaderError, AlreadyMemberError,
@@ -18,7 +20,7 @@ from app.exceptions.announcement import AnnouncementNotFoundError
 from app.exceptions.issue import IssueNotFoundError, IssueActionNotAllowedError
 from app.exceptions.notification import NotificationNotFoundError
 from app.exceptions.storage import (
-    StorageError, StorageNotConfiguredError, InvalidFileTypeError
+    StorageError, StorageNotConfiguredError, InvalidFileTypeError, FileTooLargeError
 )
 from app.exceptions.certificate import (
     CertificateNotFoundError, CertificateNotEarnedError, CertificateGenerationError

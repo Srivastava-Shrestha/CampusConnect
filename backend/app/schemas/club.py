@@ -13,15 +13,16 @@ class CreateClubRequest(BaseModel):
     description: str = Field(..., min_length=5, max_length=1000)
     category: str = Field(..., min_length=2, max_length=50)
     type: ClubType
-    image_url: str | None = Field(None, max_length=500)
     links: list[ClubLinkSchema] = Field(default_factory=list)
 
 
 class UpdateClubRequest(BaseModel):
     description: str | None = Field(None, min_length=5, max_length=1000)
     category: str | None = Field(None, min_length=2, max_length=50)
-    image_url: str | None = Field(None, max_length=500)
     links: list[ClubLinkSchema] | None = None
+    # A leader-supplied URL for the banner image, used when an uploaded file isn't
+    # provided in the same request. Lets a club set its banner without needing S3.
+    image_url: str | None = Field(None, max_length=500)
 
 
 class CreateClubResponse(BaseModel):
@@ -60,6 +61,19 @@ class ClubListItem(BaseModel):
     member_count: int
     head_name: str
     created_at: datetime
+    links: list[ClubLinkSchema]
+
+
+class TrendingClubItem(BaseModel):
+    """Public, unauthenticated card for the marketing landing page - no
+    description/head/links, just enough to show a live club with which
+    college it belongs to."""
+    id: int
+    name: str
+    category: str
+    member_count: int
+    college_name: str
+    college_slug: str
 
 
 class MyClubItem(ClubListItem):

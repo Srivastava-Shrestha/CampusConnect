@@ -1,14 +1,18 @@
 <script setup>
-import { computed } from 'vue'
+import { onMounted, computed } from 'vue'
+import { useAnnouncementsStore } from '../../stores/announcements'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
-import { GraduationCap, Compass, CalendarDays, Megaphone, Trophy, Sparkles, CircleUserRound, Briefcase } from 'lucide-vue-next'
+import { GraduationCap, Compass, CalendarDays, Megaphone, Trophy, Sparkles, CircleUserRound, Briefcase, LifeBuoy } from 'lucide-vue-next'
 import MobileNav from './MobileNav.vue'
 
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
 const slug = computed(() => auth.user.collegeSlug)
+
+const announcementsStore = useAnnouncementsStore()
+onMounted(() => announcementsStore.fetchUnreadCount())
 
 // The "Manage Clubs" entry only appears for a member who also leads a club.
 const manageClubsItem = computed(() => ({
@@ -24,7 +28,10 @@ const menuItems = computed(function buildMenu() {
   { label: 'Events', to: `/${slug.value}/events`, icon: CalendarDays },
   { label: 'Announcements', to: `/${slug.value}/announcements`, icon: Megaphone },
   { label: 'Leaderboard', to: `/${slug.value}/leaderboard`, icon: Trophy },
-  { label: 'AI Finder', to: `/${slug.value}/find-clubs`, icon: Sparkles }
+  { label: 'AI Finder', to: `/${slug.value}/find-clubs`, icon: Sparkles },
+  // The issues page and its route already existed but nothing linked to it,
+  // so members had no way to reach the "raise a query" form.
+  { label: 'Help & Issues', to: `/${slug.value}/issues`, icon: LifeBuoy }
 ]
   if (auth.canManageClubs) {
     base.push(manageClubsItem.value)
@@ -107,6 +114,9 @@ function logout() {
         :class="{ active: isActive(item.to), student: isActive(item.to) }"
       >
         <component :is="item.icon" /> {{ item.label }}
+        <span v-if="item.label === 'Announcements' && announcementsStore.unreadCount > 0" class="nav-badge">
+          {{ announcementsStore.unreadCount > 99 ? '99+' : announcementsStore.unreadCount }}
+        </span>
       </router-link>
     </nav>
 
@@ -117,6 +127,7 @@ function logout() {
       <div class="user-avatar student-av">{{ auth.user.initials }}</div>
       <div class="user-info">
         <p class="user-name">{{ auth.user.name }}</p>
+        <p class="user-sub">{{ auth.user.email }}</p>
       </div>
     </router-link>
 

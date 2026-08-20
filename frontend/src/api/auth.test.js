@@ -8,7 +8,7 @@ describe('auth api', () => {
 
   test('loginUser posts credentials and returns the server response', async () => {
     const fakeResponse = { ok: true, token: 'abc', role: 'student' }
-    global.fetch = vi.fn().mockResolvedValue({ json: () => Promise.resolve(fakeResponse) })
+    global.fetch = vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve(fakeResponse) })
 
     const result = await loginUser('shikha@knit.ac.in', 'secret123')
 

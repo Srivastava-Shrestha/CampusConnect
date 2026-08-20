@@ -1,11 +1,12 @@
-from fastapi import APIRouter, Depends, Query, Security
+from fastapi import APIRouter, Depends, File, Form, Query, Security, UploadFile
 from app.schemas import (
     CreateClubRequest, UpdateClubRequest, CreateClubResponse, ClubStatusResponse,
     ClubListItem, ClubDetailResponse, JoinResponse, RequestActionRequest, RequestActionResponse,
-    PendingRequestItem, MemberItem, MyClubItem
+    PendingRequestItem, MemberItem, MyClubItem, RemoveMemberResponse, TrendingClubItem
 )
 from app.services import ClubService, MembershipService
 from app.core.di import get_club_service, get_membership_service, get_user_info
+from app.core.forms import parse_form_model
 from app.models import ClubStatus, ClubType, MembershipRole
 
 club_router = APIRouter(prefix="/clubs", tags=["Clubs"])
@@ -13,11 +14,12 @@ club_router = APIRouter(prefix="/clubs", tags=["Clubs"])
 
 @club_router.post("", response_model=CreateClubResponse)
 async def create_club(
-    data: CreateClubRequest,
+    data: str = Form(..., description="JSON body of CreateClubRequest"),
+    image: UploadFile | None = File(None),
     payload: dict = Security(get_user_info, scopes=["STUDENT"]),
     service: ClubService = Depends(get_club_service),
 ):
-    return await service.create(payload, data)
+    return await service.create(payload, parse_form_model(CreateClubRequest, data), image)
 
 
 @club_router.get("", response_model=list[ClubListItem])
@@ -47,6 +49,15 @@ async def my_clubs(
     return await service.my_clubs(payload, role=role, status=status)
 
 
+@club_router.get("/public/trending", response_model=list[TrendingClubItem])
+async def trending_clubs(
+    limit: int = Query(8, ge=1, le=20),
+    service: ClubService = Depends(get_club_service),
+):
+    """No auth - powers the marketing landing page's 'Trending clubs' section."""
+    return await service.trending(limit)
+
+
 @club_router.get("/{club_id}", response_model=ClubDetailResponse)
 async def view_club(
     club_id: int,
@@ -59,11 +70,12 @@ async def view_club(
 @club_router.put("/{club_id}", response_model=ClubDetailResponse)
 async def edit_club(
     club_id: int,
-    data: UpdateClubRequest,
+    data: str = Form(..., description="JSON body of UpdateClubRequest"),
+    image: UploadFile | None = File(None),
     payload: dict = Security(get_user_info, scopes=["STUDENT"]),
     service: ClubService = Depends(get_club_service),
 ):
-    return await service.update(payload, club_id, data)
+    return await service.update(payload, club_id, parse_form_model(UpdateClubRequest, data), image)
 
 
 @club_router.delete("/{club_id}", response_model=ClubStatusResponse)
@@ -128,3 +140,13 @@ async def club_members(
     service: MembershipService = Depends(get_membership_service),
 ):
     return await service.members(club_id)
+
+
+@club_router.delete("/{club_id}/members/{student_id}", response_model=RemoveMemberResponse)
+async def remove_member(
+    club_id: int,
+    student_id: int,
+    payload: dict = Security(get_user_info, scopes=["STUDENT"]),
+    service: MembershipService = Depends(get_membership_service),
+):
+    return await service.remove_member(payload, club_id, student_id)

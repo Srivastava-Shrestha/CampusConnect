@@ -10,7 +10,9 @@ from botocore.exceptions import BotoCoreError, ClientError
 from fastapi import UploadFile
 
 from app.core.config import settings
-from app.exceptions import StorageError, StorageNotConfiguredError, InvalidFileTypeError
+from app.exceptions import (
+    StorageError, StorageNotConfiguredError, InvalidFileTypeError, FileTooLargeError
+)
 
 
 ALLOWED_CONTENT_TYPES = {
@@ -21,11 +23,18 @@ ALLOWED_CONTENT_TYPES = {
     "application/pdf": ".pdf",
 }
 
+IMAGE_CONTENT_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+MAX_IMAGE_BYTES = 5 * 1024 * 1024
+
 MAX_FILENAME_LENGTH = 60
 UNSAFE_CHARS = re.compile(r"[^a-zA-Z0-9._-]+")
 
 CERTIFICATE_FOLDER = "certificates"
 CERTIFICATE_CONTENT_TYPE = "application/pdf"
+
+CLUB_FOLDER = "clubs"
+EVENT_FOLDER = "events"
+AVATAR_FOLDER = "avatars"
 
 
 class Storage:
@@ -73,6 +82,32 @@ class Storage:
         except (BotoCoreError, ClientError) as exc:
             raise StorageError() from exc
         return key
+
+    async def upload_image(self, file: UploadFile, folder: str) -> str:
+        if file.content_type not in IMAGE_CONTENT_TYPES:
+            raise InvalidFileTypeError()
+        data = await file.read()
+        if len(data) > MAX_IMAGE_BYTES:
+            raise FileTooLargeError()
+        key = await self.upload(data, folder, file.content_type, filename=file.filename)
+        return self.get_url(key)
+
+    def _key_from_url(self, url: str) -> str | None:
+        prefix = f"https://{self.bucket}.s3.{self.region}.amazonaws.com/"
+        if url.startswith(prefix):
+            return url[len(prefix):]
+        return None
+
+    async def delete_url(self, url: str | None) -> None:
+        if not url or not self.bucket:
+            return
+        key = self._key_from_url(url)
+        if not key:
+            return
+        try:
+            await asyncio.to_thread(self.client.delete_object, Bucket=self.bucket, Key=key)
+        except (BotoCoreError, ClientError):
+            pass
 
     async def upload_certificate(self, file: UploadFile) -> str:
         filename = file.filename or ""

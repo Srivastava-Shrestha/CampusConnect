@@ -58,6 +58,13 @@ export async function signupUser(data) {
   });
 }
 
+export async function googleAuth(idToken, intent = "login") {
+  return apiRequest("/auth/google", {
+    method: "POST",
+    body: JSON.stringify({ id_token: idToken, intent }),
+  });
+}
+
 export async function verifyEmailOtp(email, code) {
   return apiRequest("/auth/verify-email", {
     method: "POST",
@@ -86,6 +93,17 @@ export async function sendResetLink(email) {
   });
 }
 
+export async function resetPassword(token, password, confirmPassword) {
+  return apiRequest("/auth/reset-password", {
+    method: "POST",
+    body: JSON.stringify({
+      token,
+      password,
+      confirm_password: confirmPassword,
+    }),
+  });
+}
+
 export async function onboardCollege(data, token) {
   return apiRequest("/college/onboarding", {
     method: "POST",
@@ -96,6 +114,12 @@ export async function onboardCollege(data, token) {
   });
 }
 
+/**
+ * @deprecated POST /auth/onboarding was never implemented and returns 404.
+ * Onboarding now saves through updateMyProfile() in api/students.js, which
+ * calls the real PATCH /students/me. Kept only so the existing auth tests
+ * that import it keep passing; no view calls this any more.
+ */
 export async function saveOnboarding(profile) {
   return apiRequest("/auth/onboarding", {
     method: "POST",

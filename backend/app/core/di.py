@@ -4,17 +4,20 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.repository import (
     UserRepository, CollegeRepository, StudentRepository, ClubRepository, MembershipRepository,
     EventRepository, EventRegistrationRepository, AnnouncementRepository, IssueRepository,
-    NotificationRepository, CertificateRepository
+    NotificationRepository, CertificateRepository, LeaderboardRepository
 )
 from app.services import (
-    UserService, CollegeService, ClubService, MembershipService,
+    UserService, CollegeService, StudentService, ClubService, MembershipService,
     EventService, EventRegistrationService, AnnouncementService, IssueService,
-    NotificationService, CertificateService
+    NotificationService, CertificateService, LeaderboardService
 )
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials, SecurityScopes
 from app.core.token import decode_token
 from app.core.storage import Storage, storage
 from app.exceptions import AuthorizationError
+
+def get_storage() -> Storage:
+    return storage
 
 def get_user_service(db: AsyncSession = Depends(get_db)):
     user_repo = UserRepository(db)
@@ -33,12 +36,20 @@ def get_college_service(db: AsyncSession = Depends(get_db)):
     user_repo = UserRepository(db)
     return CollegeService(college_repo, user_repo)
 
-def get_club_service(db: AsyncSession = Depends(get_db)):
+def get_student_service(db: AsyncSession = Depends(get_db),
+                        storage: Storage = Depends(get_storage)):
+    student_repo = StudentRepository(db)
+    user_repo = UserRepository(db)
+    membership_repo = MembershipRepository(db)
+    return StudentService(student_repo, user_repo, membership_repo, storage)
+
+def get_club_service(db: AsyncSession = Depends(get_db),
+                     storage: Storage = Depends(get_storage)):
     club_repo = ClubRepository(db)
     student_repo = StudentRepository(db)
     user_repo = UserRepository(db)
     membership_repo = MembershipRepository(db)
-    return ClubService(club_repo, student_repo, user_repo, membership_repo)
+    return ClubService(club_repo, student_repo, user_repo, membership_repo, storage)
 
 def get_membership_service(db: AsyncSession = Depends(get_db)):
     membership_repo = MembershipRepository(db)
@@ -47,7 +58,8 @@ def get_membership_service(db: AsyncSession = Depends(get_db)):
     notification_repo = NotificationRepository(db)
     return MembershipService(membership_repo, club_repo, student_repo, notification_repo)
 
-def get_event_service(db: AsyncSession = Depends(get_db)):
+def get_event_service(db: AsyncSession = Depends(get_db),
+                      storage: Storage = Depends(get_storage)):
     event_repo = EventRepository(db)
     registration_repo = EventRegistrationRepository(db)
     club_repo = ClubRepository(db)
@@ -55,7 +67,7 @@ def get_event_service(db: AsyncSession = Depends(get_db)):
     student_repo = StudentRepository(db)
     user_repo = UserRepository(db)
     return EventService(event_repo, registration_repo, club_repo, membership_repo,
-                        student_repo, user_repo)
+                        student_repo, user_repo, storage)
 
 def get_event_registration_service(db: AsyncSession = Depends(get_db)):
     registration_repo = EventRegistrationRepository(db)
@@ -92,15 +104,17 @@ def get_notification_service(db: AsyncSession = Depends(get_db)):
     student_repo = StudentRepository(db)
     return NotificationService(notification_repo, student_repo)
 
-def get_storage() -> Storage:
-    return storage
-
 def get_certificate_service(db: AsyncSession = Depends(get_db),
                             storage: Storage = Depends(get_storage)):
     certificate_repo = CertificateRepository(db)
     student_repo = StudentRepository(db)
     notification_repo = NotificationRepository(db)
     return CertificateService(certificate_repo, student_repo, notification_repo, storage)
+
+def get_leaderboard_service(db: AsyncSession = Depends(get_db)):
+    leaderboard_repo = LeaderboardRepository(db)
+    user_repo = UserRepository(db)
+    return LeaderboardService(leaderboard_repo, user_repo)
 
 
     

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, BackgroundTasks, Depends, Query, Security
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, Query, Security, UploadFile
 from app.schemas import (
     CreateEventRequest, UpdateEventRequest, CreateEventResponse, EventStatusResponse,
     EventListItem, EventDetailResponse, RegistrationConfirmation, UnregisterResponse,
@@ -7,6 +7,7 @@ from app.schemas import (
 )
 from app.services import EventService, EventRegistrationService
 from app.core.di import get_event_service, get_event_registration_service, get_user_info
+from app.core.forms import parse_form_model
 from app.models import EventStatus
 
 event_router = APIRouter(prefix="/events", tags=["Events"])
@@ -14,11 +15,12 @@ event_router = APIRouter(prefix="/events", tags=["Events"])
 
 @event_router.post("", response_model=CreateEventResponse)
 async def create_event(
-    data: CreateEventRequest,
+    data: str = Form(..., description="JSON body of CreateEventRequest"),
+    image: UploadFile | None = File(None),
     payload: dict = Security(get_user_info, scopes=["STUDENT"]),
     service: EventService = Depends(get_event_service),
 ):
-    return await service.create(payload, data)
+    return await service.create(payload, parse_form_model(CreateEventRequest, data), image)
 
 
 @event_router.get("", response_model=list[EventListItem])
@@ -62,11 +64,12 @@ async def view_event(
 @event_router.put("/{event_id}", response_model=EventDetailResponse)
 async def edit_event(
     event_id: int,
-    data: UpdateEventRequest,
+    data: str = Form(..., description="JSON body of UpdateEventRequest"),
+    image: UploadFile | None = File(None),
     payload: dict = Security(get_user_info, scopes=["STUDENT"]),
     service: EventService = Depends(get_event_service),
 ):
-    return await service.update(payload, event_id, data)
+    return await service.update(payload, event_id, parse_form_model(UpdateEventRequest, data), image)
 
 
 @event_router.patch("/{event_id}/publish", response_model=EventStatusResponse)

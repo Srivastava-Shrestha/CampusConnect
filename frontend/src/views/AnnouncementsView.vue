@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { Megaphone } from 'lucide-vue-next'
+import { Megaphone, CheckCheck } from 'lucide-vue-next'
 import StudentSidebar from '../components/layout/StudentSidebar.vue'
 import Topbar from '../components/layout/Topbar.vue'
 import AnnounceCard from '../components/ui/AnnounceCard.vue'
@@ -8,9 +8,12 @@ import FilterChips from '../components/ui/FilterChips.vue'
 import { getAnnouncements } from '../api/announcements'
 import { useChipFilter } from '../composables/useChipFilter'
 import { toast } from '../composables/useToast'
+import { useAnnouncementsStore } from '../stores/announcements'
 
 const announcements = ref([])
 const loading = ref(true)
+
+const announcementsStore = useAnnouncementsStore()
 
 const filterChips = [
   { id: 'all', label: 'All' },
@@ -40,6 +43,9 @@ onMounted(async () => {
       pinned: item.is_pinned,
       category: item.category.toLowerCase()
     }))
+
+    await announcementsStore.markRead()
+    
   } catch (error) {
     toast.error(error?.message || 'Failed to load announcements.')
   } finally {
@@ -53,7 +59,13 @@ onMounted(async () => {
 
   <div class="main-content">
 
-    <Topbar title="Announcements" sub="Updates from your clubs" />
+    <Topbar title="Announcements" sub="Updates from your clubs">
+      <template #actions>
+        <button class="btn-secondary-sm" @click="announcementsStore.markRead">
+          <CheckCheck /> Mark all as read
+        </button>
+      </template>
+    </Topbar>
 
     <main class="content-body custom-scrollbar">
 

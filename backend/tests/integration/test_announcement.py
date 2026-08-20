@@ -665,7 +665,7 @@ async def test_mark_read_all_success(client, leader, member):
 @pytest.mark.asyncio
 async def test_new_announcement_after_read_all_is_unread_again(client, db_session, leader, member):
     """Confirm that an announcement posted after read-all is marked unread"""
-    from datetime import datetime, timedelta
+    from datetime import datetime, timedelta, timezone
     from app.models import Announcement
 
     headers, club_id = leader
@@ -688,7 +688,7 @@ async def test_new_announcement_after_read_all_is_unread_again(client, db_sessio
     announcement_id = posted.json()["id"]
 
     announcement = await db_session.get(Announcement, announcement_id)
-    announcement.created_at = datetime.now() + timedelta(seconds=5)
+    announcement.created_at = datetime.now(timezone.utc) + timedelta(seconds=5)
     await db_session.flush()
 
     feed = await client.get("/announcements", headers=member)

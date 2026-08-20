@@ -112,6 +112,16 @@ by label rather than trusting the number order.
 | 52      | Custom select (replaces native dropdowns)                       |
 | 53      | Mobile fixes for auth/verify pages                              |
 | 54      | Auth layout fixes (signup scroll, login sidebar alignment)      |
+| 55      | AI Club Finder response variants (event fallback + popularity)  |
+| 56      | Club card artwork (banner icon/image) + AI finder pending state |
+| 57      | Club proposal stack (propose-club + leader club pages)          |
+| 58      | Issues page layout (responsive grid, wide-screen density)       |
+| 59      | Issue conversation thread (student issues page)                 |
+| 60      | Results picker (winner / runner-up selection)                   |
+| 61      | Certificate viewer empty state                                  |
+| 62      | Button loading spinner                                          |
+| 63      | Leader club page - club switcher beside Edit/Delete             |
+| 64      | Page-level loading / not-found state                            |
 
 ## Conventions
 

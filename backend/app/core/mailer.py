@@ -49,8 +49,14 @@ class Mailer:
         message.add_alternative(html, subtype="html")
 
         with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=SMTP_TIMEOUT) as server:
-            server.starttls()
-            server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+            server.ehlo()
+            try:
+                server.starttls()
+                server.ehlo()
+            except smtplib.SMTPNotSupportedError:
+                pass
+            if settings.SMTP_USER and settings.SMTP_PASSWORD:
+                server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
             server.send_message(message)
 
     def send_password_reset(self, to: str, full_name: str, reset_url: str,
