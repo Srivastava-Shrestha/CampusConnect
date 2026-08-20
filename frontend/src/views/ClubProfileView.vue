@@ -9,6 +9,7 @@ import { useEventsStore } from '../stores/events'
 import { requestToJoinClub } from '../api/clubs'
 import { registerForEvent, unregisterFromEvent } from '../api/events'
 import { toast } from '../composables/useToast'
+import { bannerColourFor } from '../utils/clubVisuals'
 
 const route = useRoute()
 const router = useRouter()
@@ -32,6 +33,13 @@ const clubEvents = computed(function eventsForThisClub() {
   if (!club.value) return []
   return eventsStore.events.filter(function belongsToClub(event) {
     return event.club_id === club.value.id && event.status !== 'past'
+  })
+})
+
+const pastClubEvents = computed(function pastEventsForThisClub() {
+  if (!club.value) return []
+  return eventsStore.events.filter(function belongsToClub(event) {
+    return event.club_id === club.value.id && event.status === 'past'
   })
 })
 
@@ -171,10 +179,16 @@ onMounted(async function loadProfile() {
     <main class="content-body custom-scrollbar">
 
       <div>
-        <div class="club-profile-banner">
-          <div class="club-card-circle-1"></div>
-          <div class="club-card-circle-2"></div>
-          <div class="club-card-circle-3"></div>
+        <div
+          class="club-profile-banner"
+          :class="{ [bannerColourFor(club)]: !club.image_url }"
+          :style="club.image_url ? { backgroundImage: `url(${club.image_url})` } : {}"
+        >
+          <template v-if="!club.image_url">
+            <div class="club-card-circle-1"></div>
+            <div class="club-card-circle-2"></div>
+            <div class="club-card-circle-3"></div>
+          </template>
           <div class="club-profile-icon">
             <ClubIcon :name="categoryIcon(club.category)" />
           </div>

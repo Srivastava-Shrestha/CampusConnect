@@ -9158,3 +9158,117 @@ button:disabled {
   width: 10px;
   height: 10px;
 }
+
+/*  72. Landing page - Certificate showcase section  */
+.cert-showcase {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 32px;
+  align-items: center;
+  background-color: var(--color-surface);
+  border-radius: var(--radius-frame);
+  border: var(--border-subtle);
+  box-shadow: var(--shadow-card-lg);
+  padding: 40px;
+}
+
+@media (min-width: 768px) {
+  .cert-showcase {
+    grid-template-columns: 1.2fr 1fr;
+    padding: 48px;
+  }
+}
+
+.cert-showcase-title {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 30px;
+  line-height: 1.15;
+  color: var(--color-ink);
+}
+
+.cert-showcase-desc {
+  font-size: 14px;
+  color: var(--color-ink-muted);
+  line-height: 1.6;
+  margin-top: 14px;
+  max-width: 52ch;
+}
+
+.cert-showcase-points {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.cert-showcase-point {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.cert-showcase-point svg {
+  width: 18px;
+  height: 18px;
+  color: var(--color-sat-green);
+  flex-shrink: 0;
+}
+
+.cert-verify-card {
+  background-color: var(--color-canvas);
+  border-radius: var(--radius-card2);
+  border: var(--border-subtle);
+  padding: 32px 28px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.cert-verify-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background-color: var(--color-orange-tint);
+  color: var(--color-orange-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+
+.cert-verify-icon svg {
+  width: 28px;
+  height: 28px;
+}
+
+.cert-verify-title {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 18px;
+  color: var(--color-ink);
+}
+
+.cert-verify-desc {
+  font-size: 12px;
+  color: var(--color-ink-muted);
+  line-height: 1.55;
+  margin-top: 8px;
+  margin-bottom: 20px;
+}
+
+.cert-verify-btn {
+  width: 100%;
+  justify-content: center;
+}
+
+.cert-verify-hint {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--color-ink-light);
+  margin-top: 12px;
+}
