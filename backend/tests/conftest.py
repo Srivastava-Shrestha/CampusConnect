@@ -73,6 +73,36 @@ async def db_session(setup_db) -> AsyncGenerator[AsyncSession, None]:
             await connection.close()
 
 
+class InterceptAsyncClient(AsyncClient):
+    async def request(self, method: str, url, *args, **kwargs):
+        method_upper = method.upper()
+        url_str = str(url)
+        from urllib.parse import urlparse
+        path = urlparse(url_str).path
+        
+        parts = path.strip("/").split("/")
+        is_multipart_endpoint = False
+        if method_upper == "POST":
+            is_multipart_endpoint = len(parts) == 1 and parts[0] in ("clubs", "events")
+        elif method_upper == "PUT":
+            if len(parts) == 2 and parts[0] in ("clubs", "events"):
+                try:
+                    int(parts[1])
+                    is_multipart_endpoint = True
+                except ValueError:
+                    pass
+        elif method_upper == "PATCH":
+            is_multipart_endpoint = len(parts) == 2 and parts[0] == "students" and parts[1] == "me"
+        
+        if is_multipart_endpoint and "json" in kwargs and kwargs["json"] is not None:
+            payload = kwargs.pop("json")
+            if "data" not in kwargs or kwargs["data"] is None:
+                kwargs["data"] = {}
+            kwargs["data"]["data"] = json.dumps(payload)
+            
+        return await super().request(method, url, *args, **kwargs)
+
+
 @pytest_asyncio.fixture()
 async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     async def override_get_db():
@@ -80,7 +110,7 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
 
     app.dependency_overrides[get_db] = override_get_db
 
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+    async with InterceptAsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
 
     app.dependency_overrides.clear()

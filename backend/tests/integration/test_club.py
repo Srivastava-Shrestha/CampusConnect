@@ -1934,3 +1934,98 @@ async def test_my_clubs_without_token_fails(client):
     response = await client.get("/clubs/me")
     assert response.status_code == 401
     assert response.json()["detail"] == "Not authenticated"
+
+
+# ==== club image uploads & storage ====
+
+@pytest.fixture
+def mock_club_storage(monkeypatch):
+    """Stub storage methods for club avatar testing"""
+    from app.core.storage import storage
+
+    async def mock_upload(*args, **kwargs):
+        return "clubs/fake-club.jpg"
+
+    async def mock_delete(url):
+        pass
+
+    monkeypatch.setattr(storage, "upload", mock_upload)
+    monkeypatch.setattr(storage, "get_url", lambda key, signed=False, expires_in=3600: f"https://fake-s3.test/{key}")
+    monkeypatch.setattr(storage, "delete_url", mock_delete)
+
+
+@pytest.mark.asyncio
+async def test_create_club_image_upload(client, student_token, mock_club_storage):
+    """Verify that creating a club with a cover image uploads the file and stores its URL"""
+    import json
+    club_payload = {
+        "name": "Storage Club",
+        "description": "Club with S3 image",
+        "category": "Technical",
+        "type": "UNOFFICIAL"
+    }
+    files = {"image": ("club.jpg", b"fake jpeg bytes", "image/jpeg")}
+    data = {"data": json.dumps(club_payload)}
+
+    response = await client.post(
+        "/clubs",
+        data=data,
+        files=files,
+        headers={"Authorization": f"Bearer {student_token}"}
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "ACTIVE"
+
+    # Retrieve club details and check image URL
+    club_id = body["id"]
+    get_resp = await client.get(f"/clubs/{club_id}", headers={"Authorization": f"Bearer {student_token}"})
+    assert get_resp.status_code == 200
+    assert get_resp.json()["image_url"] == "https://fake-s3.test/clubs/fake-club.jpg"
+
+
+@pytest.mark.asyncio
+async def test_create_club_image_invalid_type(client, student_token, mock_club_storage):
+    """Verify that creating a club with unsupported cover image type is rejected"""
+    import json
+    club_payload = {
+        "name": "Invalid File Club",
+        "description": "Club with zip",
+        "category": "Technical",
+        "type": "UNOFFICIAL"
+    }
+    files = {"image": ("document.zip", b"zip data", "application/zip")}
+    data = {"data": json.dumps(club_payload)}
+
+    response = await client.post(
+        "/clubs",
+        data=data,
+        files=files,
+        headers={"Authorization": f"Bearer {student_token}"}
+    )
+    assert response.status_code == 400
+    assert response.json()["message"] == "This file type is not supported"
+
+
+@pytest.mark.asyncio
+async def test_create_club_image_too_large(client, student_token, mock_club_storage):
+    """Verify that creating a club with oversized cover image is rejected"""
+    import json
+    club_payload = {
+        "name": "Oversized File Club",
+        "description": "Club with too large image",
+        "category": "Technical",
+        "type": "UNOFFICIAL"
+    }
+    large_bytes = b"A" * (5 * 1024 * 1024 + 1)
+    files = {"image": ("huge.jpg", large_bytes, "image/jpeg")}
+    data = {"data": json.dumps(club_payload)}
+
+    response = await client.post(
+        "/clubs",
+        data=data,
+        files=files,
+        headers={"Authorization": f"Bearer {student_token}"}
+    )
+    assert response.status_code == 413
+    assert response.json()["message"] == "The file is too large"
