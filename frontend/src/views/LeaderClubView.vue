@@ -44,8 +44,7 @@ const regularMemberCount = computed(() => Math.max((club.value?.member_count ?? 
 
 const editForm = ref({
   description: '',
-  category: '',
-  image_url: ''
+  category: ''
 })
 
 const selectedClubId = computed({
@@ -107,20 +106,27 @@ function manageEvent(event) {
   }
 }
 
-async function changeBannerImage() {
-  const currentUrl = club.value.image_url || ''
-  const newUrl = window.prompt('Enter an image URL for the club banner:', currentUrl)
+const bannerFileInput = ref(null)
+const uploadingBanner = ref(false)
 
-  if (newUrl === null) return
-  const trimmed = newUrl.trim()
-  if (trimmed === currentUrl) return
+function changeBannerImage() {
+  bannerFileInput.value?.click()
+}
 
+async function handleBannerFileSelected(event) {
+  const file = event.target.files?.[0]
+  event.target.value = ''
+  if (!file) return
+
+  uploadingBanner.value = true
   try {
-    await updateClub(club.value.id, { image_url: trimmed || null })
-    club.value.image_url = trimmed || null
+    const updated = await updateClub(club.value.id, {}, file)
+    club.value.image_url = updated.image_url
     toast.success('Banner image updated.')
   } catch (error) {
     toast.error(error?.message || 'Could not update the banner image.')
+  } finally {
+    uploadingBanner.value = false
   }
 }
 
@@ -128,8 +134,7 @@ function startEditing() {
 
   editForm.value = {
     description: club.value.description,
-    category: club.value.category,
-    image_url: club.value.image_url || ''
+    category: club.value.category
   }
 
   editing.value = true
@@ -155,14 +160,12 @@ async function saveClubEdits() {
       club.value.id,
     {
       description: editForm.value.description.trim(),
-      category: editForm.value.category,
-      image_url: editForm.value.image_url.trim() || null
+      category: editForm.value.category
     }
   )
 
     club.value.description = editForm.value.description.trim()
     club.value.category = editForm.value.category
-    club.value.image_url = editForm.value.image_url.trim() || null
 
     clubStats.value = buildStats(club.value)
 
@@ -374,8 +377,21 @@ onMounted(async () => {
           <div class="club-profile-icon">
             <ClubIcon name="users" />
           </div>
-          <button class="banner-edit-btn" title="Change banner image" @click="changeBannerImage">
-            <Pencil />
+          <input
+            ref="bannerFileInput"
+            type="file"
+            accept="image/*"
+            class="hidden-file-input"
+            @change="handleBannerFileSelected"
+          >
+          <button
+            class="banner-edit-btn"
+            title="Change banner image"
+            :disabled="uploadingBanner"
+            @click="changeBannerImage"
+          >
+            <span v-if="uploadingBanner" class="btn-spinner"></span>
+            <Pencil v-else />
           </button>
         </div>
         <div class="club-profile-meta">
@@ -444,14 +460,7 @@ onMounted(async () => {
           ></textarea>
         </div>
 
-        <div class="form-group">
-          <label>Image URL</label>
-
-          <input
-            v-model="editForm.image_url"
-            class="input-field"
-          />
-        </div>
+        <p class="form-hint">To change the banner image, use the pencil icon on the banner itself.</p>
 
         <template #footer>
           <button

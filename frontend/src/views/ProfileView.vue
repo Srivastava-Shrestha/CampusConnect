@@ -1,22 +1,48 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { Award, CalendarClock, KeyRound, LogOut } from 'lucide-vue-next'
+import { Award, CalendarClock, KeyRound, LogOut, Pencil } from 'lucide-vue-next'
 import StudentSidebar from '../components/layout/StudentSidebar.vue'
 import Topbar from '../components/layout/Topbar.vue'
 import CertCard from '../components/ui/CertCard.vue'
 import { useAuthStore } from '../stores/auth'
 import { getMyCertificates } from '../api/certificates'
 import { getMyRegistrations } from '../api/events'
-import { getMyProfile } from '../api/students'
+import { getMyProfile, updateMyProfile } from '../api/students'
 import { sendResetLink } from '../api/auth'
 import { toast } from '../composables/useToast'
-import { cachedFetch } from '../utils/apiCache'
+import { cachedFetch, invalidateCache } from '../utils/apiCache'
 
 const auth = useAuthStore()
 const router = useRouter()
 
 const sendingReset = ref(false)
+
+const profileImageUrl = ref('')
+const avatarFileInput = ref(null)
+const uploadingAvatar = ref(false)
+
+function triggerAvatarUpload() {
+  avatarFileInput.value?.click()
+}
+
+async function handleAvatarFileSelected(event) {
+  const file = event.target.files?.[0]
+  event.target.value = ''
+  if (!file) return
+
+  uploadingAvatar.value = true
+  try {
+    const updated = await updateMyProfile({}, file)
+    profileImageUrl.value = updated.profile_image_url || ''
+    invalidateCache('my-profile')
+    toast.success('Profile picture updated.')
+  } catch (error) {
+    toast.error(error?.message || 'Could not update your profile picture.')
+  } finally {
+    uploadingAvatar.value = false
+  }
+}
 
 // There is no "change password with current password" endpoint - only the
 // email token flow "forgot password" uses. Reusing it here (labelled Change
@@ -94,6 +120,7 @@ onMounted(async function loadProfile() {
 
     profileTags.value = profile.interests || []
     clubCount.value = profile.joined_clubs ? profile.joined_clubs.length : 0
+    profileImageUrl.value = profile.profile_image_url || ''
   } catch (error) {
     console.error(error)
   }
@@ -126,7 +153,31 @@ onMounted(async function loadProfile() {
     <main class="content-body custom-scrollbar">
 
       <div class="profile-hero">
-        <div class="profile-avatar-lg">{{ auth.user.initials }}</div>
+        <div class="profile-avatar-lg-wrap">
+          <div
+            class="profile-avatar-lg"
+            :style="profileImageUrl ? { backgroundImage: `url(${profileImageUrl})` } : {}"
+          >
+            <span v-if="!profileImageUrl">{{ auth.user.initials }}</span>
+          </div>
+
+          <input
+            ref="avatarFileInput"
+            type="file"
+            accept="image/*"
+            class="hidden-file-input"
+            @change="handleAvatarFileSelected"
+          >
+          <button
+            class="avatar-edit-btn"
+            title="Change profile picture"
+            :disabled="uploadingAvatar"
+            @click="triggerAvatarUpload"
+          >
+            <span v-if="uploadingAvatar" class="btn-spinner"></span>
+            <Pencil v-else />
+          </button>
+        </div>
         <div class="profile-hero-info">
           <p class="profile-name">{{ auth.user.name }}</p>
           <div v-if="profileTags.length" class="profile-tags">

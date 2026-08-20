@@ -139,7 +139,7 @@ html {
 
 /*  4. Sidebar Shell  */
 .sidebar {
-  width: 236px;
+  width: 256px;
   flex: none;
   background-color: var(--color-surface-side);
   box-shadow: inset -1px 0 0 rgba(31, 26, 23, 0.07);
@@ -7776,7 +7776,7 @@ html {
   top: 0;
   right: 0;
   bottom: 0;
-  left: 236px;
+  left: 256px;
   z-index: 150;
   display: flex;
   align-items: center;
@@ -9104,4 +9104,57 @@ button:disabled {
     display: inline-flex;
     width: 100%;
   }
+}
+
+/*  71. Image upload controls (club banner, profile avatar)  */
+.hidden-file-input {
+  display: none;
+}
+
+.form-hint {
+  font-size: 11px;
+  color: var(--color-ink-light);
+  margin-top: -4px;
+  margin-bottom: 12px;
+}
+
+.profile-avatar-lg-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.profile-avatar-lg {
+  background-size: cover;
+  background-position: center;
+}
+
+.avatar-edit-btn {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid var(--color-surface);
+  background-color: var(--color-ink);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.avatar-edit-btn:hover {
+  background-color: #241712;
+}
+
+.avatar-edit-btn svg {
+  width: 12px;
+  height: 12px;
+}
+
+.avatar-edit-btn .btn-spinner {
+  width: 10px;
+  height: 10px;
 }
