@@ -1,11 +1,12 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { GraduationCap, Mail, Lock, Eye, EyeOff, Check, ArrowRight, Compass, ShieldCheck } from 'lucide-vue-next'
 import { loginUser } from '../api/auth'
 import { useAuthStore } from '../stores/auth'
 import { useFormValidation } from '../composables/useFormValidation'
 import { useAuthSession } from '../composables/useAuthSession'
+import { useGoogleAuth } from '../composables/useGoogleAuth'
 import { toast } from '../composables/useToast'
 
 const router = useRouter()
@@ -13,9 +14,20 @@ const auth = useAuthStore()
 const route = useRoute()
 const { isValidEmail } = useFormValidation()
 const { completeSignIn } = useAuthSession()
+const { renderButton, isConfigured: googleEnabled } = useGoogleAuth()
 
 const email = ref('')
 const password = ref('')
+const googleBtn = ref(null)
+
+onMounted(() => {
+  renderButton(googleBtn.value, {
+    onSuccess: completeSignIn,
+    onError: (message) => toast.error(message || 'Google sign-in failed'),
+    text: 'signin_with',
+    intent: 'login'
+  })
+})
 const rememberChecked = ref(true)
 const passwordVisible = ref(false)
 const isSigningIn = ref(false)
@@ -155,6 +167,16 @@ async function handleLogin() {
         <span v-if="isSigningIn" class="btn-spinner"></span>
         <template v-else><ArrowRight /> Sign in</template>
       </button>
+
+      <div v-show="googleEnabled" class="auth-divider-row">
+        <span class="auth-divider-line"></span>
+        <span>or</span>
+        <span class="auth-divider-line"></span>
+      </div>
+
+      <div v-show="googleEnabled" class="auth-sso-stack">
+        <div ref="googleBtn" class="google-btn-slot"></div>
+      </div>
 
     </section>
 

@@ -12,6 +12,7 @@ import { getEvents, normalizeEvent } from '../api/events'
 import { toast } from '../composables/useToast'
 import LeaderClubSwitcher from '../components/ui/LeaderClubSwitcher.vue'
 import CustomSelect from '../components/ui/CustomSelect.vue'
+import Modal from '../components/ui/Modal.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -35,6 +36,11 @@ const categoryOptions = [
 const editing = ref(false)
 const saving = ref(false)
 const clubStats = ref([])
+
+// member_count includes the leader's own auto-created membership row - the
+// banner's "N members" badge should exclude the leader same as the stat card
+// does, otherwise it reads one higher than the actual roster.
+const regularMemberCount = computed(() => Math.max((club.value?.member_count ?? 0) - 1, 0))
 
 const editForm = ref({
   description: '',
@@ -357,7 +363,7 @@ onMounted(async () => {
       <div>
         <div
           class="club-profile-banner"
-          :class="{ 'banner-blue': !club.image_url }"
+          :class="{ 'banner-green': !club.image_url }"
           :style="club.image_url ? { backgroundImage: `url(${club.image_url})` } : {}"
         >
           <template v-if="!club.image_url">
@@ -377,7 +383,7 @@ onMounted(async () => {
           <div class="club-profile-sub">
             <span class="cat-chip">{{ club.category }}</span>
             <span><MapPin /> {{ club.type }}</span>
-            <span><Users /> {{ club.member_count }} members</span>
+            <span><Users /> {{ regularMemberCount }} members</span>
             <span><Calendar /> {{ new Date(club.created_at).getFullYear() }}</span>
           </div>
         </div>
@@ -409,72 +415,63 @@ onMounted(async () => {
       </div>
 
       <div class="card">
+        <p class="section-heading">About the Club</p>
+        <p>{{ club.description }}</p>
+      </div>
 
-  <p class="section-heading">About the Club</p>
+      <Modal v-if="editing" title="Edit Club Info" @close="cancelEditing">
+        <div class="form-group">
+          <label>Category</label>
 
-  <div v-if="!editing">
-  <p>{{ club.description }}</p>
-</div>
+          <select v-model="editForm.category" class="input-field">
+            <option
+              v-for="category in categoryOptions"
+              :key="category"
+              :value="category"
+            >
+              {{ category }}
+            </option>
+          </select>
+        </div>
 
-<div v-if="editing">
+        <div class="form-group">
+          <label>Description</label>
 
-  <div class="form-group">
-    <label>Category</label>
+          <textarea
+            v-model="editForm.description"
+            rows="6"
+            class="input-field"
+          ></textarea>
+        </div>
 
-    <select v-model="editForm.category" class="input-field">
-      <option
-        v-for="category in categoryOptions"
-        :key="category"
-        :value="category"
-      >
-        {{ category }}
-      </option>
-    </select>
-  </div>
+        <div class="form-group">
+          <label>Image URL</label>
 
-  <div class="form-group">
-    <label>Description</label>
+          <input
+            v-model="editForm.image_url"
+            class="input-field"
+          />
+        </div>
 
-    <textarea
-      v-model="editForm.description"
-      rows="6"
-      class="input-field"
-    ></textarea>
-  </div>
+        <template #footer>
+          <button
+            class="btn-primary"
+            :disabled="saving"
+            @click="saveClubEdits"
+          >
+            <span v-if="saving" class="btn-spinner"></span>
+            <template v-else>Save Changes</template>
+          </button>
 
-  <div class="form-group">
-    <label>Image URL</label>
-
-    <input
-      v-model="editForm.image_url"
-      class="input-field"
-    />
-  </div>
-
-  <div style="display:flex;gap:10px;margin-top:20px;">
-
-    <button
-      class="btn-primary"
-      :disabled="saving"
-      @click="saveClubEdits"
-    >
-      <span v-if="saving" class="btn-spinner"></span>
-      <template v-else>Save Changes</template>
-    </button>
-
-    <button
-      class="btn-secondary"
-      :disabled="saving"
-      @click="cancelEditing"
-    >
-      Cancel
-    </button>
-
-  </div>
-
-</div>
-
-</div>
+          <button
+            class="btn-secondary"
+            :disabled="saving"
+            @click="cancelEditing"
+          >
+            Cancel
+          </button>
+        </template>
+      </Modal>
 
       <div>
         <p class="section-heading">Upcoming Events</p>

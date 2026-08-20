@@ -93,6 +93,17 @@ export async function sendResetLink(email) {
   });
 }
 
+export async function resetPassword(token, password, confirmPassword) {
+  return apiRequest("/auth/reset-password", {
+    method: "POST",
+    body: JSON.stringify({
+      token,
+      password,
+      confirm_password: confirmPassword,
+    }),
+  });
+}
+
 export async function onboardCollege(data, token) {
   return apiRequest("/college/onboarding", {
     method: "POST",

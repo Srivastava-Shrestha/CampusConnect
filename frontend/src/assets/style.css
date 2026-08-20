@@ -60,8 +60,8 @@
   --font-mono: 'JetBrains Mono', monospace;
 
   /* Borders */
-  --border-subtle: 1px solid rgba(58, 42, 36, 0.07);
-  --border-divider: 1px solid rgba(58, 42, 36, 0.05);
+  --border-subtle: 1px solid rgba(58, 42, 36, 0.13);
+  --border-divider: 1px solid rgba(58, 42, 36, 0.08);
   --border-dashed: 1.5px dashed rgba(58, 42, 36, 0.16);
 
   /* Shadows */
@@ -429,13 +429,23 @@ html {
 
 .bell-dot {
   position: absolute;
-  top: -2px;
-  right: -2px;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
+  top: -6px;
+  right: -6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 999px;
   background-color: var(--color-orange);
   border: 2px solid var(--color-canvas);
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
 }
 
 .notif-dropdown {
@@ -5373,373 +5383,21 @@ button, .btn {
   flex: 1;
 }
 
-.cert-page {
+.cert-pdf-frame {
   width: 960px;
-  height: 678px;
-  background-color: #FFFBF2;
-  position: relative;
+  max-width: 100%;
+  aspect-ratio: 297 / 210;
+  background-color: white;
+  border-radius: var(--radius-card2);
   box-shadow: 0 24px 64px rgba(58,42,36,0.22), 0 4px 16px rgba(58,42,36,0.10);
   overflow: hidden;
-  flex-shrink: 0;
 }
 
-.cert-page::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image:
-    repeating-linear-gradient(0deg, transparent, transparent 30px, rgba(199,154,43,0.05) 30px, rgba(199,154,43,0.05) 31px),
-    repeating-linear-gradient(90deg, transparent, transparent 30px, rgba(199,154,43,0.05) 30px, rgba(199,154,43,0.05) 31px);
-  pointer-events: none;
-  z-index: 0;
-}
-
-.cert-border-outer {
-  position: absolute;
-  inset: 14px;
-  border: 2.5px solid #C79A2B;
-  pointer-events: none;
-  z-index: 2;
-}
-
-.cert-border-inner {
-  position: absolute;
-  inset: 20px;
-  border: 1px solid rgba(199,154,43,0.45);
-  pointer-events: none;
-  z-index: 2;
-}
-
-.corner-ornament {
-  position: absolute;
-  z-index: 3;
-  pointer-events: none;
-}
-
-.corner-ornament.tl {
-  top: 14px;
-  left: 14px;
-}
-.corner-ornament.tr {
-  top: 14px;
-  right: 14px;
-  transform: scaleX(-1);
-}
-.corner-ornament.bl {
-  bottom: 14px;
-  left: 14px;
-  transform: scaleY(-1);
-}
-.corner-ornament.br {
-  bottom: 14px;
-  right: 14px;
-  transform: scale(-1,-1);
-}
-
-.cert-top-strip {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 7px;
-  background: linear-gradient(to right, #C79A2B, #F5C13D 30%, #EF7B45 60%, #C79A2B);
-  z-index: 3;
-}
-
-.cert-bot-strip {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 7px;
-  background: linear-gradient(to right, #C79A2B, #F5C13D 30%, #EF7B45 60%, #C79A2B);
-  z-index: 3;
-}
-
-.cert-content {
-  position: relative;
-  z-index: 4;
+.cert-pdf-embed {
+  width: 100%;
   height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: space-between;
-  padding: 28px 76px 22px;
-}
-
-.cert-top-group {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 100%;
-}
-
-.cert-body-group {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 100%;
-}
-
-.cert-bottom-group {
-  width: 100%;
-}
-
-.cert-header-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 2px;
-}
-
-.cert-logo-circle {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background-color: var(--color-green);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  color: #10301A;
-}
-
-.cert-logo-circle i,
-.cert-logo-circle svg {
-  width: 20px;
-  height: 20px;
-}
-
-.cert-org-block {
-  text-align: left;
-}
-
-.cert-org-name {
-  font-family: var(--font-heading);
-  font-weight: 800;
-  font-size: 15px;
-  color: #3A2A24;
-  line-height: 1.2;
-}
-
-.cert-org-college {
-  font-size: 10px;
-  font-weight: 600;
-  color: #9A8978;
-  letter-spacing: 0.8px;
-  text-transform: uppercase;
-}
-
-.cert-divider {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  margin: 8px 0 6px;
-}
-
-.cert-divider-line {
-  flex: 1;
-  height: 1.5px;
-  background: linear-gradient(to right, transparent, #C79A2B, transparent);
-}
-
-.cert-divider-diamond {
-  width: 7px;
-  height: 7px;
-  background-color: #C79A2B;
-  transform: rotate(45deg);
-  flex-shrink: 0;
-}
-
-.cert-type-heading {
-  font-family: var(--font-heading);
-  font-weight: 800;
-  font-size: 20px;
-  letter-spacing: 5px;
-  text-transform: uppercase;
-  color: #C79A2B;
-  text-align: center;
-}
-
-.cert-intro-text {
-  font-size: 12px;
-  color: #9A8978;
-  text-align: center;
-  letter-spacing: 0.5px;
-  margin-top: 0;
-}
-
-.cert-recipient-name {
-  font-family: var(--font-heading);
-  font-weight: 800;
-  font-size: 50px;
-  color: #3A2A24;
-  text-align: center;
-  line-height: 1.1;
-  margin-top: 2px;
-}
-
-.cert-name-bar {
-  width: 200px;
-  height: 2.5px;
-  background: linear-gradient(to right, transparent, #EF7B45, transparent);
-  margin: 4px auto 0;
-}
-
-.cert-action-text {
-  font-size: 12px;
-  color: #9A8978;
-  text-align: center;
-  margin-top: 14px;
-  letter-spacing: 0.3px;
-}
-
-.cert-event-title {
-  font-family: var(--font-heading);
-  font-weight: 700;
-  font-size: 20px;
-  color: #3A2A24;
-  text-align: center;
-  margin-top: 3px;
-  line-height: 1.3;
-}
-
-.cert-event-sub {
-  font-size: 11px;
-  color: #9A8978;
-  text-align: center;
-  margin-top: 3px;
-  letter-spacing: 0.3px;
-}
-
-.cert-result-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 22px;
-  border-radius: 999px;
-  font-family: var(--font-heading);
-  font-weight: 700;
-  font-size: 11px;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  margin-top: 14px;
-}
-
-.cert-ornament-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  max-width: 480px;
-  margin-top: 18px;
-}
-
-.cert-ornament-thin-line {
-  flex: 1;
-  height: 1px;
-  background: linear-gradient(to right, transparent, rgba(199,154,43,0.35), transparent);
-}
-
-.cert-ornament-dot {
-  color: #C79A2B;
-  font-size: 10px;
-  flex-shrink: 0;
-  line-height: 1;
-}
-
-.cert-ornament-dot-sm {
-  color: #C79A2B;
-  font-size: 7px;
-  flex-shrink: 0;
-  line-height: 1;
-  opacity: 0.6;
-}
-
-.cert-authority-text {
-  font-size: 11px;
-  color: #9A8978;
-  text-align: center;
-  letter-spacing: 0.6px;
-  margin-top: 8px;
-}
-
-.cert-authority-sub {
-  font-size: 10px;
-  color: #B8A898;
-  text-align: center;
-  letter-spacing: 0.4px;
-  margin-top: 3px;
-}
-
-.cert-result-pill.participant {
-  background-color: #FBEADF;
-  color: #C2410C;
-  border: 1.5px solid rgba(194,65,12,0.25);
-}
-.cert-result-pill.runner-up {
-  background-color: #E7EFF8;
-  color: #3F6694;
-  border: 1.5px solid rgba(63,102,148,0.25);
-}
-.cert-result-pill.winner {
-  background-color: #FBF1D6;
-  color: #C79A2B;
-  border: 1.5px solid rgba(199,154,43,0.35);
-}
-
-.cert-sig-divider {
-  width: 100%;
-  height: 1px;
-  background: linear-gradient(to right, transparent, rgba(199,154,43,0.4), transparent);
-  margin-bottom: 14px;
-}
-
-.cert-footer-row {
-  width: 100%;
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-}
-
-.cert-sig-block {
-  text-align: center;
-  min-width: 140px;
-}
-
-.cert-sig-line {
-  width: 130px;
-  height: 1px;
-  background-color: #C79A2B;
-  margin: 0 auto 5px;
-}
-
-.cert-sig-name {
-  font-family: var(--font-heading);
-  font-weight: 700;
-  font-size: 12px;
-  color: #3A2A24;
-  line-height: 1.3;
-}
-
-.cert-sig-role {
-  font-size: 10px;
-  color: #9A8978;
-  letter-spacing: 0.4px;
-}
-
-.cert-seal {
-  text-align: center;
-}
-
-.cert-serial-mono {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  color: #B8A898;
-  letter-spacing: 1px;
-  text-align: center;
-  margin-top: 5px;
+  border: none;
+  display: block;
 }
 
 @media print {
@@ -5752,31 +5410,12 @@ button, .btn {
   .cert-toolbar {
     display: none;
   }
-  .cert-page {
+  .cert-pdf-frame {
     width: 100%;
     height: 100vh;
     box-shadow: none;
+    border-radius: 0;
   }
-}
-
-/* The certificate is a fixed 960px landscape design. `zoom` scales both its
-   visuals and its layout box, so it shrinks to fit narrow screens without
-   overflowing or clipping. Tiered so each range fits its lower bound. */
-@media (max-width: 1007px) {
-  .cert-page { zoom: 0.75; }
-}
-@media (max-width: 767px) {
-  .cert-page { zoom: 0.6; }
-  .cert-viewer-body { padding: 16px 12px 28px; }
-}
-@media (max-width: 599px) {
-  .cert-page { zoom: 0.48; }
-}
-@media (max-width: 479px) {
-  .cert-page { zoom: 0.37; }
-}
-@media (max-width: 359px) {
-  .cert-page { zoom: 0.32; }
 }
 
 /*  36. Members Management  */
@@ -7435,15 +7074,6 @@ html {
   background-color: #FCF4EC;
 }
 
-/* Neutral warm tint for the list/action cards (pending states keep their own color) */
-.approval-card,
-.member-request-card,
-.quick-action-card,
-.club-stat-card,
-.member-row {
-  background-color: #F8F6F0;
-}
-
 /*  45. Leader Top Nav (secondary nav for club-leader pages)
        Renders inside the main content area so the member's own sidebar stays put  */
 .leader-topnav {
@@ -8541,30 +8171,38 @@ html {
   }
 }
 
-/* Result cards sit one-per-cell now (the reason moved into the chat reply),
-   so let the grid stretch every cell to the tallest in its row and have the
-   card fill it - cards then line up evenly no matter how many tags wrap.
-   minmax(0, 1fr) (instead of the default 1fr = minmax(auto, 1fr)) lets each
-   column shrink below its content's min-width, so a card with a long word or
-   an extra row of tags can't grow wider than its neighbours. */
+/* Result cards sit one-per-cell now (the reason moved into the chat reply).
+   This used to be a fixed 3-column CSS grid, which forces every column to
+   1/3 width even when there is only a single card - a grid reserves its
+   track count regardless of item count, so one result got crushed to a
+   third of the available width with no way for it to reclaim the space.
+   Flex-wrap fixes both that and the missing mobile breakpoint in one move:
+   each card claims a natural width and wraps onto a new line once the row
+   runs out of room, instead of being forced into columns that don't exist. */
 .finder-result-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 16px;
   row-gap: 24px;
   align-items: stretch;
 }
 
-.finder-fallback-events.finder-result-grid {
-  grid-template-columns: 1fr;
+.finder-result-item {
+  display: flex;
+  flex: 1 1 220px;
+  max-width: 300px;
+}
+
+.finder-fallback-events .finder-result-item {
+  flex-basis: 100%;
+  max-width: 100%;
 }
 
 @media (min-width: 640px) {
-  .finder-fallback-events.finder-result-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .finder-fallback-events .finder-result-item {
+    flex-basis: calc(50% - 8px);
+    max-width: calc(50% - 8px);
   }
-}
-
-.finder-result-item {
-  display: flex;
 }
 
 .finder-result-item > * {
@@ -9186,4 +8824,185 @@ button:disabled {
 .banner-edit-btn svg {
   width: 16px;
   height: 16px;
+}
+
+/*  67. Modal (generic overlay dialog)  */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(36, 26, 20, 0.45);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 1000;
+}
+
+.modal-card {
+  width: 480px;
+  max-width: 100%;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  background-color: var(--color-surface);
+  border-radius: var(--radius-card2);
+  box-shadow: var(--shadow-frame);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 20px 22px;
+  border-bottom: var(--border-subtle);
+  position: sticky;
+  top: 0;
+  background-color: var(--color-surface);
+  z-index: 1;
+}
+
+.modal-title {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 17px;
+  color: var(--color-ink);
+}
+
+.modal-close-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  border: none;
+  background-color: var(--color-surface-alt);
+  color: var(--color-ink-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.modal-close-btn:hover {
+  background-color: var(--color-ink-light);
+  color: white;
+}
+
+.modal-close-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.modal-body {
+  padding: 22px;
+}
+
+.modal-footer {
+  display: flex;
+  gap: 10px;
+  padding: 16px 22px 22px;
+}
+
+.modal-fade-enter-active .modal-card,
+.modal-fade-leave-active .modal-card {
+  transition: transform 0.18s ease, opacity 0.18s ease;
+}
+
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+  transition: opacity 0.18s ease;
+}
+
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+  opacity: 0;
+}
+
+.modal-fade-enter-from .modal-card,
+.modal-fade-leave-to .modal-card {
+  transform: translateY(12px) scale(0.98);
+  opacity: 0;
+}
+
+/*  68. Leader dashboard theme - distinct green identity vs. the member (orange)
+    dashboard, matching the "Club Leaders" role card already promised on the
+    landing page. Scoped under .theme-leader (App.vue adds it to the page
+    shell whenever route.meta.role === 'leader'), so member/admin pages and
+    the public marketing site are untouched.  */
+.theme-leader .btn-primary {
+  background-color: var(--color-green);
+  color: white;
+  box-shadow: 0 6px 16px rgba(91, 168, 105, 0.30);
+}
+
+.theme-leader .btn-primary:hover {
+  background-color: #4A9155;
+  box-shadow: 0 8px 20px rgba(91, 168, 105, 0.40);
+}
+
+.theme-leader .btn-secondary:hover,
+.theme-leader .btn-secondary-sm:hover {
+  background-color: var(--color-green-tint);
+  color: var(--color-green-text);
+  border-color: rgba(91, 168, 105, 0.4);
+}
+
+/* The room itself reads as "leader mode" rather than a colored stripe
+   stamped onto every card. Cards stay clean white with a real border; the
+   sidebar takes a solid fill using the same --color-sat-green the landing
+   page's "Club Leaders" role card already uses, so the identity is
+   consistent with what the marketing site promised. */
+.theme-leader .sidebar {
+  background-color: var(--color-sat-green);
+  box-shadow: none;
+}
+
+.theme-leader .logo-mark {
+  background-color: white;
+  color: var(--color-sat-green);
+}
+
+.theme-leader .brand,
+.theme-leader .user-name {
+  color: white;
+}
+
+.theme-leader .nav-label {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.theme-leader .sidebar-item {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.theme-leader .sidebar-item:hover {
+  background-color: rgba(255, 255, 255, 0.12);
+}
+
+.theme-leader .sidebar-item.active.leader {
+  background-color: white;
+  color: var(--color-sat-green);
+}
+
+.theme-leader .user-card {
+  background-color: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.theme-leader .user-sub {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.theme-leader .user-avatar.leader-av {
+  background-color: white;
+  color: var(--color-sat-green);
+}
+
+.theme-leader .main-content {
+  background:
+    radial-gradient(760px 420px at 3% -10%, rgba(91, 168, 105, 0.16), transparent 60%),
+    radial-gradient(720px 420px at 112% -8%, rgba(91, 168, 105, 0.10), transparent 58%),
+    radial-gradient(680px 480px at 100% 116%, rgba(91, 168, 105, 0.09), transparent 60%);
 }

@@ -132,6 +132,11 @@ class CertificateService:
             club_name=club.name,
             college_name=college.name,
             issued_at=certificate.issued_at,
+            # A certificate serial is already the public credential (same
+            # trust model as _download_url/file_bytes below), so the actual
+            # rendered PDF can be shown on the public /verify and /cert/view
+            # pages without requiring the viewer to be signed in as its owner.
+            pdf_url=self._download_url(certificate),
         )
 
     async def _by_serial(self, serial: str):

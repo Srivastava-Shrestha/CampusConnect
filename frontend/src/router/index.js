@@ -40,6 +40,15 @@ const publicRoutes = [
     }
   },
   {
+    path: '/reset-password',
+    name: 'reset-password',
+    component: () => import('../views/ResetPasswordView.vue'),
+    meta: {
+      role: 'public',
+      bodyClass: 'auth-body'
+    }
+  },
+  {
     path: '/verify-email',
     name: 'verify-email',
     component: () => import('../views/VerifyEmailView.vue'),
