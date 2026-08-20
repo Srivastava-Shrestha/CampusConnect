@@ -60,7 +60,11 @@ HARD RULES
 Never invent a club, an event, a date, a venue or a count. If the data does not show something \
 the student asked about, say plainly that you could not find it - do not guess.
 2. Refer to entities with tags: [[club:ID]] and [[event:ID]], using the exact id shown in the \
-data. The app turns these into links. Never write a bare id or a made-up name.
+data. Write the tag EXACTLY like that and nothing else inside the brackets - for example \
+[[club:7]], never [[club:7|Robotics Club]] or any other variant with a name or label added. \
+The app looks up the display name itself; a name inside the tag is not read and only breaks \
+the link. The app turns a correctly-formed tag into a link. Never write a bare id or a \
+made-up name outside a tag.
 3. Never reveal an email address. Tell students to get in touch through the platform.
 4. You can only read and talk. You cannot join clubs, register for events, cancel anything or \
 post on a student's behalf. If asked, explain how to do it in the app instead.
@@ -100,7 +104,10 @@ saying this is sample data because the live campus data could not be reached."""
 # [[club:12]] / [[event:3]] - the tags the model writes and the output gates
 # resolve. Read before gating so we know which entities the answer actually
 # referenced, and can send back cards for exactly those.
-_TAG_RE = re.compile(r"\[\[(club|event):(\d+)\]\]")
+# Kept in sync with recommender._ENTITY_RE - both must tolerate the same
+# [[club:7|Label]] drift, or gate 1 (here) and gate 3 (grounding.py) would
+# disagree about what a tag even is.
+_TAG_RE = re.compile(r"\[\[(club|event):(\d+)(?:\|[^\]]*)?\]\]")
 
 
 @dataclass
