@@ -40,6 +40,15 @@ const publicRoutes = [
     }
   },
   {
+    path: '/reset-password',
+    name: 'reset-password',
+    component: () => import('../views/ResetPasswordView.vue'),
+    meta: {
+      role: 'public',
+      bodyClass: 'auth-body'
+    }
+  },
+  {
     path: '/verify-email',
     name: 'verify-email',
     component: () => import('../views/VerifyEmailView.vue'),
@@ -49,7 +58,10 @@ const publicRoutes = [
     }
   },
   {
-    path: '/verify/:serial',
+    // :serial is optional - /verify alone is the public lookup form (anyone
+    // types a serial in); /verify/CC-XXXX-YYYY-ZZZZZ auto-verifies on load
+    // (what the certificate itself links to, and what shared links use).
+    path: '/verify/:serial?',
     name: 'verify-cert',
     component: () => import('../views/VerifyCertView.vue'),
     meta: {
@@ -58,7 +70,7 @@ const publicRoutes = [
     }
   },
   {
-    path: '/cert/view',
+    path: '/cert/view/:serial',
     name: 'view-cert',
     component: () => import('../views/ViewCertView.vue'),
     meta: {
@@ -208,6 +220,15 @@ const leaderRoutes = [
     }
   },
   {
+    path: '/:slug/leader/events/:id/edit',
+    name: 'edit-event',
+    component: () => import('../views/CreateEventView.vue'),
+    meta: {
+      role: 'leader',
+      bodyClass: 'portal-body'
+    }
+  },
+  {
     path: '/:slug/leader/events/:id/attend',
     name: 'attendance',
     component: () => import('../views/AttendanceView.vue'),
@@ -319,6 +340,15 @@ const routes = [
 ]
 
 function resolveGuardTarget(to, auth) {
+  // "Remember me" at login persists a flag alongside the token. A signed-in
+  // visitor who checked it and lands on the bare landing page - a bookmark,
+  // a new tab, reopening the browser - goes straight to their dashboard
+  // instead of seeing the marketing page again. Left unchecked, "/" behaves
+  // exactly as before even while still logged in this session.
+  if (to.path === '/' && auth.isLoggedIn && localStorage.getItem('cc_remember') === 'true') {
+    return auth.homeRoute
+  }
+
   if (to.meta.role === 'public') {
     return null
   }

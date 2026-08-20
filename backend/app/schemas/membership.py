@@ -40,3 +40,10 @@ class MemberItem(BaseModel):
     student_id: int
     full_name: str
     role: MembershipRole
+
+
+class RemoveMemberResponse(BaseModel):
+    id: int
+    student_id: int
+    club_id: int
+    message: str

@@ -67,6 +67,36 @@ function iconForCategory(category) {
   }
 }
 
+// Every card used to hardcode the same blue dot regardless of category,
+// which made a feed of five different announcement types look identical at
+// a glance. One colour per category instead.
+function bannerForCategory(category) {
+  switch (category) {
+    case 'GENERAL':
+    case 'general':
+      return 'banner-blue'
+
+    case 'EVENT_UPDATE':
+    case 'event_update':
+      return 'banner-green'
+
+    case 'RESOURCE':
+    case 'resource':
+      return 'banner-mint'
+
+    case 'ACHIEVEMENT':
+    case 'achievement':
+      return 'banner-yellow'
+
+    case 'URGENT':
+    case 'urgent':
+      return 'banner-pink'
+
+    default:
+      return 'banner-blue'
+  }
+}
+
 </script>
 
 <template>
@@ -76,7 +106,7 @@ function iconForCategory(category) {
     </span>
     <div v-else-if="announcement.unread" class="announce-unread-dot"></div>
     <div class="announce-club-row">
-      <div class="announce-dot banner-blue">
+      <div class="announce-dot" :class="bannerForCategory(announcement.category)">
         <ClubIcon :name="iconForCategory(announcement.category)" />
       </div>
       <div class="announce-club-info">

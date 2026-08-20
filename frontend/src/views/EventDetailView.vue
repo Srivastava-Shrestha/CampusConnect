@@ -19,6 +19,13 @@ const myResult = ref(null)
 
 const event = computed(() => eventsStore.currentEvent)
 
+// Neon's connection latency means the fetch can take a few seconds, and
+// currentEvent starts out null before the first load - so a plain v-if on
+// event showed "Event not found" as the FIRST thing on screen, then swapped
+// to the real page once the request finished. hasLoaded distinguishes
+// "we don't have it yet" from "we asked, and there genuinely isn't one".
+const hasLoaded = ref(false)
+
 const seatsRemaining = computed(function calcSeats() {
   if (!event.value) return null
   return event.value.seats_left
@@ -113,6 +120,8 @@ onMounted(async function loadDetail() {
     await loadMyResult()
   } catch (error) {
     toast.error(error?.message || 'Failed to load event.')
+  } finally {
+    hasLoaded.value = true
   }
 })
 </script>
@@ -198,7 +207,10 @@ onMounted(async function loadDetail() {
                   :disabled="submitting || !registrationOpen"
                   @click="handleRegister"
                 >
-                  <CheckCircle2 /> {{ registrationOpen ? 'Register Now' : 'Registration Closed' }}
+                  <span v-if="submitting" class="btn-spinner"></span>
+                  <template v-else>
+                    <CheckCircle2 /> {{ registrationOpen ? 'Register Now' : 'Registration Closed' }}
+                  </template>
                 </button>
               </div>
 
@@ -216,7 +228,8 @@ onMounted(async function loadDetail() {
                   :disabled="submitting"
                   @click="handleUnregister"
                 >
-                  <XCircle /> Cancel Registration
+                  <span v-if="submitting" class="btn-spinner"></span>
+                  <template v-else><XCircle /> Cancel Registration</template>
                 </button>
 
                 <div v-if="myResult">
@@ -236,7 +249,14 @@ onMounted(async function loadDetail() {
     </main>
 
   </div>
-  <div v-else class="empty-state">
-    <p>Event not found.</p>
-</div>
+  <div v-else-if="!hasLoaded" class="main-content page-loading-state">
+    <div class="empty-state">
+      <p>Loading event...</p>
+    </div>
+  </div>
+  <div v-else class="main-content page-loading-state">
+    <div class="empty-state">
+      <p>Event not found.</p>
+    </div>
+  </div>
 </template>

@@ -61,18 +61,18 @@ onMounted(async () => {
         />
       </div>
 
-      <div v-if="eventsStore.loading" class="empty-state">
-        <p>Loading events...</p>
+      <div v-if="eventsStore.loading" class="page-loading-state">
+        <div class="empty-state">
+          <p>Loading events...</p>
+        </div>
       </div>
 
-      
-
-      <div v-else-if="eventsStore.error" class="empty-state">
+      <div v-else-if="eventsStore.error" class="empty-state empty-state-wide">
         <CalendarX />
         <p>{{ eventsStore.error }}</p>
       </div>
 
-      <div v-else-if="filteredItems.length === 0" class="empty-state">
+      <div v-else-if="filteredItems.length === 0" class="empty-state empty-state-wide">
         <CalendarX />
         <p>No events match this filter.</p>
       </div>

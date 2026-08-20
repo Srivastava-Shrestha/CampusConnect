@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { Search, SearchX, Users } from 'lucide-vue-next'
+import { Search, SearchX, Users, Sparkles } from 'lucide-vue-next'
 import StudentSidebar from '../components/layout/StudentSidebar.vue'
 import Topbar from '../components/layout/Topbar.vue'
 import ClubCard from '../components/ui/ClubCard.vue'
@@ -43,11 +43,20 @@ function openClub(clubId) {
   router.push(`/${route.params.slug}/clubs/${clubId}`)
 }
 
+// clubsStore.clubs/joinedClubs both start empty, and the fetch can take a
+// few seconds - so "No clubs match your search" and "you haven't joined any
+// clubs yet" both appeared as the FIRST thing on screen before the real list
+// arrived. isLoading distinguishes "nothing fetched yet" from "fetched, and
+// there genuinely isn't anything".
+const isLoading = ref(true)
+
 onMounted(async function loadDirectory() {
   try {
     await clubsStore.loadClubs()
   } catch (error) {
     toast.error(error?.message || 'Failed to load clubs.')
+  } finally {
+    isLoading.value = false
   }
 })
 </script>
@@ -65,7 +74,14 @@ onMounted(async function loadDirectory() {
         <div class="clubs-section-header">
           <h2 class="clubs-section-title">Recommended for You</h2>
         </div>
-        <div class="clubs-grid">
+
+        <div v-if="isLoading" class="page-loading-state">
+          <div class="empty-state">
+            <p>Finding recommendations...</p>
+          </div>
+        </div>
+
+        <div v-else-if="clubsStore.recommendedClubs.length" class="clubs-grid">
           <ClubCard
             v-for="club in clubsStore.recommendedClubs"
             :key="club.id"
@@ -73,6 +89,14 @@ onMounted(async function loadDirectory() {
             badge="Recommended"
             @open="openClub(club.id)"
           />
+        </div>
+
+        <div v-else class="empty-state empty-state-wide">
+          <Sparkles />
+          <p>
+            You're already in every active club here. Check "All Clubs" below for
+            anything new, or use the AI Finder to discover clubs on other topics.
+          </p>
         </div>
       </div>
 
@@ -88,6 +112,12 @@ onMounted(async function loadDirectory() {
       :club="club"
       @open="openClub(club.id)"
     />
+  </div>
+
+  <div v-else-if="isLoading" class="page-loading-state">
+    <div class="empty-state">
+      <p>Loading your clubs...</p>
+    </div>
   </div>
 
   <div v-else class="empty-state">
@@ -123,7 +153,13 @@ onMounted(async function loadDirectory() {
           />
         </div>
 
-        <div v-if="visibleClubs.length === 0" class="empty-state">
+        <div v-if="isLoading" class="page-loading-state">
+          <div class="empty-state">
+            <p>Loading clubs...</p>
+          </div>
+        </div>
+
+        <div v-else-if="visibleClubs.length === 0" class="empty-state empty-state-wide">
           <SearchX />
           <p>No clubs match your search. Try a different keyword or category.</p>
         </div>

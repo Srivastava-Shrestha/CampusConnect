@@ -74,6 +74,7 @@ class EventService:
                 club_id=event.club_id,
                 club_name=club_name,
                 title=event.title,
+                description=event.description,
                 venue=event.venue,
                 starts_at=event.starts_at,
                 ends_at=event.ends_at,

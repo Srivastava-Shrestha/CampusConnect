@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Security
+from fastapi import APIRouter, Depends, Response, Security
 from app.schemas import (
     MyCertificateItem, CertificateDownloadResponse, CertificateVerification
 )
@@ -32,3 +32,20 @@ async def download_certificate(
     service: CertificateService = Depends(get_certificate_service),
 ):
     return await service.download(payload, serial)
+
+
+@certificate_router.get("/{serial}/file",
+                        description="Public, same trust model as /verify/{serial} - serves the "
+                                    "raw PDF for a certificate that fell back to Postgres storage "
+                                    "because S3 was not configured. Not used once real AWS "
+                                    "credentials make S3 uploads succeed.")
+async def download_certificate_file(
+    serial: str,
+    service: CertificateService = Depends(get_certificate_service),
+):
+    pdf = await service.file_bytes(serial)
+    return Response(
+        content=pdf,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'inline; filename="{serial}.pdf"'},
+    )

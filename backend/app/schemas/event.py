@@ -68,6 +68,7 @@ class EventListItem(BaseModel):
     club_id: int
     club_name: str
     title: str
+    description: str
     venue: str
     starts_at: datetime
     ends_at: datetime

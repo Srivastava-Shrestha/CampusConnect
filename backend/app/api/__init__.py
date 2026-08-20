@@ -8,3 +8,4 @@ from app.api.issue import issue_router
 from app.api.notification import notification_router
 from app.api.certificate import certificate_router
 from app.api.leaderboard import leaderboard_router
+from app.api.ai import ai_router

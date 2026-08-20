@@ -1,6 +1,7 @@
 <script setup>
 defineProps({
-  member: { type: Object, required: true }
+  member: { type: Object, required: true },
+  busy: { type: Boolean, default: false }
 })
 
 const emit = defineEmits(['remove'])
@@ -18,6 +19,14 @@ function removeMember() {
       <p class="member-sub">{{ member.sub }}</p>
     </div>
     <span class="member-role-badge" :class="member.role">{{ member.roleLabel }}</span>
-    <button class="member-remove-btn" @click="removeMember">Remove</button>
+    <button
+      v-if="member.role !== 'officer'"
+      class="member-remove-btn"
+      :disabled="busy"
+      @click="removeMember"
+    >
+      <span v-if="busy" class="btn-spinner"></span>
+      <template v-else>Remove</template>
+    </button>
   </div>
 </template>

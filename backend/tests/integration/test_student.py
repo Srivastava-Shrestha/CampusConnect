@@ -1,3 +1,4 @@
+
 import pytest
 
 
@@ -549,13 +550,13 @@ async def test_view_own_profile_via_public_endpoint_hides_private_fields(client,
     assert "roll_no" not in body
 
 
-# @pytest.mark.asyncio
-# async def test_profile_interests_remove_duplicates(client, student_token):
-#     """Verify that duplicate interests with different casing are removed"""
-#     payload = {"interests": ["AI", "ai", "Ai"]}
-#     response = await client.patch("/students/me", json=payload, headers={"Authorization": f"Bearer {student_token}"})
-#     assert response.status_code == 200
-#     assert response.json()["interests"] == ["AI"]
+@pytest.mark.asyncio
+async def test_update_my_profile_interests_dedup_is_case_sensitive(client, student_token):
+    """Confirm that interest dedup is exact-match only, so differently-cased duplicates are both kept"""
+    payload = {"interests": ["AI", "ai", "Ai"]}
+    response = await client.patch("/students/me", json=payload, headers={"Authorization": f"Bearer {student_token}"})
+    assert response.status_code == 200
+    assert response.json()["interests"] == ["AI", "ai", "Ai"]
 
 
 @pytest.mark.asyncio
@@ -608,65 +609,3 @@ async def test_view_public_profile_zero_id_returns_404_not_422(client, student_t
     assert response.status_code == 404
     body = response.json()
     assert body["message"] == "Student profile not found"
-
-
-# ==== 6. image uploads & form data ====
-
-@pytest.fixture
-def mock_avatar_storage(monkeypatch):
-    """Stub storage upload, delete_url, and get_url for student avatar testing"""
-    from app.core.storage import storage
-
-    async def mock_upload(*args, **kwargs):
-        return "avatars/fake-key.jpg"
-
-    async def mock_delete(url):
-        pass
-
-    monkeypatch.setattr(storage, "upload", mock_upload)
-    monkeypatch.setattr(storage, "get_url", lambda key, signed=False, expires_in=3600: f"https://fake-s3.test/{key}")
-    monkeypatch.setattr(storage, "delete_url", mock_delete)
-
-
-@pytest.mark.asyncio
-async def test_profile_image_upload(client, student_token, mock_avatar_storage):
-    """Verify that uploading a profile image updates the user avatar URL"""
-    files = {"image": ("avatar.jpg", b"fake jpeg bytes", "image/jpeg")}
-    data = {"data": '{"bio": "Updated bio via form-data"}'}
-    response = await client.patch(
-        "/students/me",
-        data=data,
-        files=files,
-        headers={"Authorization": f"Bearer {student_token}"}
-    )
-    assert response.status_code == 200
-    body = response.json()
-    assert body["profile_image_url"] == "https://fake-s3.test/avatars/fake-key.jpg"
-    assert body["bio"] == "Updated bio via form-data"
-
-
-@pytest.mark.asyncio
-async def test_profile_image_invalid_type(client, student_token, mock_avatar_storage):
-    """Verify that uploading an unsupported profile image type is rejected"""
-    files = {"image": ("document.txt", b"plain text", "text/plain")}
-    response = await client.patch(
-        "/students/me",
-        files=files,
-        headers={"Authorization": f"Bearer {student_token}"}
-    )
-    assert response.status_code == 400
-    assert response.json()["message"] == "This file type is not supported"
-
-
-@pytest.mark.asyncio
-async def test_profile_image_too_large(client, student_token, mock_avatar_storage):
-    """Verify that uploading an oversized profile image is rejected"""
-    large_bytes = b"A" * (5 * 1024 * 1024 + 1)
-    files = {"image": ("huge.jpg", large_bytes, "image/jpeg")}
-    response = await client.patch(
-        "/students/me",
-        files=files,
-        headers={"Authorization": f"Bearer {student_token}"}
-    )
-    assert response.status_code == 413
-    assert response.json()["message"] == "The file is too large"

@@ -1,25 +1,84 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import { Award } from 'lucide-vue-next'
+import { useRouter } from 'vue-router'
+import { Award, CalendarClock, KeyRound, LogOut, Pencil } from 'lucide-vue-next'
 import StudentSidebar from '../components/layout/StudentSidebar.vue'
 import Topbar from '../components/layout/Topbar.vue'
 import CertCard from '../components/ui/CertCard.vue'
 import { useAuthStore } from '../stores/auth'
 import { getMyCertificates } from '../api/certificates'
 import { getMyRegistrations } from '../api/events'
+import { getMyProfile, updateMyProfile } from '../api/students'
+import { sendResetLink } from '../api/auth'
 import { toast } from '../composables/useToast'
+import { cachedFetch, invalidateCache } from '../utils/apiCache'
 
-// Logging out lives once, in the sidebar - this page used to have its own
-// second button, which meant two logout controls were visible at once
-// whenever this page was open. See issue #46.
 const auth = useAuthStore()
+const router = useRouter()
+
+const sendingReset = ref(false)
+
+const profileImageUrl = ref('')
+const avatarFileInput = ref(null)
+const uploadingAvatar = ref(false)
+
+function triggerAvatarUpload() {
+  avatarFileInput.value?.click()
+}
+
+async function handleAvatarFileSelected(event) {
+  const file = event.target.files?.[0]
+  event.target.value = ''
+  if (!file) return
+
+  uploadingAvatar.value = true
+  try {
+    const updated = await updateMyProfile({}, file)
+    profileImageUrl.value = updated.profile_image_url || ''
+    invalidateCache('my-profile')
+    toast.success('Profile picture updated.')
+  } catch (error) {
+    toast.error(error?.message || 'Could not update your profile picture.')
+  } finally {
+    uploadingAvatar.value = false
+  }
+}
+
+// There is no "change password with current password" endpoint - only the
+// email token flow "forgot password" uses. Reusing it here (labelled Change
+// Password, since the user is already signed in - "reset" implies you've
+// lost access, which isn't true here) keeps the account on one well-tested
+// path for changing a password instead of building a second one.
+async function handleChangePassword() {
+  if (sendingReset.value) return
+  sendingReset.value = true
+
+  try {
+    await sendResetLink(auth.user.email)
+    toast.success('Password change link sent to ' + auth.user.email)
+  } catch (error) {
+    toast.error(error?.message || 'Could not send the password change link.')
+  } finally {
+    sendingReset.value = false
+  }
+}
+
+function handleLogout() {
+  const collegeSlug = auth.user.collegeSlug
+
+  auth.logout()
+  router.push(`/${collegeSlug}/login`)
+}
 
 const certificates = ref([])
+const clubCount = ref(0)
 
+// Interests picked at onboarding, shown as tags on the profile header. Was
+// always an empty array before - nothing ever populated it.
 const profileTags = ref([])
 
 const profileStats = computed(() => [
-  { num: '-', label: 'Clubs' },
+  { num: clubCount.value, label: 'Clubs' },
   { num: eventHistory.value.length, label: 'Events' },
   { num: certificates.value.length, label: 'Certs' }
 ])
@@ -57,14 +116,24 @@ function toHistoryEntry(registration) {
 
 onMounted(async function loadProfile() {
   try {
-    certificates.value = await getMyCertificates()
+    const profile = await cachedFetch('my-profile', getMyProfile)
+
+    profileTags.value = profile.interests || []
+    clubCount.value = profile.joined_clubs ? profile.joined_clubs.length : 0
+    profileImageUrl.value = profile.profile_image_url || ''
+  } catch (error) {
+    console.error(error)
+  }
+
+  try {
+    certificates.value = await cachedFetch('my-certificates', getMyCertificates)
   } catch (error) {
     console.error(error)
     certificates.value = []
   }
 
   try {
-    const registrations = await getMyRegistrations()
+    const registrations = await cachedFetch('my-registrations', getMyRegistrations)
 
     eventHistory.value = registrations.map(toHistoryEntry)
   } catch (error) {
@@ -84,7 +153,31 @@ onMounted(async function loadProfile() {
     <main class="content-body custom-scrollbar">
 
       <div class="profile-hero">
-        <div class="profile-avatar-lg">{{ auth.user.initials }}</div>
+        <div class="profile-avatar-lg-wrap">
+          <div
+            class="profile-avatar-lg"
+            :style="profileImageUrl ? { backgroundImage: `url(${profileImageUrl})` } : {}"
+          >
+            <span v-if="!profileImageUrl">{{ auth.user.initials }}</span>
+          </div>
+
+          <input
+            ref="avatarFileInput"
+            type="file"
+            accept="image/*"
+            class="hidden-file-input"
+            @change="handleAvatarFileSelected"
+          >
+          <button
+            class="avatar-edit-btn"
+            title="Change profile picture"
+            :disabled="uploadingAvatar"
+            @click="triggerAvatarUpload"
+          >
+            <span v-if="uploadingAvatar" class="btn-spinner"></span>
+            <Pencil v-else />
+          </button>
+        </div>
         <div class="profile-hero-info">
           <p class="profile-name">{{ auth.user.name }}</p>
           <div v-if="profileTags.length" class="profile-tags">
@@ -102,12 +195,17 @@ onMounted(async function loadProfile() {
       <div>
         <div class="clubs-section-header">
           <h2 class="clubs-section-title">Certificates Earned</h2>
-          <router-link to="/verify/lookup" class="clubs-section-link">
+          <router-link to="/verify" class="clubs-section-link">
             Verify a certificate
           </router-link>
         </div>
 
-        <div class="cert-grid">
+        <div v-if="certificates.length === 0" class="empty-state empty-state-wide">
+          <Award />
+          <p>No certificates yet. Winning or participating in an event earns you one automatically.</p>
+        </div>
+
+        <div v-else class="cert-grid">
           <CertCard
             v-for="cert in certificates"
             :key="cert.serial"
@@ -122,7 +220,12 @@ onMounted(async function loadProfile() {
           <span class="clubs-count-text">{{ eventHistory.length }} events</span>
         </div>
 
-        <div class="announce-feed">
+        <div v-if="eventHistory.length === 0" class="empty-state empty-state-wide">
+          <CalendarClock />
+          <p>No events yet. Registered events will show up here once you sign up for one.</p>
+        </div>
+
+        <div v-else class="announce-feed">
           <div v-for="entry in eventHistory" :key="entry.id" class="event-history-row">
             <div class="event-history-date">
               <span class="event-history-day">{{ entry.day }}</span>
@@ -137,6 +240,19 @@ onMounted(async function loadProfile() {
               <Award /> {{ resultLabels[entry.result] }}
             </div>
           </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="section-heading">Account</p>
+        <div class="profile-account-actions">
+          <button class="btn-secondary" :disabled="sendingReset" @click="handleChangePassword">
+            <span v-if="sendingReset" class="btn-spinner"></span>
+            <template v-else><KeyRound /> Change Password</template>
+          </button>
+          <button class="logout-btn profile-logout-btn" @click="handleLogout">
+            <LogOut /> Logout
+          </button>
         </div>
       </div>
 

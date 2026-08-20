@@ -1,90 +1,70 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, Award } from 'lucide-vue-next'
+import { ArrowLeft, Award, Crown, Medal } from 'lucide-vue-next'
 import LeaderSidebar from '../components/layout/LeaderSidebar.vue'
-import CustomSelect from '../components/ui/CustomSelect.vue'
 import {
-  getEventParticipants, getEventById, setResult,
+  getEventParticipants, getEventById, declareResults,
   normalizeEvent, normalizeParticipant
 } from '../api/events'
 import { toast } from '../composables/useToast'
+import { invalidateCache } from '../utils/apiCache'
 
 const route = useRoute()
 const router = useRouter()
 
 const event = ref(null)
 const participants = ref([])
-const results = ref({})
 const saving = ref(false)
+const alreadyDeclared = ref(false)
 
-const resultOptions = [
-  { value: 'PARTICIPANT', label: 'Participant' },
-  { value: 'RUNNER_UP', label: 'Runner-up' },
-  { value: 'WINNER', label: 'Winner' }
-]
+// The API takes exactly one winner and one runner-up in a single call, not a
+// result per row - every other checked-in attendee becomes PARTICIPANT on
+// the server. The form mirrors that: pick one of each, not a dropdown each.
+const winnerId = ref(null)
+const runnerUpId = ref(null)
 
 // A result can only be recorded for someone who was checked in at the event.
 const attendees = computed(function checkedInOnly() {
   return participants.value.filter((participant) => participant.checked_in)
 })
 
-function countResult(value) {
-  return Object.values(results.value).filter((result) => result === value).length
+function pickWinner(registrationId) {
+  winnerId.value = registrationId
+  if (runnerUpId.value === registrationId) {
+    runnerUpId.value = null
+  }
 }
 
-function validateResults() {
-  if (countResult('WINNER') > 1) {
-    toast.error('Only one participant can be marked as Winner.')
-    return false
+function pickRunnerUp(registrationId) {
+  runnerUpId.value = registrationId
+  if (winnerId.value === registrationId) {
+    winnerId.value = null
   }
-  if (countResult('RUNNER_UP') > 2) {
-    toast.error('At most two participants can be marked as Runner-up.')
-    return false
-  }
-  return true
 }
 
-function changedRows() {
-  return attendees.value.filter(function hasChanged(attendee) {
-    return results.value[attendee.registration_id] !== attendee.result
-  })
-}
+const canPublish = computed(function checkReady() {
+  return Boolean(winnerId.value) && Boolean(runnerUpId.value) && winnerId.value !== runnerUpId.value
+})
 
 async function publishResults() {
-  if (!validateResults()) return
-
-  const changed = changedRows()
-
-  if (!changed.length) {
-    toast.info('No result changes to publish.')
+  if (!canPublish.value) {
+    toast.error('Pick a winner and a runner-up before publishing.')
     return
   }
 
   saving.value = true
 
-  const outcomes = await Promise.allSettled(
-    changed.map(function saveRow(attendee) {
-      return setResult(
-        route.params.id,
-        attendee.registration_id,
-        results.value[attendee.registration_id]
-      )
-    })
-  )
-
-  saving.value = false
-
-  const failed = outcomes.filter((outcome) => outcome.status === 'rejected')
-
-  if (failed.length) {
-    toast.error(`${failed.length} of ${changed.length} results failed: ${failed[0].reason.message}`)
-    await loadParticipants()
-    return
+  try {
+    await declareResults(route.params.id, winnerId.value, runnerUpId.value)
+    invalidateCache('leaderboard')
+    toast.success('Results published! Every attendee can now see their result on the event page.')
+    router.push(`/${route.params.slug}/leader/events`)
+  } catch (error) {
+    toast.error(error.message || 'Could not publish results.')
+  } finally {
+    saving.value = false
   }
-
-  toast.success('Results published! Each student can now see their result on the event page.')
-  router.push(`/${route.params.slug}/leader/events`)
 }
 
 async function loadParticipants() {
@@ -92,13 +72,17 @@ async function loadParticipants() {
 
   participants.value = rows.map((row) => normalizeParticipant(row))
 
-  const draft = {}
-  attendees.value.forEach(function seedCurrentResult(attendee) {
-    // REGISTRANT is the sign-up default rather than an outcome, so it starts at Participant.
-    draft[attendee.registration_id] =
-      attendee.result === 'REGISTRANT' ? 'PARTICIPANT' : attendee.result
-  })
-  results.value = draft
+  // If results were already declared, every attendee carries a real result
+  // rather than the REGISTRANT sign-up default - reflect that instead of
+  // presenting the picker as if nothing had happened yet.
+  const declared = attendees.value.find((attendee) => attendee.result !== 'REGISTRANT')
+  alreadyDeclared.value = Boolean(declared)
+
+  const existingWinner = attendees.value.find((attendee) => attendee.result === 'WINNER')
+  const existingRunnerUp = attendees.value.find((attendee) => attendee.result === 'RUNNER_UP')
+
+  winnerId.value = existingWinner ? existingWinner.registration_id : null
+  runnerUpId.value = existingRunnerUp ? existingRunnerUp.registration_id : null
 }
 
 function goBackToAttendance() {
@@ -136,35 +120,65 @@ onMounted(async function loadResultsPage() {
       <div class="club-profile-meta">
         <p class="section-heading">Attendees</p>
         <p class="text-note">
-          Assign a result to each attendee. Only students marked present on the Attendance page
-          appear here.
+          Pick one winner and one runner-up. Everyone else who was checked in is
+          automatically recorded as a participant when you publish.
+        </p>
+        <p v-if="alreadyDeclared" class="text-note">
+          Results have already been published for this event. Attendance and
+          results are frozen once declared.
         </p>
       </div>
 
       <div class="participant-list mt-16">
-        <div v-for="attendee in attendees" :key="attendee.registration_id" class="participant-row">
+        <div
+          v-for="attendee in attendees"
+          :key="attendee.registration_id"
+          class="participant-row"
+        >
           <div class="participant-avatar">{{ attendee.initials }}</div>
           <div class="participant-info">
             <p class="participant-name">{{ attendee.name }}</p>
             <p class="participant-sub">{{ attendee.sub }}</p>
           </div>
-          <CustomSelect
-            v-model="results[attendee.registration_id]"
-            :options="resultOptions"
-            placeholder="Set result"
-            class="result-select-wrap"
-          />
+
+          <div class="result-pick-group">
+            <button
+              type="button"
+              class="btn-secondary-sm result-pick-btn"
+              :class="{ 'result-pick-winner': winnerId === attendee.registration_id }"
+              :disabled="alreadyDeclared"
+              @click="pickWinner(attendee.registration_id)"
+            >
+              <Crown /> Winner
+            </button>
+            <button
+              type="button"
+              class="btn-secondary-sm result-pick-btn"
+              :class="{ 'result-pick-runner-up': runnerUpId === attendee.registration_id }"
+              :disabled="alreadyDeclared"
+              @click="pickRunnerUp(attendee.registration_id)"
+            >
+              <Medal /> Runner-up
+            </button>
+          </div>
         </div>
       </div>
 
-      <div v-if="attendees.length === 0" class="empty-state">
+      <div v-if="attendees.length === 0" class="empty-state empty-state-wide">
         <p>Nobody has been checked in yet. Mark attendance first.</p>
       </div>
 
       <div class="event-action-bar">
         <p class="text-note">Students see their result on the event page once published.</p>
-        <button class="btn-primary" :disabled="saving || attendees.length === 0" @click="publishResults">
-          <Award /> Publish Results
+        <button
+          class="btn-primary"
+          :disabled="saving || !canPublish || alreadyDeclared"
+          @click="publishResults"
+        >
+          <span v-if="saving" class="btn-spinner"></span>
+          <template v-else>
+            <Award /> {{ alreadyDeclared ? 'Results Published' : 'Publish Results' }}
+          </template>
         </button>
       </div>
 
@@ -172,4 +186,3 @@ onMounted(async function loadResultsPage() {
 
   </div>
 </template>
-

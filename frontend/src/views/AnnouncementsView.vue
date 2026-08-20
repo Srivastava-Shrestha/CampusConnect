@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { Megaphone } from 'lucide-vue-next'
+import { Megaphone, CheckCheck } from 'lucide-vue-next'
 import StudentSidebar from '../components/layout/StudentSidebar.vue'
 import Topbar from '../components/layout/Topbar.vue'
 import AnnounceCard from '../components/ui/AnnounceCard.vue'
@@ -59,7 +59,13 @@ onMounted(async () => {
 
   <div class="main-content">
 
-    <Topbar title="Announcements" sub="Updates from your clubs" />
+    <Topbar title="Announcements" sub="Updates from your clubs">
+      <template #actions>
+        <button class="btn-secondary-sm" @click="announcementsStore.markRead">
+          <CheckCheck /> Mark all as read
+        </button>
+      </template>
+    </Topbar>
 
     <main class="content-body custom-scrollbar">
 

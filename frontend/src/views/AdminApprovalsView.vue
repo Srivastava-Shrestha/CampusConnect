@@ -8,6 +8,7 @@ import StatCard from '../components/ui/StatCard.vue'
 import ApprovalCard from '../components/ui/ApprovalCard.vue'
 import FilterChips from '../components/ui/FilterChips.vue'
 import { getClubApprovals, approveClubRequest, rejectClubRequest } from '../api/clubs'
+import { toApprovalCard } from '../utils/clubVisuals'
 
 const approvals = ref([])
 const activeFilter = ref('all')
@@ -21,7 +22,7 @@ const auth = useAuthStore()
 const filterChips = [
   { id: 'all', label: 'All' },
   { id: 'pending', label: 'Pending' },
-  { id: 'active', label: 'Approved' },
+  { id: 'approved', label: 'Approved' },
   { id: 'rejected', label: 'Rejected' }
 ]
 
@@ -45,13 +46,24 @@ const pendingCount = computed(function countPending() {
   }).length
 })
 
+const busyIds = ref(new Set())
+
+function isBusy(id) {
+  return busyIds.value.has(id)
+}
+
 async function handleApprove(approval) {
-  await approveClubRequest(approval.id)
-  approvals.value = approvals.value.map((item) =>
-    item.id === approval.id
-      ? { ...item, status: "approved" }
-      : item
-  )
+  busyIds.value.add(approval.id)
+  try {
+    await approveClubRequest(approval.id)
+    approvals.value = approvals.value.map((item) =>
+      item.id === approval.id
+        ? { ...item, status: "approved" }
+        : item
+    )
+  } finally {
+    busyIds.value.delete(approval.id)
+  }
 }
 
 async function handleReject(approval) {
@@ -61,13 +73,17 @@ async function handleReject(approval) {
 
   if (reason === null) return
 
-  await rejectClubRequest(approval.id)
-
-  approvals.value = approvals.value.map((item) =>
-    item.id === approval.id
-      ? { ...item, status: "rejected" }
-      : item
-  )
+  busyIds.value.add(approval.id)
+  try {
+    await rejectClubRequest(approval.id)
+    approvals.value = approvals.value.map((item) =>
+      item.id === approval.id
+        ? { ...item, status: "rejected" }
+        : item
+    )
+  } finally {
+    busyIds.value.delete(approval.id)
+  }
 }
 
 onMounted(async () => {
@@ -79,18 +95,11 @@ onMounted(async () => {
 
     ])
 
-    console.log("Pending:", pending)
-    console.log("Approved:", approved)
-    console.log("Rejected:", rejected)
-
     approvals.value = [
       ...pending,
       ...approved,
       ...rejected
-    ].map(approval => ({
-      ...approval,
-      status: approval.status.toLowerCase()
-    }))
+    ].map(toApprovalCard)
 
     approvedCount.value = approved.length
     rejectedCount.value = rejected.length
@@ -129,12 +138,13 @@ onMounted(async () => {
           :key="approval.id"
           :approval="approval"
           meta-field="metaFull"
+          :busy="isBusy(approval.id)"
           @approve="handleApprove(approval)"
           @reject="handleReject(approval)"
         />
       </div>
 
-      <div v-if="visibleApprovals.length === 0" class="empty-state">
+      <div v-if="visibleApprovals.length === 0" class="empty-state empty-state-wide">
         <CheckCircle2 />
         <p>No approvals match this filter.</p>
       </div>

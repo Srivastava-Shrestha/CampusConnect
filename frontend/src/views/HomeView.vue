@@ -1,10 +1,10 @@
 <script setup>
 import { useRouter } from 'vue-router'
-import { GraduationCap, Compass, ArrowRight, Users, ShieldCheck, UserPlus, CalendarCheck, Award } from 'lucide-vue-next'
+import { GraduationCap, Compass, ArrowRight, Users, ShieldCheck, UserPlus, CalendarCheck, Award, Building2, QrCode, Download, CheckCircle2 } from 'lucide-vue-next'
 import { useScrollReveal } from '../composables/useScrollReveal'
 import { ref, onMounted } from 'vue'
 import ClubIcon from '../components/ui/ClubIcon.vue'
-import { getClubs } from '../api/clubs'
+import { getTrendingClubs } from '../api/clubs'
 
 const router = useRouter()
 const { collectReveal } = useScrollReveal()
@@ -142,10 +142,11 @@ const accountLinks = [
   { label: 'Log in', to: '/login' },
   { label: 'Create account', to: '/signup' },
   { label: 'For club leaders', to: '/signup' },
-  { label: 'Verify a certificate', to: '/verify/lookup' }
+  { label: 'Verify a certificate', to: '/verify' }
 ]
 
 const trendingClubs = ref([])
+const trendingLoading = ref(true)
 
 function categoryIcon(category) {
   const map = {
@@ -177,11 +178,11 @@ function bannerClass(category) {
 
 onMounted(async () => {
   try {
-    const clubs = await getClubs()
-
-    trendingClubs.value = [...clubs, ...clubs]
+    trendingClubs.value = await getTrendingClubs(8)
   } catch (err) {
     console.error(err)
+  } finally {
+    trendingLoading.value = false
   }
 })
 
@@ -303,22 +304,89 @@ function goTo(path) {
         <span>Live from the club directory</span>
       </div>
 
-      <div class="club-marquee reveal" :ref="collectReveal">
-        <div class="club-marquee-track">
-          <div
-            v-for="(club, index) in trendingClubs"
-            :key="index"
-            class="mini-club-card"
-          >
-            <div class="mini-club-dot" :class="bannerClass(club.category)">
-              <ClubIcon :name="categoryIcon(club.category)" />
-            </div>
-
-            <p class="mini-club-name"> {{ club.name }} </p>
-
-            <p class="mini-club-sub"> {{ club.member_count }} members · {{ club.category }} </p>
-            </div>
+      <div class="reveal" :ref="collectReveal">
+        <div v-if="trendingLoading" class="page-loading-state">
+          <div class="empty-state">
+            <p>Loading trending clubs...</p>
+          </div>
         </div>
+
+        <div v-else-if="trendingClubs.length === 0" class="empty-state empty-state-wide">
+          <Building2 />
+          <p>No active clubs to show yet. Be the first college to register on Campus Connect.</p>
+        </div>
+
+        <div v-else class="club-marquee">
+          <div class="club-marquee-track">
+            <div
+              v-for="(club, index) in [...trendingClubs, ...trendingClubs]"
+              :key="club.id + '-' + index"
+              class="mini-club-card"
+            >
+              <div class="mini-club-card-top">
+                <div class="mini-club-dot" :class="bannerClass(club.category)">
+                  <ClubIcon :name="categoryIcon(club.category)" />
+                </div>
+
+                <div class="mini-club-text">
+                  <p class="mini-club-name"> {{ club.name }} </p>
+                  <p class="mini-club-sub"> {{ club.member_count }} members · {{ club.category }} </p>
+                </div>
+              </div>
+
+              <div class="mini-club-college">
+                <Building2 />
+                <span>{{ club.college_name }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="landing-sections">
+      <div class="cert-showcase reveal" :ref="collectReveal">
+
+        <div class="cert-showcase-copy">
+          <h2 class="cert-showcase-title">Certificates that verify themselves.</h2>
+          <p class="cert-showcase-desc">
+            The moment a club leader declares results, every attendee gets a real, signed
+            PDF certificate automatically — no design tool, no typing names one by one.
+            Every certificate carries a unique serial number that anyone can check,
+            no account required.
+          </p>
+
+          <div class="cert-showcase-points">
+            <div class="cert-showcase-point">
+              <CheckCircle2 />
+              <span>Auto-generated the instant results are declared</span>
+            </div>
+            <div class="cert-showcase-point">
+              <Download />
+              <span>Downloadable anytime from a student's own profile</span>
+            </div>
+            <div class="cert-showcase-point">
+              <ShieldCheck />
+              <span>Publicly verifiable by serial number — no login needed</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="cert-verify-card">
+          <div class="cert-verify-icon">
+            <QrCode />
+          </div>
+          <p class="cert-verify-title">Verify a certificate</p>
+          <p class="cert-verify-desc">
+            Have a certificate serial number? Confirm it's authentic and see who it
+            belongs to — publicly, instantly, no sign-in required.
+          </p>
+          <button class="btn-primary cert-verify-btn" @click="goTo('/verify')">
+            <ShieldCheck /> Verify a Certificate
+          </button>
+          <p class="cert-verify-hint">e.g. CC-GHP-2026-46275</p>
+        </div>
+
       </div>
     </section>
 

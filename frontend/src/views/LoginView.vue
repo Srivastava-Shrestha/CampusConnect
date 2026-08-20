@@ -18,9 +18,6 @@ const { renderButton, isConfigured: googleEnabled } = useGoogleAuth()
 
 const email = ref('')
 const password = ref('')
-const rememberChecked = ref(true)
-const passwordVisible = ref(false)
-const errorMessage = ref('')
 const googleBtn = ref(null)
 
 onMounted(() => {
@@ -31,10 +28,10 @@ onMounted(() => {
     intent: 'login'
   })
 })
-
-
-
-
+const rememberChecked = ref(true)
+const passwordVisible = ref(false)
+const isSigningIn = ref(false)
+const errorMessage = ref('')
 function toggleRemember() {
   rememberChecked.value = !rememberChecked.value
 }
@@ -62,11 +59,19 @@ async function handleLogin() {
     return
   }
 
+  if (isSigningIn.value) return
+  isSigningIn.value = true
+
   try {
     const result = await loginUser(email.value.trim(), password.value)
+    // Read by the router guard: only when this is set does landing on "/"
+    // while already signed in skip straight to the dashboard.
+    localStorage.setItem('cc_remember', rememberChecked.value ? 'true' : 'false')
     await completeSignIn(result)
   } catch (error) {
     toast.error(error?.message || 'Unable to sign in.')
+  } finally {
+    isSigningIn.value = false
   }
 }
 </script>
@@ -161,8 +166,9 @@ async function handleLogin() {
         <router-link to="/forgot-password" class="auth-forgot-link">Forgot password?</router-link>
       </div>
 
-      <button class="btn-auth-submit" @click="handleLogin">
-        <ArrowRight /> Sign in
+      <button class="btn-auth-submit" :disabled="isSigningIn" @click="handleLogin">
+        <span v-if="isSigningIn" class="btn-spinner"></span>
+        <template v-else><ArrowRight /> Sign in</template>
       </button>
 
       <div v-show="googleEnabled" class="auth-divider-row">

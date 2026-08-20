@@ -198,7 +198,8 @@ onMounted(async () => {
           </div>
 
           <button class="btn-primary" @click="handlePostAnnouncement" :disabled="isSubmitting">
-            <Send /> {{ isSubmitting ? 'Posting...' : 'Post Announcement' }}
+            <span v-if="isSubmitting" class="btn-spinner"></span>
+            <template v-else><Send /> Post Announcement</template>
           </button>
         </div>
 

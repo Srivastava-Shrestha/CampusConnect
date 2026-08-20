@@ -4,7 +4,8 @@ from app.repository import (
 )
 from app.models import ClubStatus, MembershipRole, MembershipStatus, NotificationType
 from app.schemas import (
-    JoinResponse, RequestActionRequest, RequestActionResponse, PendingRequestItem, MemberItem
+    JoinResponse, RequestActionRequest, RequestActionResponse, PendingRequestItem, MemberItem,
+    RemoveMemberResponse
 )
 from app.exceptions import (
     ClubNotFoundError, ClubNotActiveError, NotClubLeaderError, AlreadyMemberError,
@@ -117,6 +118,26 @@ class MembershipService:
             )
             for membership, full_name in rows
         ]
+
+    async def remove_member(self, payload: dict, club_id: int, student_id: int) -> RemoveMemberResponse:
+        student = await self._get_student(payload)
+        await self._assert_leader(student.id, club_id)
+
+        membership = await self.membership_repo.get(student_id, club_id)
+        if not membership or membership.status != MembershipStatus.APPROVED:
+            raise MembershipNotFoundError()
+        if membership.role == MembershipRole.LEADER:
+            raise ClubActionNotAllowedError("The club leader cannot be removed from their own club")
+
+        membership_id = membership.id
+        await self.membership_repo.delete(membership)
+
+        return RemoveMemberResponse(
+            id=membership_id,
+            student_id=student_id,
+            club_id=club_id,
+            message=MembershipMessages.MEMBER_REMOVED,
+        )
 
     async def _get_student(self, payload: dict):
         student = await self.student_repo.get_student_by_user_id(int(payload.get("sub")))

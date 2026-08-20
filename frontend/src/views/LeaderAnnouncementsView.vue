@@ -5,6 +5,7 @@ import { Plus, Pin, PinOff, Trash2, Megaphone } from 'lucide-vue-next'
 import LeaderSidebar from '../components/layout/LeaderSidebar.vue'
 import Topbar from '../components/layout/Topbar.vue'
 import AnnounceCard from '../components/ui/AnnounceCard.vue'
+import LeaderClubSwitcher from '../components/ui/LeaderClubSwitcher.vue'
 import FilterChips from '../components/ui/FilterChips.vue'
 import { getLeaderAnnouncements, togglePin, deleteAnnouncement } from '../api/announcements'
 import { toast } from '../composables/useToast'
@@ -42,7 +43,16 @@ const visiblePosts = computed(function filterPosts() {
   })
 })
 
+// Several announcements can sit on screen at once, so "in flight" is tracked
+// per announcement id rather than one flag for the whole page.
+const busyPostIds = ref(new Set())
+
+function isPostBusy(postId) {
+  return busyPostIds.value.has(postId)
+}
+
 async function handleTogglePin(post) {
+  busyPostIds.value.add(post.id)
   try {
     const newPinnedState = !post.pinned
 
@@ -57,6 +67,8 @@ async function handleTogglePin(post) {
     )
   } catch (error) {
     toast.error(error?.message || 'Something went wrong.')
+  } finally {
+    busyPostIds.value.delete(post.id)
   }
 }
 
@@ -67,6 +79,7 @@ async function handleDelete(post) {
 
   if (!confirmed) return
 
+  busyPostIds.value.add(post.id)
   try {
     await deleteAnnouncement(post.id)
 
@@ -75,6 +88,8 @@ async function handleDelete(post) {
     toast.success('Announcement deleted.')
   } catch (error) {
     toast.error(error?.message || 'Something went wrong.')
+  } finally {
+    busyPostIds.value.delete(post.id)
   }
 }
 
@@ -129,6 +144,7 @@ onMounted(async () => {
 
     <Topbar title="Announcements" sub="Create and manage announcements" :show-bell="false">
       <template #actions>
+        <LeaderClubSwitcher @change="loadAnnouncements" />
         <button class="btn-primary" @click="goToPostAnnouncement">
           <Plus /> Post Announcement
         </button>
@@ -142,11 +158,13 @@ onMounted(async () => {
 
           <FilterChips :chips="filterChips" v-model="activeFilter" />
           
-          <div v-if="loading" class="empty-state">
-            <p>Loading announcements...</p>
+          <div v-if="loading" class="page-loading-state">
+            <div class="empty-state">
+              <p>Loading announcements...</p>
+            </div>
           </div>
 
-          <div v-else-if="visiblePosts.length === 0" class="empty-state">
+          <div v-else-if="visiblePosts.length === 0" class="empty-state empty-state-wide">
             <Megaphone />
               <p>No announcements match this filter.</p>
           </div>
@@ -159,18 +177,22 @@ onMounted(async () => {
             >
             <template #actions>
               <div class="announce-manage-row">
-                <button class="announce-action-btn" @click="handleTogglePin(post)">
-                <PinOff v-if="post.pinned" />
-                  <Pin v-else />
+                <button class="announce-action-btn" :disabled="isPostBusy(post.id)" @click="handleTogglePin(post)">
+                  <span v-if="isPostBusy(post.id)" class="btn-spinner"></span>
+                  <template v-else>
+                    <PinOff v-if="post.pinned" />
+                    <Pin v-else />
                     {{ post.pinned ? 'Unpin' : 'Pin' }}
+                  </template>
                 </button>
 
                 <button
                   class="announce-action-btn delete"
+                  :disabled="isPostBusy(post.id)"
                   @click="handleDelete(post)"
                 >
-                  <Trash2 />
-                  Delete
+                  <span v-if="isPostBusy(post.id)" class="btn-spinner"></span>
+                  <template v-else><Trash2 /> Delete</template>
                 </button>
               </div>
             </template>

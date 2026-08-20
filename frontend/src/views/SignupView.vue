@@ -17,6 +17,7 @@ const { completeSignIn } = useAuthSession()
 const { renderButton, isConfigured: googleEnabled } = useGoogleAuth()
 
 const googleBtn = ref(null)
+const isSigningUp = ref(false)
 
 onMounted(() => {
   renderButton(googleBtn.value, {
@@ -70,14 +71,16 @@ function validateSignupForm() {
 
 async function handleSignup() {
   if (!validateSignupForm()) return
+  if (isSigningUp.value) return
 
   const roleMap = {
     student: "STUDENT",
     admin: "CAMPUS_ADMIN"
     }
 
+  isSigningUp.value = true
+
   try {
-    
     await signupUser({
       email: email.value.trim(),
       full_name: fullName.value.trim(),
@@ -95,6 +98,8 @@ async function handleSignup() {
 
   } catch (error) {
     toast.error(error?.message || 'Unable to create account.')
+  } finally {
+    isSigningUp.value = false
   }
 }
 </script>
@@ -177,8 +182,9 @@ async function handleSignup() {
         ></div>
       </div>
 
-      <button class="btn-auth-submit" @click="handleSignup">
-        <Sparkles /> Create account
+      <button class="btn-auth-submit" :disabled="isSigningUp" @click="handleSignup">
+        <span v-if="isSigningUp" class="btn-spinner"></span>
+        <template v-else><Sparkles /> Create account</template>
       </button>
 
       <div v-show="googleEnabled" class="auth-divider-row">

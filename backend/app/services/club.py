@@ -3,7 +3,7 @@ from app.repository import ClubRepository, StudentRepository, UserRepository, Me
 from app.models import Club, ClubType, ClubStatus, MembershipRole, MembershipStatus, UserRole
 from app.schemas import (
     CreateClubRequest, UpdateClubRequest, CreateClubResponse, ClubStatusResponse,
-    ClubListItem, ClubDetailResponse, ClubLinkSchema, ClubHeadInfo, MyClubItem
+    ClubListItem, ClubDetailResponse, ClubLinkSchema, ClubHeadInfo, MyClubItem, TrendingClubItem
 )
 from app.exceptions import (
     ClubNotFoundError, NotClubLeaderError, ClubActionNotAllowedError, StudentNotFoundError,
@@ -77,12 +77,30 @@ class ClubService:
                 member_count=count,
                 head_name=head_name,
                 created_at=club.created_at,
+                links=[
+                    ClubLinkSchema(label=link.label, url=link.url)
+                    for link in club.links
+                ],
                 membership_id=membership.id,
                 membership_role=membership.role,
                 membership_status=membership.status,
                 joined_at=membership.created_at,
             )
             for membership, club, count, head_name in rows
+        ]
+
+    async def trending(self, limit: int = 8) -> list[TrendingClubItem]:
+        rows = await self.club_repo.list_trending(limit)
+        return [
+            TrendingClubItem(
+                id=club.id,
+                name=club.name,
+                category=club.category,
+                member_count=count,
+                college_name=college_name,
+                college_slug=college_slug,
+            )
+            for club, count, college_name, college_slug in rows
         ]
 
     async def list(self, payload: dict, status: ClubStatus | None = None,
@@ -104,6 +122,10 @@ class ClubService:
                 member_count=count,
                 head_name=head_name,
                 created_at=club.created_at,
+                links=[
+                    ClubLinkSchema(label=link.label, url=link.url)
+                    for link in club.links
+                ],
             )
             for club, count, head_name in rows
         ]
@@ -133,7 +155,7 @@ class ClubService:
             raise NotClubLeaderError()
 
         old_image_url = club.image_url
-        new_image_url = await self.storage.upload_image(image, CLUB_FOLDER) if image else None
+        new_image_url = await self.storage.upload_image(image, CLUB_FOLDER) if image else data.image_url
         await self.club_repo.update_club(club, data.description, data.category, new_image_url)
         if new_image_url:
             await self.storage.delete_url(old_image_url)

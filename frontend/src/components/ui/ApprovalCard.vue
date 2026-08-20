@@ -5,7 +5,8 @@ import ClubIcon from './ClubIcon.vue'
 
 defineProps({
   approval: { type: Object, required: true },
-  metaField: { type: String, default: 'meta' }
+  metaField: { type: String, default: 'meta' },
+  busy: { type: Boolean, default: false }
 })
 
 const emit = defineEmits(['approve', 'reject'])
@@ -49,11 +50,13 @@ function rejectClub() {
       </a>
       <template v-if="approval.status === 'pending'">
         <StatusPill status="pending" label="Pending" />
-        <button class="btn-success" @click="approveClub">
-          <Check /> Approve
+        <button class="btn-success" :disabled="busy" @click="approveClub">
+          <span v-if="busy" class="btn-spinner"></span>
+          <template v-else><Check /> Approve</template>
         </button>
-        <button class="btn-danger" @click="rejectClub">
-          <X /> Reject
+        <button class="btn-danger" :disabled="busy" @click="rejectClub">
+          <span v-if="busy" class="btn-spinner"></span>
+          <template v-else><X /> Reject</template>
         </button>
       </template>
       <StatusPill v-else :status="approval.status" :label="statusLabels[approval.status]" />
