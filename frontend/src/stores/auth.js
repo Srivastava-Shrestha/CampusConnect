@@ -83,6 +83,7 @@ export const useAuthStore = defineStore('auth', {
       localStorage.removeItem("cc_token")
       localStorage.removeItem("cc_user")
       localStorage.removeItem("cc_isClubLeader")
+      localStorage.removeItem("cc_remember")
 
       // Clubs and events cache themselves with a "loaded" flag that only
       // resets on a hard page reload, so switching accounts in the same tab

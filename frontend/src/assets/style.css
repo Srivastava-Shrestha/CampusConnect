@@ -2583,6 +2583,7 @@ button, .btn {
   padding: 36px 40px;
   min-height: 520px;
   position: relative;
+  z-index: 2;
   overflow: hidden;
 }
 
