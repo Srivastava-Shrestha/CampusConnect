@@ -245,7 +245,7 @@ info:
     | **2.1** Browse the club directory | Student browses a searchable list of active clubs | `GET /clubs` |
     | **2.2** View a club profile | Student opens a club's full profile before committing | `GET /clubs/{club_id}`, `GET /clubs/{club_id}/members` |
     | **2.3** Request to join a club | Student sends a formal join request in one action | `POST /clubs/{club_id}/join`, `GET /clubs/me?role=MEMBER` |
-    | **2.4** Manage join requests | Leader reviews and approves or rejects requests from a dashboard | `GET /clubs/{club_id}/requests`, `PATCH /clubs/{club_id}/requests/{membership_id}` |
+    | **2.4** Manage join requests | Leader reviews and approves or rejects requests from a dashboard | `GET /clubs/{club_id}/requests`, `PATCH /clubs/{club_id}/requests/{membership_id}`, `DELETE /clubs/{club_id}/members/{student_id}` |
     | **2.5** Create a club and request approval | Leader registers a club and tracks its approval status | `POST /clubs`, `GET /clubs/me?role=LEADER`, `PUT /clubs/{club_id}`, `DELETE /clubs/{club_id}` |
     | **2.6** Approve or reject club registration | Campus admin decides pending club registrations | `GET /clubs?status=PENDING`, `PATCH /clubs/{club_id}/approve`, `PATCH /clubs/{club_id}/reject` |
 
@@ -275,8 +275,14 @@ info:
     | Story | As a / I want | Endpoints |
     |---|---|---|
     | **5.1** Auto-generate participation certificates | Leader gets a PDF for every attendee the moment results are submitted, without opening a design tool or typing a single name | `PATCH /events/{event_id}/results` - generation is a side effect of declaring results. There is no endpoint that creates a certificate directly |
-    | **5.2** Download my participation certificate | Student reaches any earned certificate from their profile at any time | `GET /certificates/me`, `GET /certificates/{serial}/download` |
+    | **5.2** Download my participation certificate | Student reaches any earned certificate from their profile at any time | `GET /certificates/me`, `GET /certificates/{serial}/download`, `GET /certificates/{serial}/file` (storage fallback) |
     | **5.3** Verify a certificate by serial number | A holder or an external verifier confirms a serial is authentic without an account | `GET /certificates/verify/{serial}` |
+
+    ### Epic 6 - AI-Powered Club Discovery
+
+    | Story | As a / I want | Endpoints |
+    |---|---|---|
+    | **6.1** Find clubs by describing an interest | Student describes what they are interested in and is pointed at the clubs and events that fit, instead of reading every club profile | `POST /ai/chat` |
 
     ### Cross-cutting - Notification delivery
 
@@ -297,9 +303,17 @@ info:
     ### Scope note
 
     This specification documents the endpoints implemented in the current release, which cover
-    Epics 1 to 5 in full plus Epic 7 (club activity leaderboard), exposed at `GET /leaderboard`.
-    Epic 6 (AI-powered club discovery) is scheduled for the next sprint and has no endpoints yet;
-    it is deliberately not documented here so that this file describes only the live API surface.
+    Epics 1 to 5 in full, Epic 6 (AI-powered club discovery), exposed at `POST /ai/chat`, and
+    Epic 7 (club activity leaderboard), exposed at `GET /leaderboard`.
+
+    Two endpoints support surfaces rather than stories and therefore carry no `x-user-story`.
+    `GET /clubs/public/trending` feeds the "Trending clubs" section of the unauthenticated
+    marketing landing page, and is - with `GET /certificates/verify/{serial}` - one of the two
+    reads in the API that are not scoped to a college, because the visitor reading them has no
+    account. `GET /certificates/{serial}/file` is the storage fallback behind story 5.2: on a
+    deployment with no S3 bucket the generated PDF is written to Postgres instead, and the
+    download links handed out by `GET /certificates/me` point at that path rather than at a
+    signed S3 URL.
 
     Password recovery (`POST /auth/forgot-password`, `POST /auth/reset-password`) is documented
     with the rest of the `Auth` endpoints but carries no `x-user-story`. It was added after
@@ -453,6 +467,19 @@ tags:
     Clubs with no activity this month are included with a score of 0 and ranked last. Ties break by new-member count, then club name, so the ordering is stable.
 
     **Implements Epic 7 - Club Activity Leaderboard.**
+- name: AI Assistant
+  description: |-
+    Conversational club and event discovery. A student describes what they are interested in and the assistant answers in prose, with cards for the clubs and events it named.
+
+    One endpoint, `POST /ai/chat`, running one turn of a bounded tool-calling loop. The conversation is stateless server-side: the client sends the history it holds and receives one reply, so there is no session to create or expire.
+
+    The model reads the platform through a fixed set of read-only tools that call the same services as the equivalent HTTP endpoints, with the same college scoping. There is no tool that writes, so the assistant cannot join a club, register for an event or post anything on a student's behalf - when asked, it explains how to do it in the app instead.
+
+    Every entity named in a reply must have come from a tool result in that same turn; an output gate removes any reference that did not, which is why `items` can be trusted as the set of real records behind the prose.
+
+    The endpoint never fails because the model or the database is unavailable. It answers from the deterministic recommender when Claude is unreachable (`degraded: true`) and from a built-in sample campus when the live data is not (`offline: true`), and reports which happened rather than returning an error.
+
+    **Implements Epic 6 - AI-Powered Club Discovery.**
 paths:
   /auth/signup:
     post:
@@ -1752,6 +1779,72 @@ paths:
                     message: Something went wrong
       security:
       - HTTPBearer: []
+  /clubs/public/trending:
+    get:
+      tags:
+      - Clubs
+      summary: List trending clubs (public)
+      description: |-
+        The most active clubs on the platform, ranked by approved member count, for the "Trending clubs" section of the public landing page that a visitor sees before they have an account.
+
+        **This and `GET /certificates/verify/{serial}` are the only college-agnostic reads in the API.** Every other listing is filtered to the caller's college, but a visitor on the landing page has no account and therefore no college, so tenancy scoping would leave the section permanently empty.
+
+        **Access.** Public. No token required.
+
+        **Notes.**
+
+        * Only `ACTIVE` clubs appear. A `PENDING`, `REJECTED` or `ARCHIVED` club is never exposed here, so the marketing page cannot leak a registration that the campus admin has not decided yet.
+        * Ordered by approved member count descending, then newest club first, so the ordering is stable when counts tie.
+        * The card is deliberately thin - name, category, member count and the owning college. Description, leader contact details and links are not public; they require `GET /clubs/{club_id}` with a token.
+        * A club with no approved members is still eligible and appears with `member_count: 0` once better-populated clubs run out.
+        * `college_slug` identifies the college the club belongs to, so the landing page can show which institution a trending club is at.
+
+        **Not part of the Milestone-1 story set.** It serves the marketing surface rather than a numbered story, which is why it carries no `x-user-story`.
+      operationId: trending_clubs_clubs_public_trending_get
+      x-required-role:
+      - public
+      x-required-club-role: none
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        description: How many clubs to return, 1-20. Defaults to 8, the number the landing page renders.
+        schema:
+          type: integer
+          maximum: 20
+          minimum: 1
+          default: 8
+          title: Limit
+      responses:
+        '200':
+          description: The most-joined active clubs across all colleges, highest member count first. Empty
+            array if no club on the platform is active yet.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TrendingClubItem'
+                title: Response Trending Clubs Clubs Public Trending Get
+        '422':
+          description: The query string failed schema validation - `limit` outside 1-20, or not an integer.
+            Produced by the framework before the handler runs, so it uses the `detail` key rather than
+            the `message` envelope.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '500':
+          description: Unhandled server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                server_error:
+                  summary: Something went wrong
+                  value:
+                    message: Something went wrong
   /clubs/{club_id}:
     get:
       tags:
@@ -2834,6 +2927,138 @@ paths:
           description: The request body, query string or path parameters failed schema validation. Produced
             by the framework before the handler runs, so it uses the `detail` key rather than the `message`
             envelope.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '500':
+          description: Unhandled server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                server_error:
+                  summary: Something went wrong
+                  value:
+                    message: Something went wrong
+      security:
+      - HTTPBearer: []
+  /clubs/{club_id}/members/{student_id}:
+    delete:
+      tags:
+      - Clubs
+      summary: Remove a member from the club
+      description: |-
+        **User story 2.4 - Manage Membership Join Requests** (Epic 2 - Club Discovery and Membership)
+
+        > As a club leader, I want to review all incoming join requests and approve or reject them from my dashboard, so that membership is managed in one place without me tracking individual DMs or missing bulk requests.
+
+        Removes one approved member from the club. The counterpart to approving a join request: it is how a leader corrects an approval or removes someone who has left, rather than leaving the roster permanently wrong.
+
+        The membership row is deleted outright, not marked `REJECTED`. The student therefore loses this club's announcements and can no longer register for its events, and - because no row is left behind - they are free to request to join again later through `POST /clubs/{club_id}/join`.
+
+        **Access.** `STUDENT` token **and** a `LEADER` membership on this club.
+
+        **Notes.**
+
+        * Addressed by `student_id`, not by membership id, since that is what `GET /clubs/{club_id}/members` returns beside each name.
+        * Only an `APPROVED` membership can be removed. A pending request returns `404 Membership request not found` - it is decided through `PATCH /clubs/{club_id}/requests/{membership_id}` instead.
+        * A leader cannot be removed, including by themselves: `403 The club leader cannot be removed from their own club`. A leader who wants out archives the club with `DELETE /clubs/{club_id}`.
+        * No notification is written. Unlike a join decision, a removal is silent to the student.
+        * The response echoes the id of the membership that was deleted, so a client can reconcile its cached roster.
+      operationId: remove_member_clubs__club_id__members__student_id__delete
+      x-epic: Epic 2 - Club Discovery and Membership
+      x-user-story: '2.4'
+      x-user-story-title: Manage Membership Join Requests
+      x-required-role:
+      - STUDENT
+      x-required-club-role: LEADER
+      parameters:
+      - name: club_id
+        in: path
+        required: true
+        description: Id of a club the caller leads.
+        schema:
+          type: integer
+          title: Club Id
+      - name: student_id
+        in: path
+        required: true
+        description: Id of the student to remove, taken from `GET /clubs/{club_id}/members`.
+        schema:
+          type: integer
+          title: Student Id
+      responses:
+        '200':
+          description: The member was removed. Returns the deleted membership's id together with the student
+            and club it linked.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RemoveMemberResponse'
+        '401':
+          description: |-
+            The bearer token is present but unusable, or the account role is not permitted here.
+
+            * `Invalid token` - The token is malformed, expired, not an `access` token, or its `role` is not permitted on this endpoint.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalid_token:
+                  summary: Invalid token
+                  value:
+                    message: Invalid token
+        '403':
+          description: |-
+            The caller is authenticated but not permitted, or the resource state blocks the action.
+
+            * **Missing credentials** - the `Authorization` header is absent or is not a bearer token. This case is produced by the security scheme before application code runs and is the one error that uses the `detail` key: `{"detail": "Not authenticated"}`.
+            * `Only the club leader can perform this action` - The caller does not hold a `LEADER` membership on the target club.
+            * `The club leader cannot be removed from their own club` - The target membership is the leader's own.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                - $ref: '#/components/schemas/NotAuthenticated'
+                - $ref: '#/components/schemas/Error'
+              examples:
+                missing_credentials:
+                  summary: No Authorization header
+                  value:
+                    detail: Not authenticated
+                not_leader:
+                  summary: Only the club leader can perform this action
+                  value:
+                    message: Only the club leader can perform this action
+                leader_not_removable:
+                  summary: The club leader cannot be removed from their own club
+                  value:
+                    message: The club leader cannot be removed from their own club
+        '404':
+          description: |-
+            The record does not exist, belongs to another college, or is not visible to the caller.
+
+            * `Student profile not found` - The token is valid but the account has no student profile attached.
+            * `Membership request not found` - The student has no membership of this club, or the membership exists but is not `APPROVED`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                student_profile_missing:
+                  summary: Student profile not found
+                  value:
+                    message: Student profile not found
+                membership_not_found:
+                  summary: Membership request not found
+                  value:
+                    message: Membership request not found
+        '422':
+          description: The path parameters failed schema validation. Produced by the framework before the
+            handler runs, so it uses the `detail` key rather than the `message` envelope.
           content:
             application/json:
               schema:
@@ -6728,7 +6953,7 @@ paths:
 
         Resolves a serial to the record behind it: who earned it, for which event, hosted by which club at which college, with what result and when it was issued.
 
-        **This is the only college-agnostic endpoint in the API.** Every other read is filtered to the caller's college, because a verifier is by definition an outsider - a recruiter at another company, an admissions office at another institution - who has no account and belongs to no college. Tenancy scoping would make verification impossible, so it is deliberately absent here.
+        **This and `GET /clubs/public/trending` are the only college-agnostic reads in the API.** Every other read is filtered to the caller's college, because a verifier is by definition an outsider - a recruiter at another company, an admissions office at another institution - who has no account and belongs to no college. Tenancy scoping would make verification impossible, so it is deliberately absent here.
 
         **Access.** Public. No token required. This is also the page behind the QR code printed on every certificate.
 
@@ -6904,6 +7129,84 @@ paths:
                     message: Something went wrong
       security:
       - HTTPBearer: []
+  /certificates/{serial}/file:
+    get:
+      tags:
+      - Certificates
+      summary: Fetch a certificate PDF from database storage
+      description: |-
+        **User story 5.2 - Download My Participation Certificate** (Epic 5 - Certificate Workflow)
+
+        > As a student, I want to download my participation certificate as a PDF from my profile, so that I can access proof of my involvement whenever I need it.
+
+        Serves the raw PDF bytes for a certificate whose file was stored in Postgres rather than in object storage. Responds with `application/pdf` inline, not JSON.
+
+        **This is the fallback half of certificate delivery.** When a deployment has S3 configured, the generator uploads the PDF and `GET /certificates/me` and `GET /certificates/{serial}/download` hand out short-lived signed S3 links; this endpoint is then never called. When S3 is not configured - a local run, or a demo deployment with no AWS credentials - the bytes are written to the certificate row instead and those two endpoints point at this path so the download still works.
+
+        **Access.** Public, deliberately. It carries the same trust model as `GET /certificates/verify/{serial}`: the serial is the credential, and the random component of the serial is what stops it being guessed. It has to be reachable without a token because it is the target of the signed-link substitute handed to unauthenticated pages.
+
+        **Notes.**
+
+        * The response is the PDF itself with `Content-Disposition: inline; filename="{serial}.pdf"`, so a browser renders it in place rather than forcing a save.
+        * A serial that exists but whose PDF went to S3 returns `404`, the same as an unknown serial - there is nothing to serve from the database in that case, and the caller should use `GET /certificates/{serial}/download` instead.
+        * Unlike `GET /certificates/{serial}/download`, ownership is not checked, because there is no caller identity to check it against.
+      operationId: download_certificate_file_certificates__serial__file_get
+      x-epic: Epic 5 - Certificate Workflow
+      x-user-story: '5.2'
+      x-user-story-title: Download My Participation Certificate
+      x-required-role:
+      - public
+      x-required-club-role: none
+      parameters:
+      - name: serial
+        in: path
+        required: true
+        description: The certificate's serial, for example `CC-HAC-2026-04213`. Matched exactly, including
+          case.
+        schema:
+          type: string
+          title: Serial
+      responses:
+        '200':
+          description: The certificate PDF, served inline as `{serial}.pdf`.
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+                title: Certificate Pdf
+        '404':
+          description: |-
+            The record does not exist, or holds no PDF bytes to serve.
+
+            * `Certificate not found` - No certificate carries this serial, or the certificate exists but its PDF lives in object storage rather than in the database. The two cases are deliberately indistinguishable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                certificate_not_found:
+                  summary: Certificate not found
+                  value:
+                    message: Certificate not found
+        '422':
+          description: The path parameter failed schema validation. Produced by the framework before the
+            handler runs, so it uses the `detail` key rather than the `message` envelope.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '500':
+          description: Unhandled server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                server_error:
+                  summary: Something went wrong
+                  value:
+                    message: Something went wrong
   /leaderboard:
     get:
       tags:
@@ -6997,8 +7300,195 @@ paths:
                     message: Something went wrong
       security:
       - HTTPBearer: []
+  /ai/chat:
+    post:
+      tags:
+      - AI Assistant
+      summary: Ask the campus assistant (one turn)
+      description: |-
+        **Epic 6 - AI-Powered Club Discovery**
+
+        > As a student, I want to describe what I am interested in and be pointed at the clubs and events that fit, so that I can find where I belong without reading every club profile on the platform.
+
+        Runs one turn of the assistant. The client sends the whole conversation so far and gets back a reply plus the entity cards the reply refers to; the server keeps no conversation state between calls.
+
+        The reply is produced by a bounded tool-calling loop. The model may only read the platform through a fixed set of read-only tools - club recommendation, club search, club detail, the caller's own clubs, event search, event detail and the announcement feed - each of which runs through the same services and the same college scoping as the equivalent HTTP endpoint. There is no tool that writes, so the assistant can never join a club, register for an event or post on a student's behalf.
+
+        **Access.** `STUDENT` token. The college, and the student's own memberships, are derived from the token.
+
+        **Grounding.** Every club and event named in the reply must have come from a tool result in the same turn. The model marks entities with `[[club:ID]]` / `[[event:ID]]` tags, and an output gate drops any tag no tool actually returned before the text is sent. `items` is built from exactly those surviving tags, so every card the client renders corresponds to a real record.
+
+        **This endpoint does not fail on a model or data outage.** It degrades instead, along two independent axes reported as two separate flags:
+
+        | Flag | Meaning | What produced the answer |
+        |---|---|---|
+        | `degraded: true` | Claude was unreachable, returned an error, or no API key is configured | The deterministic recommender, which ranks clubs by interest overlap using no model at all |
+        | `offline: true` | The database was unreachable or holds no data for this college | A built-in sample campus, and the reply says so in its first sentence |
+
+        Either can be true without the other, and a `200` with both false is the normal path.
+
+        **Budget.** One turn is capped in code, not by prompt instruction: at most 4 model iterations, 6 tool calls, 12000 input tokens and 20 seconds. Tripping a cap is not an error - the loop tells the model to answer from what it already has, and the final reply comes back with `budget_exhausted: true`.
+
+        **Notes.**
+
+        * `messages` carries the prior turns of this conversation, oldest first, with `role` `user` or `assistant`. Send an empty array on the first turn.
+        * `interest_text` is what the student typed into the discovery box. It seeds the durable interest memory kept per student, and is the query the deterministic recommender falls back to when the model is unreachable.
+        * `kind` says what shape the answer is: `chat` for a normal agent reply, `clubs` or `popularity` for a recommender fallback that returned clubs, and `event_fallback` when the recommender found no club match and answered with events instead.
+        * `items` may be empty on a perfectly good answer - a question about a joined club's next meeting has no cards to show.
+        * `tools_used` and `iterations` are returned for transparency and cost tracing; a client can ignore them.
+        * Prompt injection is treated as expected input: club descriptions, event text and announcements are student-authored, and the system prompt instructs the model to read them as data rather than as instructions.
+      operationId: agent_chat_ai_chat_post
+      x-epic: Epic 6 - AI-Powered Club Discovery
+      x-required-role:
+      - STUDENT
+      x-required-club-role: none
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentChatRequest'
+      responses:
+        '200':
+          description: One assistant turn. Returned whether the answer came from the model, from the deterministic
+            recommender, or from the sample campus - check `degraded` and `offline` to tell which.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentChatResponse'
+        '401':
+          description: |-
+            The bearer token is present but unusable, or the account role is not permitted here.
+
+            * `Invalid token` - The token is malformed, expired, not an `access` token, or its `role` is not permitted on this endpoint. A `CAMPUS_ADMIN` token fails here.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalid_token:
+                  summary: Invalid token
+                  value:
+                    message: Invalid token
+        '403':
+          description: |-
+            The caller is authenticated but not permitted.
+
+            * **Missing credentials** - the `Authorization` header is absent or is not a bearer token. This case is produced by the security scheme before application code runs and is the one error that uses the `detail` key: `{"detail": "Not authenticated"}`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotAuthenticated'
+              examples:
+                missing_credentials:
+                  summary: No Authorization header
+                  value:
+                    detail: Not authenticated
+        '422':
+          description: The request body failed schema validation. Produced by the framework before the handler
+            runs, so it uses the `detail` key rather than the `message` envelope.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '500':
+          description: Unhandled server error. A model or database failure does not reach here - it is reported
+            as a `200` with `degraded` or `offline` set.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                server_error:
+                  summary: Something went wrong
+                  value:
+                    message: Something went wrong
+      security:
+      - HTTPBearer: []
 components:
   schemas:
+    AgentChatRequest:
+      properties:
+        messages:
+          items:
+            $ref: '#/components/schemas/ChatMessage'
+          type: array
+          title: Messages
+          default: []
+          description: The conversation so far, oldest first. Empty on the first turn. The server keeps
+            no history of its own, so a client that drops this loses the context.
+        interest_text:
+          type: string
+          title: Interest Text
+          default: ''
+          description: What the student typed into the discovery box. Seeds the durable per-student interest
+            memory, and is the query the deterministic recommender uses if the model is unreachable.
+      type: object
+      title: AgentChatRequest
+      description: One turn of input to the assistant. Both fields are optional - an empty body is a valid
+        opening turn.
+    AgentChatResponse:
+      properties:
+        reply:
+          type: string
+          title: Reply
+          description: The assistant's prose answer, after the grounding gates have run. Entity references
+            the tools did not return have already been removed.
+        kind:
+          type: string
+          title: Kind
+          description: What produced the shape of this answer. `chat` for a normal agent reply; `clubs`
+            or `popularity` for a recommender fallback that returned clubs; `event_fallback` when the recommender
+            found no club match and answered with events instead.
+        items:
+          items: {}
+          type: array
+          title: Items
+          default: []
+          description: The club or event records the reply referred to, in the order it named them, each
+            carrying an `entity_kind` of `club` or `event`. Every entry came from a tool result this turn.
+            Empty when the answer named no entities.
+        degraded:
+          type: boolean
+          title: Degraded
+          description: The model was unreachable, errored, or is not configured, so the deterministic recommender
+            wrote this answer instead of the agent loop.
+        offline:
+          type: boolean
+          title: Offline
+          default: false
+          description: The live database was unreachable or holds no data for this college, so the answer
+            is grounded in the built-in sample campus. The reply says so in its first sentence.
+        tools_used:
+          items:
+            type: string
+          type: array
+          title: Tools Used
+          default: []
+          description: Names of the read-only tools the model called this turn, for transparency and cost
+            tracing. Safe for a client to ignore.
+        iterations:
+          type: integer
+          title: Iterations
+          default: 0
+          description: How many model iterations the turn consumed, out of the configured maximum of 4.
+        budget_exhausted:
+          type: boolean
+          title: Budget Exhausted
+          default: false
+          description: A turn cap - iterations, tool calls, input tokens or the deadline - was reached,
+            so the model was asked to answer from what it already had. The reply is still a real answer,
+            possibly a less complete one.
+      type: object
+      required:
+      - reply
+      - kind
+      - degraded
+      title: AgentChatResponse
+      description: |-
+        One completed assistant turn.
+
+        `degraded` and `offline` are independent: `degraded` is about the model, `offline` is about the data. Either, both or neither may be set on a `200`.
     AnnouncementCategory:
       type: string
       enum:
@@ -7170,6 +7660,21 @@ components:
         The record behind an authentic serial, returned to anyone who asks - this is the only response in the API that is not scoped to a college.
 
         `valid` is always `true` here; an unknown serial is a `404` rather than a `200` carrying `valid: false`. The student's name is included because confirming who the certificate belongs to is the purpose of verification; nothing else about the account is exposed, and the PDF itself is not linked.
+    ChatMessage:
+      properties:
+        role:
+          type: string
+          title: Role
+          description: '`user` for a student turn, `assistant` for a previous reply from this endpoint.'
+        content:
+          type: string
+          title: Content
+      type: object
+      required:
+      - role
+      - content
+      title: ChatMessage
+      description: One turn of the conversation history sent back to the assistant.
     ClubDetailResponse:
       properties:
         id:
@@ -8887,6 +9392,33 @@ components:
 
         * `REGISTRANT` - the default on registration. Means no outcome has been recorded, and cannot be set explicitly.
         * `PARTICIPANT`, `RUNNER_UP`, `WINNER` - set by the leader after check-in. Un-marking attendance resets the result to `REGISTRANT`.
+    RemoveMemberResponse:
+      properties:
+        id:
+          type: integer
+          title: Id
+          description: Id of the membership row that was deleted. It no longer resolves to anything; it
+            is returned so a client can reconcile a cached roster.
+        student_id:
+          type: integer
+          title: Student Id
+        club_id:
+          type: integer
+          title: Club Id
+        message:
+          type: string
+          title: Message
+          examples:
+          - Member removed from the club
+      type: object
+      required:
+      - id
+      - student_id
+      - club_id
+      - message
+      title: RemoveMemberResponse
+      description: Confirmation that a member was removed from a club. The membership is deleted rather
+        than marked rejected, so the same student may request to join again later.
     ReplyIssueRequest:
       properties:
         reply:
@@ -9121,6 +9653,39 @@ components:
         A student's own profile in full, returned only to that student by `GET /students/me`.
 
         `full_name` and `email` come from the user account and are fixed at signup. Every other editable field is null on an account that has never called `PATCH /students/me`, except `interests`, which is an empty array because the column is not nullable. `created_at` is when the student profile row was created at signup.
+    TrendingClubItem:
+      properties:
+        id:
+          type: integer
+          title: Id
+        name:
+          type: string
+          title: Name
+        category:
+          type: string
+          title: Category
+        member_count:
+          type: integer
+          title: Member Count
+          description: Approved memberships only. The value this listing is ranked by.
+        college_name:
+          type: string
+          title: College Name
+        college_slug:
+          type: string
+          title: College Slug
+      type: object
+      required:
+      - id
+      - name
+      - category
+      - member_count
+      - college_name
+      - college_slug
+      title: TrendingClubItem
+      description: A public, unauthenticated club card for the marketing landing page. Deliberately thin
+        - no description, leader details or links - and it names the college the club belongs to, since
+        this is the one listing that is not scoped to a single college.
     UnreadCountResponse:
       properties:
         count:
@@ -9421,4 +9986,4 @@ components:
 
         A missing header is rejected with `403 {"detail": "Not authenticated"}`; a token that is malformed, expired, of the wrong type, or whose `role` is not permitted on the endpoint is rejected with `401 {"message": "Invalid token"}`.
 
-        Five endpoints require no bearer token at all: `POST /auth/signup`, `POST /auth/login`, `POST /auth/forgot-password`, `POST /auth/reset-password` and `GET /certificates/verify/{serial}`. The reset token travels in the request body of `POST /auth/reset-password`, never in this header.
+        Eight endpoints require no bearer token at all: `POST /auth/signup`, `POST /auth/login`, `POST /auth/google`, `POST /auth/forgot-password`, `POST /auth/reset-password`, `GET /clubs/public/trending`, `GET /certificates/verify/{serial}` and `GET /certificates/{serial}/file`. The reset token travels in the request body of `POST /auth/reset-password`, never in this header.
