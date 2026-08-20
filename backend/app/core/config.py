@@ -29,6 +29,9 @@ class Settings(BaseSettings):
     S3_BUCKET_NAME: str
     AWS_ACCESS_KEY_ID: str
     AWS_SECRET_ACCESS_KEY: str
+    # Used only to build a download link for certificates that fell back to
+    # Postgres storage because S3 upload failed (see Certificate.pdf_data).
+    BACKEND_BASE_URL: str = "http://localhost:8000"
 
     # --- Outbound mail (required) ---------------------------------------
     SMTP_HOST: str

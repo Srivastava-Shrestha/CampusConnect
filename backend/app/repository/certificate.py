@@ -47,6 +47,10 @@ class CertificateRepository:
         certificate.result = result
         return certificate
 
+    async def set_pdf_data(self, certificate: Certificate, pdf_data: bytes | None) -> Certificate:
+        certificate.pdf_data = pdf_data
+        return certificate
+
     async def get_by_registration_id(self, registration_id: int) -> Certificate | None:
         result = await self.db.execute(
             select(Certificate).where(Certificate.registration_id == registration_id)

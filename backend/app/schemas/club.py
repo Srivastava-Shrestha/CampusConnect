@@ -20,6 +20,9 @@ class UpdateClubRequest(BaseModel):
     description: str | None = Field(None, min_length=5, max_length=1000)
     category: str | None = Field(None, min_length=2, max_length=50)
     links: list[ClubLinkSchema] | None = None
+    # A leader-supplied URL for the banner image, used when an uploaded file isn't
+    # provided in the same request. Lets a club set its banner without needing S3.
+    image_url: str | None = Field(None, max_length=500)
 
 
 class CreateClubResponse(BaseModel):

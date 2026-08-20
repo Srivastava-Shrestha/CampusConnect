@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useRoute } from 'vue-router'
 import { GraduationCap, Compass, ShieldCheck, Sparkles, CheckCircle2 } from 'lucide-vue-next'
@@ -7,26 +7,14 @@ import { signupUser } from '../api/auth'
 import { usePasswordStrength } from '../composables/usePasswordStrength'
 import { useFormValidation } from '../composables/useFormValidation'
 import { useAuthSession } from '../composables/useAuthSession'
-import { useGoogleAuth } from '../composables/useGoogleAuth'
 import { toast } from '../composables/useToast'
 
 const router = useRouter()
 const { strength, updateStrength } = usePasswordStrength()
 const { isValidEmail, allFieldsFilled, isStrongEnough } = useFormValidation()
 const { completeSignIn } = useAuthSession()
-const { renderButton, isConfigured: googleEnabled } = useGoogleAuth()
 
-const googleBtn = ref(null)
 const isSigningUp = ref(false)
-
-onMounted(() => {
-  renderButton(googleBtn.value, {
-    onSuccess: completeSignIn,
-    onError: (message) => toast.error(message || 'Google sign-in failed'),
-    text: 'signup_with',
-    intent: 'signup'
-  })
-})
 
 const selectedRole = ref('student')
 const fullName = ref('')

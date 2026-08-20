@@ -146,9 +146,95 @@ outside `app/agent/` and `app/api/ai.py` should ever import them.
   do not exist on the backend. Confirmed harmless: nothing in the app
   navigates there (`SignupView` goes straight to `/login`), so it is dead
   code, not a live broken flow.
-- Certificate PDF generation and image uploads need real AWS credentials —
-  placeholders were used for local testing, so those two actions specifically
-  will fail until production keys are added. Everything else works.
+- Real AWS credentials are still needed for production. See §F below for the
+  interim fix that makes certificates work without them.
+
+---
+
+## 0.1 Session update — 2026-08-20
+
+A second pass, done to prepare a local demo recording: a full empty-state UI
+sweep, a real trending-clubs feed for the public landing page, a Postgres
+fallback for certificate storage (AWS keys in `.env` are still placeholders —
+`AKIAIOSFODNN7EXAMPLE`, literally AWS's own docs example), a URL-based club
+banner, and a fully seeded demo college (`demoinstitute`) with real clubs,
+events, results and certificates in the shared Neon database.
+
+### F. Certificate storage now falls back to Postgres when S3 fails
+
+`Storage.upload()` was raising `StorageError` on every certificate issued,
+because the AWS credentials in `.env` are placeholders, not real keys — this
+was silent before (a caught background-task exception), so certificates
+looked "issued" in the UI but no PDF ever existed.
+
+- **`Certificate.pdf_data`** — new nullable `LargeBinary` column
+  (migration `a1b2c3d4e5f6`). Set only when the S3 upload fails; stays `NULL`
+  for anything that uploads to S3 successfully.
+- **`CertificateService.issue()`** — tries S3 first, catches `StorageError`,
+  stores the already-rendered PDF bytes on the certificate row instead. PDF
+  *generation* (`render_pdf`, needs Cairo/WSL) is unchanged either way — only
+  the upload step has a fallback.
+- **`GET /certificates/{serial}/file`** — new, public, same trust model as
+  the existing `GET /certificates/verify/{serial}` (the serial is the
+  credential, same idea as an S3 presigned URL). Serves the raw PDF from
+  `pdf_data`. `_download_url()` points here only when `pdf_data` is set;
+  once real AWS keys are added, new certificates go to S3 and use the signed
+  URL exactly as before — **no code change needed to switch back.**
+- Existing certificates issued before this fix were re-issued via
+  `issue_certificate_job()` directly (not the API) so their PDFs now exist.
+
+### G. Club banner can now be set by URL, no S3 required
+
+`UpdateClubRequest` gained `image_url: str | None` — a leader-supplied URL
+used when no file is uploaded in the same request. `ClubService.update()`
+prefers an uploaded file's resulting URL if given, otherwise uses this field
+directly. `LeaderClubView`'s banner already had a working "Image URL" text
+input inside the edit panel that quietly did nothing (the field didn't exist
+on the backend schema) — now it works, and there's also a pencil icon
+directly on the banner (`window.prompt`-based) for a quicker edit.
+
+### H. Landing page — real trending clubs, no more empty carousel
+
+`HomeView`'s "Trending clubs this semester" called `GET /clubs`, which
+requires auth — always 401'd for a logged-out visitor, so the carousel was
+silently empty (documented in §5's Shrestha punch-list). New public,
+cross-college `GET /clubs/public/trending` (repository join across
+`clubs`↔`colleges`, ranked by approved member count) backs it instead, and
+each card now shows a university indicator. Also fixed a real bug introduced
+mid-session: `useScrollReveal`'s `IntersectionObserver` only observes
+elements present in the DOM at its own `onMounted` — an element that mounts
+later (behind an async-loaded `v-if`) never gets observed and stays at
+`opacity: 0` forever. Fixed by keeping the `reveal`-classed wrapper element
+present from first render, swapping only its *contents* on load.
+
+### I. Empty-state / loading-state consistency sweep
+
+Every list and loading branch across student, leader, and admin views now
+uses the same `.empty-state-wide` (§65) / `.page-loading-state` (§64)
+vocabulary — previously about a third of them rendered nothing at all when
+empty (recommended clubs, pending requests, members, issues, certificates,
+event history, admin approvals, leaderboard, attendance, results).
+
+### J. Login/Signup — Google SSO button removed from the UI, not deleted
+
+The Google sign-in button was already gated behind `googleEnabled`
+(`VITE_GOOGLE_CLIENT_ID` unset ⇒ never rendered), but per a product decision
+it's been removed from `LoginView.vue`/`SignupView.vue` entirely rather than
+left as unreachable UI. **`useGoogleAuth.js` and the backend's
+`POST /auth/google` are untouched** — re-wiring Google auth later is exactly
+undoing this UI removal, not rebuilding a composable.
+
+### K. Demo data — `demoinstitute` college fully seeded
+
+Seeded through the real HTTP API (not raw SQL) so every business rule ran
+exactly as production would: 6 approved clubs (with proposal-document and
+social links), 6 published events with attendance and declared results, 19
+certificates spread across winners/runners-up/participants, and 5 new member
+accounts alongside the 4 pre-existing demo accounts. 4 leftover duplicate
+"Demo Robotics Club" rows and their dependents (events, registrations,
+memberships, announcements, issues, notifications) from earlier manual
+testing were hard-deleted after confirming zero certificates depended on
+them. Full login table in `HANDOFF-AGENT.md` §E.
 
 ---
 
@@ -288,8 +374,9 @@ resolves the college from the email suffix, so the order matters.
 - [ ] **Move `import cairosvg` inside the render function.** One line. It
       currently breaks local development and testing on Windows for the entire
       team, not just this branch.
-- [ ] Public clubs endpoint — `GET /clubs` requires auth, so the landing page
-      carousel is empty for logged-out visitors.
+- [x] ~~Public clubs endpoint — `GET /clubs` requires auth, so the landing page
+      carousel is empty for logged-out visitors.~~ Fixed 2026-08-20: new
+      `GET /clubs/public/trending`, see §0.1.H.
 - [ ] `/auth/verify-email` and `/auth/resend-otp` do not exist, but
       `VerifyEmailView` calls both.
 - [ ] No notification fires when a student submits a club request, so admins

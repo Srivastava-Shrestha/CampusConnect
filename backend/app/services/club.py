@@ -155,7 +155,7 @@ class ClubService:
             raise NotClubLeaderError()
 
         old_image_url = club.image_url
-        new_image_url = await self.storage.upload_image(image, CLUB_FOLDER) if image else None
+        new_image_url = await self.storage.upload_image(image, CLUB_FOLDER) if image else data.image_url
         await self.club_repo.update_club(club, data.description, data.category, new_image_url)
         if new_image_url:
             await self.storage.delete_url(old_image_url)

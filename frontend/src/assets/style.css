@@ -9155,3 +9155,35 @@ button:disabled {
   margin: 0 auto;
   color: var(--color-ink-muted);
 }
+
+/*  66. Leader club banner - image fill + edit pencil  */
+.club-profile-banner {
+  background-size: cover;
+  background-position: center;
+}
+
+.banner-edit-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: none;
+  background-color: rgba(0, 0, 0, 0.45);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.banner-edit-btn:hover {
+  background-color: rgba(0, 0, 0, 0.65);
+}
+
+.banner-edit-btn svg {
+  width: 16px;
+  height: 16px;
+}

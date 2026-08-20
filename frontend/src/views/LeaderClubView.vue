@@ -101,6 +101,23 @@ function manageEvent(event) {
   }
 }
 
+async function changeBannerImage() {
+  const currentUrl = club.value.image_url || ''
+  const newUrl = window.prompt('Enter an image URL for the club banner:', currentUrl)
+
+  if (newUrl === null) return
+  const trimmed = newUrl.trim()
+  if (trimmed === currentUrl) return
+
+  try {
+    await updateClub(club.value.id, { image_url: trimmed || null })
+    club.value.image_url = trimmed || null
+    toast.success('Banner image updated.')
+  } catch (error) {
+    toast.error(error?.message || 'Could not update the banner image.')
+  }
+}
+
 function startEditing() {
 
   editForm.value = {
@@ -338,13 +355,22 @@ onMounted(async () => {
     <main class="content-body custom-scrollbar">
 
       <div>
-        <div class="club-profile-banner banner-blue">
-          <div class="club-card-circle-1"></div>
-          <div class="club-card-circle-2"></div>
-          <div class="club-card-circle-3"></div>
+        <div
+          class="club-profile-banner"
+          :class="{ 'banner-blue': !club.image_url }"
+          :style="club.image_url ? { backgroundImage: `url(${club.image_url})` } : {}"
+        >
+          <template v-if="!club.image_url">
+            <div class="club-card-circle-1"></div>
+            <div class="club-card-circle-2"></div>
+            <div class="club-card-circle-3"></div>
+          </template>
           <div class="club-profile-icon">
             <ClubIcon name="users" />
           </div>
+          <button class="banner-edit-btn" title="Change banner image" @click="changeBannerImage">
+            <Pencil />
+          </button>
         </div>
         <div class="club-profile-meta">
           <p class="club-profile-name">{{ club.name }}</p>

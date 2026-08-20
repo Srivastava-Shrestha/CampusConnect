@@ -204,6 +204,90 @@ Full context in `HANDOFF-TEAM.md` §0. Summary for an agent picking this up:
 | 6 | Club creation 422 | JSON vs multipart | see table above |
 | 7 | Backend would not start on non-asyncpg | unconditional `connect_args` | dialect guard |
 
+## Session 3 (2026-08-20) — demo prep
+
+Full narrative in `HANDOFF-TEAM.md` §0.1. Summary for an agent picking this up:
+
+```yaml
+certificate_storage_fallback:
+  problem: Storage.upload() raises StorageError - AWS keys in .env are literal
+    AWS-docs placeholders (AKIAIOSFODNN7EXAMPLE), not real credentials
+  fix:
+    - migration a1b2c3d4e5f6: certificates.pdf_data (LargeBinary, nullable)
+    - app/services/certificate.py: issue() catches StorageError, stores pdf
+      bytes on the row instead of failing
+    - GET /certificates/{serial}/file: new, public (serial IS the credential,
+      same trust model as GET /certificates/verify/{serial}), serves pdf_data
+    - _download_url() picks this route over the S3 signed URL only when
+      pdf_data is set - once real AWS keys land, new certs go to S3 and use
+      the old path automatically, zero code change
+  do_not: reintroduce a local-disk write path; pdf_data in Postgres is the
+    only fallback, matches "no SQLite / no extra local-only abstractions"
+    precedent from session 2
+
+club_banner_by_url:
+  schema: UpdateClubRequest.image_url: str | None (new field)
+  service: ClubService.update() - uploaded file wins if given, else data.image_url
+  frontend: LeaderClubView.vue - pencil icon on the banner (window.prompt),
+    plus the pre-existing "Image URL" edit-panel field now actually works
+    (it silently no-op'd before this - the field existed in the Vue form but
+    UpdateClubRequest had no matching schema field)
+
+trending_clubs_public_endpoint:
+  route: GET /clubs/public/trending (no auth)
+  new: app/schemas/club.py TrendingClubItem, app/repository/club.py
+    list_trending() (join Club -> College, order by approved member count),
+    app/services/club.py ClubService.trending()
+  why: HomeView's old "Trending clubs" called GET /clubs, which requires
+    auth - always 401'd for a logged-out visitor. Fixes the Shrestha
+    punch-list item "Public clubs endpoint" from session 1.
+  frontend_bug_fixed: useScrollReveal's IntersectionObserver only observes
+    elements present in the DOM at ITS OWN onMounted - an element behind an
+    async v-if that resolves later never gets observed, stays opacity:0
+    forever. Fix: keep the reveal-classed wrapper mounted from first paint,
+    swap only its inner content.
+
+login_signup_google_button:
+  removed_from: LoginView.vue, SignupView.vue (template + script wiring)
+  NOT_deleted: composables/useGoogleAuth.js, POST /auth/google backend route
+  reason: product decision, button wasn't reachable anyway (VITE_GOOGLE_CLIENT_ID
+    unset), but a future "re-add Google auth" task is a UI re-wire, not a
+    rebuild - check useGoogleAuth.js exists before assuming it needs writing
+
+empty_state_sweep:
+  applied: .empty-state-wide (css §65) / .page-loading-state (css §64) to
+    every remaining bare .empty-state across ClubDirectoryView, EventsView,
+    AttendanceView, ResultsView, AdminOverviewView, LeaderboardView
+  pattern: same vocabulary already used elsewhere this session - if a new
+    view needs an empty state, use these two classes, not a bespoke one
+```
+
+### E. Demo data — `demoinstitute` college
+
+Seeded via the real HTTP API against Neon (not raw SQL), so every business
+rule (approval gates, membership checks, cert issuance) ran for real. Login
+table:
+
+```yaml
+college_slug: demoinstitute
+password_all_accounts: password123
+accounts:
+  - {email: admin@demoinstitute.edu, role: CAMPUS_ADMIN}
+  - {email: leader@demoinstitute.edu, role: STUDENT, heads: [Robotics & Automation Club, Photography Circle]}
+  - {email: member@demoinstitute.edu, role: STUDENT, note: 4 clubs, won Bot Building Sprint}
+  - {email: member2@demoinstitute.edu, role: STUDENT, heads: [Coding Ninjas]}
+  - {email: member3@demoinstitute.edu, role: STUDENT, name: Aditi Sharma, heads: [Music Society]}
+  - {email: member4@demoinstitute.edu, role: STUDENT, name: Karan Verma, heads: [Literary Circle]}
+  - {email: member5@demoinstitute.edu, role: STUDENT, name: Neha Gupta, heads: [Sports Club]}
+  - {email: member6@demoinstitute.edu, role: STUDENT, name: Rohan Mehta, note: won Inter-Dept Football Cup}
+  - {email: member7@demoinstitute.edu, role: STUDENT, name: Priya Nair, note: won Open Mic Night}
+data: 6 ACTIVE clubs (each with 2 links), 6 PUBLISHED events with attendance
+  + declared results, 19 certificates (winner/runner-up/participant mix)
+cleanup_done: 4 duplicate "Demo Robotics Club" rows and all dependents
+  (events, registrations, memberships, announcements, issues, notifications)
+  hard-deleted after confirming zero certificates referenced them
+```
+
 ## Open items
 
 ```yaml
