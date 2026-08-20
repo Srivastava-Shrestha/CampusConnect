@@ -480,7 +480,7 @@ async def run_agent_turn(
             history.append({"role": "user", "content": results})
 
     except Exception as exc:  # noqa: BLE001 - degrade, never 500
-        logger.warning("agent turn %s failed: %s", turn_id, exc)
+        logger.warning("agent turn %s failed: %s", turn_id, exc, exc_info=True)
         result = await _deterministic_fallback(payload, services, interest_text, offline)
         result.budget = budget
         result.tools_used = tools_used
