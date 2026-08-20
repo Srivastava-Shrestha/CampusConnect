@@ -36,6 +36,7 @@ should happen. The scoring itself stays pure Python with no network access.
 """
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass
 from typing import Any, Callable
 
@@ -288,15 +289,24 @@ async def _recommend_clubs(payload: dict, services: Services, allow_list: AllowL
     if not interest_text:
         return {"error": "interest_text is required and must not be empty."}
 
-    try:
-        clubs = await services.club.list(payload)
-    except AppException as exc:
-        return {"error": exc.message}
+    # Three independent reads (clubs, events, saved profile) used to run one
+    # after another - each is a real network round trip to Neon, so that was
+    # adding up before the model call had even started. None depends on the
+    # others' result, so gather them instead.
+    clubs_result, events_result, saved = await asyncio.gather(
+        services.club.list(payload),
+        services.event.list(payload, upcoming_only=True),
+        _saved_profile(payload, services),
+        return_exceptions=True,
+    )
 
-    try:
-        events = await services.event.list(payload, upcoming_only=True)
-    except AppException:
-        events = []
+    if isinstance(clubs_result, AppException):
+        return {"error": clubs_result.message}
+    if isinstance(clubs_result, BaseException):
+        raise clubs_result
+    clubs = clubs_result
+
+    events = [] if isinstance(events_result, BaseException) else events_result
 
     # Shape the service rows into what the v1 recommender expects. It scores
     # on name/category/description/tags and an activity_score popularity
@@ -335,10 +345,6 @@ async def _recommend_clubs(payload: dict, services: Services, allow_list: AllowL
         }
         for event in events
     ]
-
-    # What the student saved at onboarding, so a first question already ranks
-    # against their real interests and branch instead of the typed text alone.
-    saved = await _saved_profile(payload, services)
 
     profile = {
         "interests": [interest_text] + saved["interests"],

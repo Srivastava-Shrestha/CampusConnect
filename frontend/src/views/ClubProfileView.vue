@@ -43,6 +43,11 @@ const pastClubEvents = computed(function pastEventsForThisClub() {
   })
 })
 
+// "Events Run" was reading clubEvents.length alone, but clubEvents excludes
+// past events by design (it only feeds the Upcoming Events list) - a club
+// whose only event had already happened showed 0 events run.
+const totalClubEvents = computed(() => clubEvents.value.length + pastClubEvents.value.length)
+
 watch(
   () => route.params.id,
   async (id) => {
@@ -212,7 +217,7 @@ onMounted(async function loadProfile() {
           <p class="club-stat-label">Members</p>
         </div>
         <div class="club-stat-card">
-          <p class="club-stat-num">{{ clubEvents.length }}</p>
+          <p class="club-stat-num">{{ totalClubEvents }}</p>
           <p class="club-stat-label">Events Run</p>
         </div>
         <div class="club-stat-card">
@@ -259,6 +264,33 @@ onMounted(async function loadProfile() {
               <span v-if="isEventBusy(event.id)" class="btn-spinner"></span>
               <template v-else>{{ isRegistrationOpen(event) ? 'Register' : 'Closed' }}</template>
             </button>
+          </div>
+
+          <div v-if="clubEvents.length === 0" class="empty-state empty-state-wide">
+            <p>No upcoming events right now.</p>
+          </div>
+
+        </div>
+      </div>
+
+      <div>
+        <p class="section-heading">Past Events</p>
+        <div class="club-event-list">
+
+          <div v-for="event in pastClubEvents" :key="event.id" class="club-event-row">
+            <div class="club-event-date-box">
+              <span class="club-event-date-day">{{ event.day }}</span>
+              <span class="club-event-date-month">{{ event.month }}</span>
+            </div>
+            <div class="club-event-info">
+              <p class="club-event-title">{{ event.title }}</p>
+              <p class="club-event-sub">{{ event.venue }} · {{ event.time }}</p>
+            </div>
+            <span class="event-status past">Completed</span>
+          </div>
+
+          <div v-if="pastClubEvents.length === 0" class="empty-state empty-state-wide">
+            <p>No past events yet.</p>
           </div>
 
         </div>
