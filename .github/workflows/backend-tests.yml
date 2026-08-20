@@ -69,4 +69,5 @@ jobs:
           SMTP_USER: test
           SMTP_PASSWORD: test
           MAIL_FROM: noreply@campusconnect.com
+          GOOGLE_CLIENT_ID: fake-google-client-id
         run: uv run pytest tests/ -v
