@@ -1725,18 +1725,15 @@ async def test_declare_results_unknown_registration_fails(client, two_checked_in
 
 
 @pytest.mark.asyncio
-async def test_declare_results_twice_swaps_winner(client, two_checked_in):
-    """Confirm a leader can re-declare results to correct a mistake, and the old
-    winner/runner-up drop back to PARTICIPANT rather than staying stuck."""
+async def test_declare_results_twice_fails(client, two_checked_in):
+    """Confirm that declaring results a second time on the same event is rejected"""
     leader_headers, event_id, first_id, second_id = two_checked_in
     payload = {"winner_registration_id": first_id, "runner_up_registration_id": second_id}
     await client.patch(f"/events/{event_id}/results", headers=leader_headers, json=payload)
 
-    swapped_payload = {"winner_registration_id": second_id, "runner_up_registration_id": first_id}
-    response = await client.patch(f"/events/{event_id}/results", headers=leader_headers, json=swapped_payload)
-    assert response.status_code == 200
-    assert response.json()["winner"]["registration_id"] == second_id
-    assert response.json()["runner_up"]["registration_id"] == first_id
+    response = await client.patch(f"/events/{event_id}/results", headers=leader_headers, json=payload)
+    assert response.status_code == 409
+    assert response.json()["message"] == "Results for this event have already been declared and can no longer be changed"
 
 
 @pytest.mark.asyncio
