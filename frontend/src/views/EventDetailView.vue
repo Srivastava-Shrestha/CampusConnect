@@ -5,6 +5,7 @@ import { ArrowLeft, Calendar, Clock, MapPin, Users, CheckCircle2, XCircle, Award
 import StudentSidebar from '../components/layout/StudentSidebar.vue'
 import { useEventsStore } from '../stores/events'
 import { registerForEvent, unregisterFromEvent, getMyResults } from '../api/events'
+import { cachedFetch, invalidateCache } from '../utils/apiCache'
 import { toast } from '../composables/useToast'
 import { useNotificationsStore } from '../stores/notifications'   // add
 
@@ -65,6 +66,7 @@ async function handleRegister() {
   try {
     const confirmation = await registerForEvent(route.params.id)
     await reloadEvent()
+    invalidateCache('my-results')
     await loadMyResult()
     await notificationsStore.fetchUnreadCount() 
     toast.success(confirmation.message)
@@ -81,6 +83,7 @@ async function handleUnregister() {
   try {
     const result = await unregisterFromEvent(route.params.id)
     await reloadEvent()
+    invalidateCache('my-results')
     await loadMyResult()
     toast.success(result.message)
   } catch (error) {
@@ -92,7 +95,7 @@ async function handleUnregister() {
 
 async function loadMyResult() {
   try {
-    const results = await getMyResults()
+    const results = await cachedFetch('my-results', getMyResults)
 
     myResult.value =
       results.find(

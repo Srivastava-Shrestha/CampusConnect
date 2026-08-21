@@ -5,6 +5,7 @@ import { useScrollReveal } from '../composables/useScrollReveal'
 import { ref, onMounted } from 'vue'
 import ClubIcon from '../components/ui/ClubIcon.vue'
 import { getTrendingClubs } from '../api/clubs'
+import { cachedFetch } from '../utils/apiCache'
 
 const router = useRouter()
 const { collectReveal } = useScrollReveal()
@@ -178,7 +179,7 @@ function bannerClass(category) {
 
 onMounted(async () => {
   try {
-    trendingClubs.value = await getTrendingClubs(8)
+    trendingClubs.value = await cachedFetch('trending-clubs:8', () => getTrendingClubs(8))
   } catch (err) {
     console.error(err)
   } finally {

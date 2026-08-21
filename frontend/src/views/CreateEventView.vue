@@ -7,6 +7,7 @@ import LeaderSidebar from '../components/layout/LeaderSidebar.vue'
 import { createEvent, publishEvent, updateEvent, getEventById } from '../api/events'
 import { useClubsStore } from '../stores/clubs'
 import { toast } from '../composables/useToast'
+import { cachedFetch, invalidateCache } from '../utils/apiCache'
 import { useFormValidation } from '../composables/useFormValidation'
 
 const router = useRouter()
@@ -135,6 +136,13 @@ function buildPayload() {
   }
 }
 
+// Every save here lands back on the leader events list, so its cached copy
+// must go or the new event simply will not be there.
+function invalidateEventLists() {
+  invalidateCache(`leader-events:${club.value.id}`)
+  invalidateCache(`club-upcoming-events:${club.value.id}`)
+}
+
 async function saveDraft() {
   const payload = buildPayload()
   if (!payload) return
@@ -143,6 +151,7 @@ async function saveDraft() {
 
   try {
     const created = await createEvent(payload)
+    invalidateEventLists()
     toast.success(`"${created.title}" saved as a draft.`)
     router.push(`/${route.params.slug}/leader/events`)
   } catch (error) {
@@ -160,6 +169,7 @@ async function publishNewEvent() {
 
   try {
     const created = await createEvent(payload)
+    invalidateEventLists()
 
     try {
       await publishEvent(created.id)
@@ -186,6 +196,8 @@ async function saveChanges() {
 
   try {
     await updateEvent(editingEventId.value, payload)
+    invalidateEventLists()
+    invalidateCache(`event:${editingEventId.value}`)
     toast.success('Event updated.')
     router.push(`/${route.params.slug}/leader/events`)
   } catch (error) {
@@ -199,7 +211,10 @@ async function loadEventForEditing() {
   loadingEvent.value = true
 
   try {
-    const event = await getEventById(editingEventId.value)
+    const event = await cachedFetch(
+      `event:${editingEventId.value}`,
+      () => getEventById(editingEventId.value)
+    )
 
     club.value = { id: event.club_id, name: event.club_name }
     eventTitle.value = event.title

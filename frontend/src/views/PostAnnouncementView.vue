@@ -9,6 +9,7 @@ import { postAnnouncement } from '../api/announcements'
 import { toast } from '../composables/useToast'
 import { useFormValidation } from '../composables/useFormValidation'
 import { useClubsStore } from '../stores/clubs'
+import { invalidateCache } from '../utils/apiCache'
 
 const router = useRouter()
 const route = useRoute()
@@ -111,6 +112,9 @@ async function handlePostAnnouncement() {
       category: announcementCategory.value,
       is_pinned: isPinned.value
     })
+
+    // The leader list this redirects to must not serve a copy without it.
+    invalidateCache(`leader-announcements:${clubId.value}`)
 
     toast.success(
       isPinned.value

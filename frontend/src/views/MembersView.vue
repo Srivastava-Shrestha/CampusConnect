@@ -17,6 +17,7 @@ import {
 } from '../api/clubs'
 
 import { useClubsStore } from '../stores/clubs'
+import { cachedFetch, invalidateCache } from '../utils/apiCache'
 import { toast } from '../composables/useToast'
 
 const clubId = ref(null)
@@ -43,6 +44,13 @@ function isRequestBusy(requestId) {
   return busyRequestIds.value.has(requestId)
 }
 
+// Approving, rejecting, or removing moves a student between the two lists,
+// so both are stale after any of them.
+function invalidateMembers(id) {
+  invalidateCache(`club-members:${id}`)
+  invalidateCache(`club-requests:${id}`)
+}
+
 async function approveRequest(request) {
   busyRequestIds.value.add(request.id)
   try {
@@ -52,6 +60,7 @@ async function approveRequest(request) {
       'APPROVED'
     )
 
+    invalidateMembers(clubId.value)
     await loadMembers(clubsStore.selectedLeaderClub)
     toast.success('Request approved.')
   } catch (error) {
@@ -71,6 +80,7 @@ async function rejectRequest(request) {
       'REJECTED'
     )
 
+    invalidateMembers(clubId.value)
     await loadMembers(clubsStore.selectedLeaderClub)
     toast.success('Request rejected.')
   } catch (error) {
@@ -98,6 +108,7 @@ async function handleRemoveMember(member) {
   try {
     await removeMemberRequest(clubId.value, member.studentId)
     toast.success(`${member.name} has been removed from the club.`)
+    invalidateMembers(clubId.value)
     await loadMembers(clubsStore.selectedLeaderClub)
   } catch (error) {
     toast.error(error?.message || 'Could not remove this member.')
@@ -112,8 +123,8 @@ const busyMemberIds = ref(new Set())
 async function loadMembers(club) {
   clubId.value = club.id
 
-  const rawMembers = await getClubMembers(club.id)
-  const rawRequests = await getPendingRequests(club.id)
+  const rawMembers = await cachedFetch(`club-members:${club.id}`, () => getClubMembers(club.id))
+  const rawRequests = await cachedFetch(`club-requests:${club.id}`, () => getPendingRequests(club.id))
 
   members.value = rawMembers.map(item => ({
     id: item.id,

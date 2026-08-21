@@ -9,6 +9,7 @@ import ClubIcon from '../components/ui/ClubIcon.vue'
 import ClubProposalList from '../components/ui/ClubProposalList.vue'
 import { getClubById, updateClub, deleteClub, getMyClubs } from '../api/clubs'
 import { getEvents, normalizeEvent } from '../api/events'
+import { cachedFetch, invalidateCache } from '../utils/apiCache'
 import { toast } from '../composables/useToast'
 import LeaderClubSwitcher from '../components/ui/LeaderClubSwitcher.vue'
 import CustomSelect from '../components/ui/CustomSelect.vue'
@@ -121,6 +122,7 @@ async function handleBannerFileSelected(event) {
   uploadingBanner.value = true
   try {
     const updated = await updateClub(club.value.id, {}, file)
+    invalidateCache(`club:${club.value.id}`)
     club.value.image_url = updated.image_url
     toast.success('Banner image updated.')
   } catch (error) {
@@ -164,6 +166,8 @@ async function saveClubEdits() {
     }
   )
 
+    invalidateCache(`club:${club.value.id}`)
+
     club.value.description = editForm.value.description.trim()
     club.value.category = editForm.value.category
 
@@ -204,6 +208,10 @@ async function deleteCurrentClub() {
 
     await deleteClub(club.value.id)
 
+    // Gone from the club record and from the proposal list CreateClubView shares.
+    invalidateCache(`club:${club.value.id}`)
+    invalidateCache('my-clubs:LEADER')
+
     toast.success('Club deleted successfully.')
 
     router.push(`/${auth.user.collegeSlug}/clubs`)
@@ -224,14 +232,14 @@ async function changeClub(clubId) {
 
 async function loadClubData(clubId) {
   try {
-    club.value = await getClubById(clubId)
+    club.value = await cachedFetch(`club:${clubId}`, () => getClubById(clubId))
 
     clubStats.value = buildStats(club.value)
 
-    const rows = await getEvents({
-      club_id: clubId,
-      upcoming_only: true
-    })
+    const rows = await cachedFetch(
+      `club-upcoming-events:${clubId}`,
+      () => getEvents({ club_id: clubId, upcoming_only: true })
+    )
 
     upcomingEvents.value = rows
       .map(row => normalizeEvent(row))
@@ -265,7 +273,7 @@ async function loadProposals() {
   loadingProposals.value = true
 
   try {
-    proposals.value = await getMyClubs({ role: 'LEADER' })
+    proposals.value = await cachedFetch('my-clubs:LEADER', () => getMyClubs({ role: 'LEADER' }))
   } catch (error) {
     proposals.value = []
   } finally {

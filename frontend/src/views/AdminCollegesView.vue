@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import { getClubApprovals } from '../api/clubs'
+import { cachedFetch } from '../utils/apiCache'
 
 import {
   School,
@@ -25,7 +26,7 @@ const collegeTitle = computed(() =>
 
 onMounted(async () => {
   try {
-    const clubs = await getClubApprovals('ACTIVE')
+    const clubs = await cachedFetch('club-approvals:ACTIVE', () => getClubApprovals('ACTIVE'))
     activeClubCount.value = clubs.length
   } catch {
     activeClubCount.value = 0

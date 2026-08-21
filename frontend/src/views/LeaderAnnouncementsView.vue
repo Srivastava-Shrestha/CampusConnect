@@ -9,6 +9,7 @@ import LeaderClubSwitcher from '../components/ui/LeaderClubSwitcher.vue'
 import FilterChips from '../components/ui/FilterChips.vue'
 import { getLeaderAnnouncements, togglePin, deleteAnnouncement } from '../api/announcements'
 import { toast } from '../composables/useToast'
+import { cachedFetch, invalidateCache } from '../utils/apiCache'
 import { useClubsStore } from '../stores/clubs'
 
 const router = useRouter()
@@ -83,6 +84,8 @@ async function handleDelete(post) {
   try {
     await deleteAnnouncement(post.id)
 
+    invalidateCache(`leader-announcements:${clubsStore.selectedLeaderClub?.id}`)
+
     await loadAnnouncements()
 
     toast.success('Announcement deleted.')
@@ -99,9 +102,10 @@ async function loadAnnouncements() {
   loading.value = true
 
   try {
-    const data = await getLeaderAnnouncements({
-      club_id: clubsStore.selectedLeaderClub.id
-    })
+    const data = await cachedFetch(
+      `leader-announcements:${clubsStore.selectedLeaderClub.id}`,
+      () => getLeaderAnnouncements({ club_id: clubsStore.selectedLeaderClub.id })
+    )
 
     posts.value = data.map(post => ({
       ...post,

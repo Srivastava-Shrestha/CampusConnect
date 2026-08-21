@@ -9,6 +9,7 @@ import FilterChips from '../components/ui/FilterChips.vue'
 import LeaderClubSwitcher from '../components/ui/LeaderClubSwitcher.vue'
 import { getEvents, publishEvent, cancelEvent, normalizeEvent } from '../api/events'
 import { useClubsStore } from '../stores/clubs'
+import { cachedFetch, invalidateCache } from '../utils/apiCache'
 import { toast } from '../composables/useToast'
 
 const router = useRouter()
@@ -69,7 +70,7 @@ function canTakeAttendance(event) {
 }
 
 function canSetResults(event) {
-  return event.lifecycle === 'PUBLISHED' && event.status === 'past'
+  return event.lifecycle === 'PUBLISHED' && hasStarted(event)
 }
 
 function goToAttendance(event) {
@@ -88,11 +89,20 @@ function goToEditEvent(event) {
   router.push(`/${route.params.slug}/leader/events/${event.id}/edit`)
 }
 
+// A club's two event lists go stale together: this page caches the whole
+// list, LeaderClubView caches the upcoming-only slice under its own key,
+// and CreateEventView drops both after it creates or edits an event.
+function invalidateClubEvents(clubId) {
+  invalidateCache(`leader-events:${clubId}`)
+  invalidateCache(`club-upcoming-events:${clubId}`)
+}
+
 async function publish(event) {
   if (!event?.id) return
   try {
     const result = await publishEvent(event.id)
     toast.success(result.message)
+    invalidateClubEvents(club.value.id)
     await loadEvents()
   } catch (error) {
     toast.error(error?.message || 'Something went wrong.')
@@ -110,6 +120,7 @@ async function cancel(event) {
   try {
     const result = await cancelEvent(event.id)
     toast.success(result.message)
+    invalidateClubEvents(club.value.id)
     await loadEvents()
   } catch (error) {
     toast.error(error?.message || 'Something went wrong.')
@@ -127,7 +138,10 @@ async function loadEvents() {
   loading.value = true
 
   try {
-    const rows = await getEvents({ club_id: club.value.id })
+    const rows = await cachedFetch(
+      `leader-events:${club.value.id}`,
+      () => getEvents({ club_id: club.value.id })
+    )
     events.value = rows.map(row => normalizeEvent(row))
   } catch (error) {
     toast.error(error?.message || 'Something went wrong.')

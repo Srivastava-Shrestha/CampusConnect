@@ -11,6 +11,7 @@ import { useClubsStore } from '../stores/clubs'
 import { toast } from '../composables/useToast'
 import { useFormValidation } from '../composables/useFormValidation'
 import { useGuidelinesStore } from '../stores/guidelines'
+import { cachedFetch, invalidateCache } from '../utils/apiCache'
 
 const router = useRouter()
 const route = useRoute()
@@ -29,7 +30,7 @@ async function loadProposals() {
   loadingProposals.value = true
 
   try {
-    proposals.value = await getMyClubs({ role: 'LEADER' })
+    proposals.value = await cachedFetch('my-clubs:LEADER', () => getMyClubs({ role: 'LEADER' }))
   } catch (error) {
     proposals.value = []
   } finally {
@@ -147,6 +148,7 @@ async function handleSubmit() {
     // shows the submission with its "Pending approval" status, which is the
     // answer to "what happened to my request?" that the redirect used to hide.
     clearForm()
+    invalidateCache('my-clubs:LEADER')
     await loadProposals()
 
   } catch (error) {

@@ -7,6 +7,7 @@ import StatCard from '../components/ui/StatCard.vue'
 import StatusPill from '../components/ui/StatusPill.vue'
 import ApprovalCard from '../components/ui/ApprovalCard.vue'
 import { getClubApprovals, approveClubRequest, rejectClubRequest } from '../api/clubs'
+import { cachedFetch, invalidateCache } from '../utils/apiCache'
 import { toApprovalCard } from '../utils/clubVisuals'
 import { toast } from '../composables/useToast'
 import { useAuthStore } from '../stores/auth'
@@ -34,11 +35,21 @@ function isBusy(id) {
   return busyIds.value.has(id)
 }
 
+// A decision moves the club from PENDING into ACTIVE or REJECTED, so every
+// cached bucket is stale at once - including the ACTIVE list that
+// AdminCollegesView reads under the same key.
+function invalidateApprovals() {
+  invalidateCache('club-approvals:PENDING')
+  invalidateCache('club-approvals:ACTIVE')
+  invalidateCache('club-approvals:REJECTED')
+}
+
 async function handleApprove(approval) {
   busyIds.value.add(approval.id)
   try {
     await approveClubRequest(approval.id)
     approval.status = 'approved'
+    invalidateApprovals()
   } finally {
     busyIds.value.delete(approval.id)
   }
@@ -58,6 +69,7 @@ async function handleReject(approval) {
   try {
     await rejectClubRequest(approval.id, reason)
     approval.status = 'rejected'
+    invalidateApprovals()
   } finally {
     busyIds.value.delete(approval.id)
   }
@@ -70,7 +82,7 @@ async function handleReject(approval) {
 // them separately means one failing call only blanks its own number.
 async function loadPending() {
   try {
-    const rows = await getClubApprovals("PENDING")
+    const rows = await cachedFetch('club-approvals:PENDING', () => getClubApprovals("PENDING"))
     pendingList.value = rows.map(toApprovalCard)
   } catch (error) {
     toast.error('Could not load pending approvals: ' + error.message)
@@ -79,7 +91,7 @@ async function loadPending() {
 
 async function loadApprovedTotal() {
   try {
-    const active = await getClubApprovals("ACTIVE")
+    const active = await cachedFetch('club-approvals:ACTIVE', () => getClubApprovals("ACTIVE"))
     approvedTotal.value = active.length
   } catch (error) {
     toast.error('Could not load approved clubs: ' + error.message)
@@ -88,7 +100,7 @@ async function loadApprovedTotal() {
 
 async function loadRejectedTotal() {
   try {
-    const rejected = await getClubApprovals("REJECTED")
+    const rejected = await cachedFetch('club-approvals:REJECTED', () => getClubApprovals("REJECTED"))
     rejectedTotal.value = rejected.length
   } catch (error) {
     toast.error('Could not load rejected clubs: ' + error.message)
