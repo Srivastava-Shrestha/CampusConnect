@@ -59,7 +59,11 @@ function countText(event) {
   return `${event.registered} / ${event.capacity}`
 }
 
-// Attendance opens once the event has started; results need attendance taken first.
+// Both open once the event has started - the server puts no clock on declaring
+// results, it only asks that the winner and runner-up were checked in, and
+// check-in itself opens at starts_at. Waiting for ends_at would hide the button
+// through the whole event while the attendance page is already sending leaders
+// to the results page.
 function hasStarted(event) {
   return new Date(event.starts_at) <= new Date()
 }
@@ -69,7 +73,7 @@ function canTakeAttendance(event) {
 }
 
 function canSetResults(event) {
-  return event.lifecycle === 'PUBLISHED' && event.status === 'past'
+  return event.lifecycle === 'PUBLISHED' && hasStarted(event)
 }
 
 function goToAttendance(event) {

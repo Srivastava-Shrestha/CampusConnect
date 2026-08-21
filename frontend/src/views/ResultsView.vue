@@ -72,10 +72,11 @@ async function loadParticipants() {
 
   participants.value = rows.map((row) => normalizeParticipant(row))
 
-  // If results were already declared, every attendee carries a real result
-  // rather than the REGISTRANT sign-up default - reflect that instead of
-  // presenting the picker as if nothing had happened yet.
-  const declared = attendees.value.find((attendee) => attendee.result !== 'REGISTRANT')
+  // Only a real WINNER/RUNNER_UP means results were declared - PARTICIPANT is
+  // just what attendance marking sets on check-in, before any result exists.
+  const declared = attendees.value.find(
+    (attendee) => attendee.result === 'WINNER' || attendee.result === 'RUNNER_UP'
+  )
   alreadyDeclared.value = Boolean(declared)
 
   const existingWinner = attendees.value.find((attendee) => attendee.result === 'WINNER')
