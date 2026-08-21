@@ -139,6 +139,29 @@ class MembershipService:
             message=MembershipMessages.MEMBER_REMOVED,
         )
 
+    async def leave(self, payload: dict, club_id: int) -> RemoveMemberResponse:
+        """A member leaving a club of their own accord - the self-service
+        counterpart to remove_member, which only a leader can do to someone
+        else. A leader cannot leave their own club this way; they would need
+        to hand off leadership or delete the club instead."""
+        student = await self._get_student(payload)
+
+        membership = await self.membership_repo.get(student.id, club_id)
+        if not membership or membership.status != MembershipStatus.APPROVED:
+            raise MembershipNotFoundError()
+        if membership.role == MembershipRole.LEADER:
+            raise ClubActionNotAllowedError("The club leader cannot leave their own club")
+
+        membership_id = membership.id
+        await self.membership_repo.delete(membership)
+
+        return RemoveMemberResponse(
+            id=membership_id,
+            student_id=student.id,
+            club_id=club_id,
+            message=MembershipMessages.LEFT_CLUB,
+        )
+
     async def _get_student(self, payload: dict):
         student = await self.student_repo.get_student_by_user_id(int(payload.get("sub")))
         if not student:

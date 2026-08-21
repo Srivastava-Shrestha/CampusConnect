@@ -45,7 +45,11 @@ export function useAuthSession() {
     if (auth.role === 'student') {
       try {
         const ledClubs = await getMyClubs({ role: 'LEADER' })
-        auth.setClubLeader(ledClubs.length > 0)
+        // The leader membership itself is approved the instant a club is
+        // proposed, but an OFFICIAL club's status stays PENDING until an
+        // admin approves it - "Manage Clubs" has nothing to manage until
+        // then, so only a club that's actually live should unlock the nav.
+        auth.setClubLeader(ledClubs.some((club) => club.status === 'ACTIVE'))
       } catch {
         auth.setClubLeader(false)
       }

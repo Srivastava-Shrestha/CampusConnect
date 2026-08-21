@@ -52,6 +52,10 @@ function isPostBusy(postId) {
   return busyPostIds.value.has(postId)
 }
 
+function announcementsCacheKey() {
+  return `leader-announcements:${clubsStore.selectedLeaderClub?.id}`
+}
+
 async function handleTogglePin(post) {
   busyPostIds.value.add(post.id)
   try {
@@ -59,6 +63,7 @@ async function handleTogglePin(post) {
 
     await togglePin(post.id, newPinnedState)
 
+    invalidateCache(announcementsCacheKey())
     await loadAnnouncements()
 
     toast.success(
@@ -84,8 +89,7 @@ async function handleDelete(post) {
   try {
     await deleteAnnouncement(post.id)
 
-    invalidateCache(`leader-announcements:${clubsStore.selectedLeaderClub?.id}`)
-
+    invalidateCache(announcementsCacheKey())
     await loadAnnouncements()
 
     toast.success('Announcement deleted.')
@@ -103,7 +107,7 @@ async function loadAnnouncements() {
 
   try {
     const data = await cachedFetch(
-      `leader-announcements:${clubsStore.selectedLeaderClub.id}`,
+      announcementsCacheKey(),
       () => getLeaderAnnouncements({ club_id: clubsStore.selectedLeaderClub.id })
     )
 

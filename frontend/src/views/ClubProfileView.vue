@@ -1,12 +1,12 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, UserPlus, Clock, MapPin, Users } from 'lucide-vue-next'
+import { ArrowLeft, UserPlus, UserMinus, Clock, MapPin, Users } from 'lucide-vue-next'
 import StudentSidebar from '../components/layout/StudentSidebar.vue'
 import ClubIcon from '../components/ui/ClubIcon.vue'
 import { useClubsStore } from '../stores/clubs'
 import { useEventsStore } from '../stores/events'
-import { requestToJoinClub } from '../api/clubs'
+import { requestToJoinClub, leaveClub } from '../api/clubs'
 import { registerForEvent, unregisterFromEvent } from '../api/events'
 import { toast } from '../composables/useToast'
 import { bannerColourFor } from '../utils/clubVisuals'
@@ -19,6 +19,26 @@ const eventsStore = useEventsStore()
 const joinState = ref('none')
 
 const club = computed(() => clubsStore.currentClub)
+
+// The visitor's own membership in this exact club, if any - drives whether
+// the header button reads "Request to Join", "Request Sent" or "Leave Club".
+const myMembership = computed(() => {
+  if (!club.value) return null
+  return clubsStore.joinedClubs.find((c) => c.id === club.value.id) || null
+})
+
+const isMyLedClub = computed(() => myMembership.value?.membership_role === 'LEADER')
+
+function syncJoinStateFromMembership() {
+  const status = myMembership.value?.membership_status
+  if (status === 'APPROVED') {
+    joinState.value = 'joined'
+  } else if (status === 'PENDING') {
+    joinState.value = 'pending'
+  } else {
+    joinState.value = 'none'
+  }
+}
 
 // member_count from the API counts every APPROVED membership, and the club
 // leader has one of those too - created automatically when the club was
@@ -51,10 +71,9 @@ const totalClubEvents = computed(() => clubEvents.value.length + pastClubEvents.
 watch(
   () => route.params.id,
   async (id) => {
-    joinState.value = 'none'
-
     try {
       await clubsStore.loadClub(id)
+      syncJoinStateFromMembership()
     } catch (error) {
       toast.error(error?.message || 'Failed to load club.')
     }
@@ -74,6 +93,28 @@ async function handleJoinRequest() {
     toast.success('Join request sent successfully.')
   } catch (error) {
     toast.error(error?.message || 'Failed to send join request.')
+  } finally {
+    isJoining.value = false
+  }
+}
+
+async function handleLeaveClub() {
+  if (isJoining.value) return
+
+  const confirmed = window.confirm(
+    `Leave ${club.value.name}? You will need to send a new request to rejoin.`
+  )
+  if (!confirmed) return
+
+  isJoining.value = true
+
+  try {
+    await leaveClub(route.params.id)
+    joinState.value = 'none'
+    await clubsStore.refreshClubs()
+    toast.success('You have left the club.')
+  } catch (error) {
+    toast.error(error?.message || 'Failed to leave the club.')
   } finally {
     isJoining.value = false
   }
@@ -143,8 +184,10 @@ onMounted(async function loadProfile() {
   try {
     await Promise.all([
       clubsStore.loadClub(route.params.id),
+      clubsStore.loadClubs(),
       eventsStore.loadEvents()
     ])
+    syncJoinStateFromMembership()
   } catch (error) {
     toast.error(error?.message || 'Failed to load club details.')
   } finally {
@@ -170,8 +213,23 @@ onMounted(async function loadProfile() {
 
       <div class="topbar-spacer"></div>
 
-      <button class="btn-join" :disabled="joinState === 'pending' || isJoining" :class="{ pending: joinState === 'pending' }" @click="handleJoinRequest"
->
+      <button
+        v-if="joinState === 'joined'"
+        class="btn-join leave"
+        :disabled="isJoining"
+        @click="handleLeaveClub"
+      >
+        <span v-if="isJoining" class="btn-spinner"></span>
+        <template v-else><UserMinus /> Leave Club</template>
+      </button>
+
+      <button
+        v-else-if="!isMyLedClub"
+        class="btn-join"
+        :disabled="joinState === 'pending' || isJoining"
+        :class="{ pending: joinState === 'pending' }"
+        @click="handleJoinRequest"
+      >
         <span v-if="isJoining" class="btn-spinner"></span>
         <template v-else>
           <Clock v-if="joinState === 'pending'" />

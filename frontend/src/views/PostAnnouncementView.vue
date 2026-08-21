@@ -122,6 +122,11 @@ async function handlePostAnnouncement() {
         : 'Announcement posted successfully.'
     )
 
+    // The leader feed and the student feed both cache this club's announcements -
+    // both would otherwise miss the one just posted until their TTL expires.
+    invalidateCache(`leader-announcements-${clubId.value}`)
+    invalidateCache('student-announcements')
+
     router.push(`/${route.params.slug}/leader/announcements`)
   } catch (error) {
     toast.error(error.message)

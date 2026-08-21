@@ -113,6 +113,15 @@ async def join_club(
     return await service.join(payload, club_id)
 
 
+@club_router.delete("/{club_id}/join", response_model=RemoveMemberResponse)
+async def leave_club(
+    club_id: int,
+    payload: dict = Security(get_user_info, scopes=["STUDENT"]),
+    service: MembershipService = Depends(get_membership_service),
+):
+    return await service.leave(payload, club_id)
+
+
 @club_router.get("/{club_id}/requests", response_model=list[PendingRequestItem])
 async def pending_requests(
     club_id: int,

@@ -27,13 +27,26 @@ const categoryChips = [
   { id: 'Science', label: 'Science' }
 ]
 
+// A club this student leads already has its own dedicated space (the Leader
+// pages) and shows up in "My Clubs" below - listing it again here, in the
+// directory meant for discovering clubs to join, is just noise.
+const ledClubIds = computed(() =>
+  new Set(
+    clubsStore.joinedClubs
+      .filter((club) => club.membership_role === 'LEADER')
+      .map((club) => club.id)
+  )
+)
+
 const visibleClubs = computed(function filterClubs() {
   const search = searchText.value.toLowerCase().trim()
 
   return clubsStore.clubs.filter(function matchesClub(club) {
+    if (ledClubIds.value.has(club.id)) return false
+
     const categoryMatch = activeCategory.value === 'all' || (club.category || '').toLowerCase() === activeCategory.value.toLowerCase()
 
-    const searchMatch = search === '' || club.name.toLowerCase().includes(search) || (club.category || '').toLowerCase().includes(search) 
+    const searchMatch = search === '' || club.name.toLowerCase().includes(search) || (club.category || '').toLowerCase().includes(search)
       return categoryMatch && searchMatch})
 })
 

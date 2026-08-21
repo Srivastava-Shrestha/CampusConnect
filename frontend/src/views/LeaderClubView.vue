@@ -124,6 +124,7 @@ async function handleBannerFileSelected(event) {
     const updated = await updateClub(club.value.id, {}, file)
     invalidateCache(`club:${club.value.id}`)
     club.value.image_url = updated.image_url
+    invalidateCache(`leader-club-${club.value.id}`)
     toast.success('Banner image updated.')
   } catch (error) {
     toast.error(error?.message || 'Could not update the banner image.')
@@ -175,6 +176,7 @@ async function saveClubEdits() {
 
     editing.value = false
 
+    invalidateCache(`leader-club-${club.value.id}`)
     toast.success('Club updated successfully.')
 
   } catch (error) {

@@ -176,9 +176,21 @@ export function accentForClub(clubId) {
   return ACCENTS[Math.abs(Number(clubId) || 0) % ACCENTS.length]
 }
 
+// Campus Connect is India-only, so every date is shown in IST regardless of
+// the viewer's own device/browser timezone - shifting the UTC epoch by IST's
+// fixed +5:30 offset and reading it back with the UTC getters yields IST
+// wall-clock components without depending on the browser's local timezone
+// (which, left to itself, is wrong on any machine not already set to IST).
+const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000
+
+export function toIst(date) {
+  return new Date(date.getTime() + IST_OFFSET_MS)
+}
+
 export function formatTime(date) {
-  const hours = date.getHours()
-  const minutes = String(date.getMinutes()).padStart(2, '0')
+  const ist = toIst(date)
+  const hours = ist.getUTCHours()
+  const minutes = String(ist.getUTCMinutes()).padStart(2, '0')
   const suffix = hours >= 12 ? 'PM' : 'AM'
   const hour12 = hours % 12 === 0 ? 12 : hours % 12
 
@@ -186,7 +198,8 @@ export function formatTime(date) {
 }
 
 export function formatDateLong(date) {
-  return `${WEEKDAYS[date.getDay()]}, ${date.getDate()} ${MONTHS_LONG[date.getMonth()]} ${date.getFullYear()}`
+  const ist = toIst(date)
+  return `${WEEKDAYS[ist.getUTCDay()]}, ${ist.getUTCDate()} ${MONTHS_LONG[ist.getUTCMonth()]} ${ist.getUTCFullYear()}`
 }
 
 export function deriveStatus(event, registeredEventIds = new Set()) {
@@ -200,6 +213,16 @@ export function deriveStatus(event, registeredEventIds = new Set()) {
 export function normalizeEvent(event, registeredEventIds = new Set()) {
   const startsAt = new Date(event.starts_at)
   const endsAt = new Date(event.ends_at)
+  const now = new Date()
+
+  // deriveStatus() only distinguishes "past" (ended) from everything else,
+  // so an event that has started but not yet ended still fell under
+  // "upcoming" - correct for filtering (it belongs in that tab), but a
+  // misleading badge to show someone while the event is literally
+  // happening. This is checked separately so it doesn't disturb status
+  // filtering elsewhere.
+  const isOngoing = event.status !== 'CANCELLED' && event.status !== 'DRAFT'
+    && startsAt <= now && now <= endsAt
 
   return {
     id: event.id,
@@ -208,8 +231,8 @@ export function normalizeEvent(event, registeredEventIds = new Set()) {
     title: event.title,
     description: event.description || '',
     venue: event.venue,
-    day: String(startsAt.getDate()),
-    month: MONTHS[startsAt.getMonth()],
+    day: String(toIst(startsAt).getUTCDate()),
+    month: MONTHS[toIst(startsAt).getUTCMonth()],
     time: formatTime(startsAt),
     dateLong: formatDateLong(startsAt),
     timeLong: `${formatTime(startsAt)} to ${formatTime(endsAt)}`,
@@ -221,6 +244,7 @@ export function normalizeEvent(event, registeredEventIds = new Set()) {
     image_url: event.image_url,
     lifecycle: event.status,
     status: deriveStatus(event, registeredEventIds),
+    isOngoing,
     accent: accentForClub(event.club_id),
     is_registered: event.is_registered === true || registeredEventIds.has(event.id),
     my_registration_id: event.my_registration_id ?? null

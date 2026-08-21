@@ -3349,6 +3349,13 @@ button, .btn {
   cursor: default;
 }
 
+.btn-join.leave {
+  background-color: var(--color-surface-alt);
+  color: var(--color-red-text, #dc2626);
+  box-shadow: none;
+  border: var(--border-subtle);
+}
+
 /* General utility */
 .hidden {
   display: none;
@@ -4175,6 +4182,10 @@ button, .btn {
 .event-status.past {
   background-color: var(--color-surface-alt);
   color: var(--color-ink-light);
+}
+.event-status.ongoing {
+  background-color: var(--color-orange-tint);
+  color: var(--color-orange-text);
 }
 
 /* Event detail hero */
@@ -5851,6 +5862,14 @@ button, .btn {
   display: none;
 }
 
+/* Admin-only: the bottom nav has no logout icon, and .sidebar (which holds
+   the desktop logout button) is hidden below 767px - see AdminSidebar.vue.
+   Fixed top-left so it never overlaps the Topbar's notification bell, which
+   sits top-right. */
+.admin-mobile-logout {
+  display: none;
+}
+
 @media (max-width: 767px) {
 
   /* Bottom icon navbar, one per role */
@@ -5906,6 +5925,33 @@ button, .btn {
 
   .mobile-nav-item.active svg {
     fill: currentColor;
+  }
+
+  .admin-mobile-logout {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    top: 16px;
+    left: 16px;
+    z-index: 60;
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 50%;
+    background: #ef4444;
+    color: white;
+    box-shadow: 0 4px 12px rgba(31, 26, 23, 0.15);
+    cursor: pointer;
+  }
+
+  .admin-mobile-logout:hover {
+    background: #dc2626;
+  }
+
+  .admin-mobile-logout svg {
+    width: 18px;
+    height: 18px;
   }
 
   /* Portal shell: hide desktop sidebar, free the full width */

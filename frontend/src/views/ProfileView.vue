@@ -7,7 +7,7 @@ import Topbar from '../components/layout/Topbar.vue'
 import CertCard from '../components/ui/CertCard.vue'
 import { useAuthStore } from '../stores/auth'
 import { getMyCertificates } from '../api/certificates'
-import { getMyRegistrations } from '../api/events'
+import { getMyRegistrations, toIst } from '../api/events'
 import { getMyProfile, updateMyProfile } from '../api/students'
 import { sendResetLink } from '../api/auth'
 import { toast } from '../composables/useToast'
@@ -102,12 +102,12 @@ const resultClasses = {
 // A registration only carries a real outcome once the leader has checked the student
 // in and set a result; until then it is still just a sign-up.
 function toHistoryEntry(registration) {
-  const startsAt = new Date(registration.starts_at)
+  const startsAt = toIst(new Date(registration.starts_at))
 
   return {
     id: registration.registration_id,
-    day: String(startsAt.getDate()),
-    month: MONTHS[startsAt.getMonth()],
+    day: String(startsAt.getUTCDate()),
+    month: MONTHS[startsAt.getUTCMonth()],
     title: registration.event_title,
     club: registration.club_name,
     result: registration.result === 'REGISTRANT' ? null : registration.result
