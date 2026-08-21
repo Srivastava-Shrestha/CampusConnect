@@ -6,6 +6,7 @@ import Topbar from '../components/layout/Topbar.vue'
 import AnnounceCard from '../components/ui/AnnounceCard.vue'
 import FilterChips from '../components/ui/FilterChips.vue'
 import { getAnnouncements } from '../api/announcements'
+import { cachedFetch } from '../utils/apiCache'
 import { useChipFilter } from '../composables/useChipFilter'
 import { toast } from '../composables/useToast'
 import { useAnnouncementsStore } from '../stores/announcements'
@@ -36,7 +37,7 @@ onMounted(async () => {
   loading.value = true
 
   try {
-    const data = await getAnnouncements()
+    const data = await cachedFetch('student-announcements', getAnnouncements)
 
     announcements.value = data.map(item => ({
       ...item,
