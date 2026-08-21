@@ -342,6 +342,21 @@ async def _recommend_clubs(payload: dict, services: Services, allow_list: AllowL
             "description": event.description,
             "club_name": event.club_name,
             "leader_name": "",
+            # select_recommendations/score_event only ever reads title and
+            # description to score a match - everything below is a passenger,
+            # carried along so the event survives into a UI card intact.
+            # Without these, an AI-surfaced event card had no starts_at/
+            # ends_at/venue at all and rendered NaN date/time and a blank
+            # venue/member-count, even though the same event displays
+            # correctly everywhere else in the app.
+            "venue": event.venue,
+            "starts_at": event.starts_at,
+            "ends_at": event.ends_at,
+            "capacity": event.capacity,
+            "registration_count": event.registration_count,
+            "seats_left": event.seats_left,
+            "status": event.status,
+            "image_url": event.image_url,
         }
         for event in events
     ]
