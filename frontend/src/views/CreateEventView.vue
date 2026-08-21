@@ -7,6 +7,7 @@ import LeaderSidebar from '../components/layout/LeaderSidebar.vue'
 import { createEvent, publishEvent, updateEvent, getEventById } from '../api/events'
 import { useClubsStore } from '../stores/clubs'
 import { toast } from '../composables/useToast'
+import { invalidateCache } from '../utils/apiCache'
 import { useFormValidation } from '../composables/useFormValidation'
 
 const router = useRouter()
@@ -144,6 +145,7 @@ async function saveDraft() {
   try {
     const created = await createEvent(payload)
     toast.success(`"${created.title}" saved as a draft.`)
+    invalidateCache(`leader-events-${payload.club_id}`)
     router.push(`/${route.params.slug}/leader/events`)
   } catch (error) {
     toast.error(error?.message || 'Unable to create event.')
@@ -170,6 +172,7 @@ async function publishNewEvent() {
 )
     }
 
+    invalidateCache(`leader-events-${payload.club_id}`)
     router.push(`/${route.params.slug}/leader/events`)
   } catch (error) {
     toast.error(error?.message || 'Unable to create event.')
@@ -187,6 +190,7 @@ async function saveChanges() {
   try {
     await updateEvent(editingEventId.value, payload)
     toast.success('Event updated.')
+    invalidateCache(`leader-events-${payload.club_id}`)
     router.push(`/${route.params.slug}/leader/events`)
   } catch (error) {
     toast.error(error?.message || 'Unable to update event.')

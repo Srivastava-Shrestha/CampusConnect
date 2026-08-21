@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
-import { GraduationCap, LayoutDashboard, CheckCircle2, Building2, ScrollText } from 'lucide-vue-next'
+import { GraduationCap, LayoutDashboard, CheckCircle2, Building2, ScrollText, LogOut } from 'lucide-vue-next'
 import MobileNav from './MobileNav.vue'
 
 const route = useRoute()
@@ -82,4 +82,12 @@ function logout() {
   </aside>
 
   <MobileNav :items="mobileItems" role-class="admin" />
+
+  <!-- The sidebar (with its own logout button) is display:none below 767px and
+       MobileNav has no room for a 5th icon, so admins on mobile previously had
+       no way to log out at all. Lives outside <aside> on purpose - .sidebar's
+       mobile media query would hide it too if it were nested inside. -->
+  <button class="admin-mobile-logout" title="Logout" @click="logout">
+    <LogOut />
+  </button>
 </template>

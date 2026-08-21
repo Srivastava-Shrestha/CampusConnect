@@ -151,15 +151,23 @@ class EventRegistrationService:
     async def declare_results(self, payload: dict, event_id: int, data: DeclareResultsRequest,
                               background: BackgroundTasks | None = None) -> DeclareResultsResponse:
         event = await self._managed_event(payload, event_id)
-        if await self.registration_repo.results_declared(event_id):
-            raise ResultsAlreadyDeclaredError()
 
         winner = await self._attendee(data.winner_registration_id, event_id)
         runner_up = await self._attendee(data.runner_up_registration_id, event_id)
-        await self.registration_repo.set_result(winner, RegistrationResult.WINNER)
-        await self.registration_repo.set_result(runner_up, RegistrationResult.RUNNER_UP)
 
         attendees = await self.registration_repo.list_checked_in(event_id)
+
+        # Leaders can re-declare results (e.g. to correct a mistake) even after
+        # publishing once. Whoever held WINNER/RUNNER_UP before but isn't picked
+        # this time drops back to PARTICIPANT so the old result doesn't linger.
+        for registration in attendees:
+            if registration.id in (winner.id, runner_up.id):
+                continue
+            if registration.result in (RegistrationResult.WINNER, RegistrationResult.RUNNER_UP):
+                await self.registration_repo.set_result(registration, RegistrationResult.PARTICIPANT)
+
+        await self.registration_repo.set_result(winner, RegistrationResult.WINNER)
+        await self.registration_repo.set_result(runner_up, RegistrationResult.RUNNER_UP)
         for registration in attendees:
             await self.notification_repo.create_notification(
                 student_id=registration.student_id,

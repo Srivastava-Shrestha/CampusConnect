@@ -10,6 +10,7 @@ import ClubProposalList from '../components/ui/ClubProposalList.vue'
 import { getClubById, updateClub, deleteClub, getMyClubs } from '../api/clubs'
 import { getEvents, normalizeEvent } from '../api/events'
 import { toast } from '../composables/useToast'
+import { cachedFetch, invalidateCache } from '../utils/apiCache'
 import LeaderClubSwitcher from '../components/ui/LeaderClubSwitcher.vue'
 import CustomSelect from '../components/ui/CustomSelect.vue'
 import Modal from '../components/ui/Modal.vue'
@@ -122,6 +123,7 @@ async function handleBannerFileSelected(event) {
   try {
     const updated = await updateClub(club.value.id, {}, file)
     club.value.image_url = updated.image_url
+    invalidateCache(`leader-club-${club.value.id}`)
     toast.success('Banner image updated.')
   } catch (error) {
     toast.error(error?.message || 'Could not update the banner image.')
@@ -171,6 +173,7 @@ async function saveClubEdits() {
 
     editing.value = false
 
+    invalidateCache(`leader-club-${club.value.id}`)
     toast.success('Club updated successfully.')
 
   } catch (error) {
@@ -204,6 +207,7 @@ async function deleteCurrentClub() {
 
     await deleteClub(club.value.id)
 
+    invalidateCache(`leader-club-${club.value.id}`)
     toast.success('Club deleted successfully.')
 
     router.push(`/${auth.user.collegeSlug}/clubs`)
@@ -224,7 +228,7 @@ async function changeClub(clubId) {
 
 async function loadClubData(clubId) {
   try {
-    club.value = await getClubById(clubId)
+    club.value = await cachedFetch(`leader-club-${clubId}`, () => getClubById(clubId))
 
     clubStats.value = buildStats(club.value)
 

@@ -10,6 +10,7 @@ import FilterChips from '../components/ui/FilterChips.vue'
 import { getLeaderAnnouncements, togglePin, deleteAnnouncement } from '../api/announcements'
 import { toast } from '../composables/useToast'
 import { useClubsStore } from '../stores/clubs'
+import { cachedFetch, invalidateCache } from '../utils/apiCache'
 
 const router = useRouter()
 const route = useRoute()
@@ -51,6 +52,10 @@ function isPostBusy(postId) {
   return busyPostIds.value.has(postId)
 }
 
+function announcementsCacheKey() {
+  return `leader-announcements-${clubsStore.selectedLeaderClub?.id}`
+}
+
 async function handleTogglePin(post) {
   busyPostIds.value.add(post.id)
   try {
@@ -58,6 +63,7 @@ async function handleTogglePin(post) {
 
     await togglePin(post.id, newPinnedState)
 
+    invalidateCache(announcementsCacheKey())
     await loadAnnouncements()
 
     toast.success(
@@ -83,6 +89,7 @@ async function handleDelete(post) {
   try {
     await deleteAnnouncement(post.id)
 
+    invalidateCache(announcementsCacheKey())
     await loadAnnouncements()
 
     toast.success('Announcement deleted.')
@@ -99,9 +106,9 @@ async function loadAnnouncements() {
   loading.value = true
 
   try {
-    const data = await getLeaderAnnouncements({
-      club_id: clubsStore.selectedLeaderClub.id
-    })
+    const data = await cachedFetch(announcementsCacheKey(), () =>
+      getLeaderAnnouncements({ club_id: clubsStore.selectedLeaderClub.id })
+    )
 
     posts.value = data.map(post => ({
       ...post,

@@ -10,6 +10,7 @@ import LeaderClubSwitcher from '../components/ui/LeaderClubSwitcher.vue'
 import { getEvents, publishEvent, cancelEvent, normalizeEvent } from '../api/events'
 import { useClubsStore } from '../stores/clubs'
 import { toast } from '../composables/useToast'
+import { cachedFetch, invalidateCache } from '../utils/apiCache'
 
 const router = useRouter()
 const route = useRoute()
@@ -88,11 +89,16 @@ function goToEditEvent(event) {
   router.push(`/${route.params.slug}/leader/events/${event.id}/edit`)
 }
 
+function eventsCacheKey() {
+  return `leader-events-${club.value?.id}`
+}
+
 async function publish(event) {
   if (!event?.id) return
   try {
     const result = await publishEvent(event.id)
     toast.success(result.message)
+    invalidateCache(eventsCacheKey())
     await loadEvents()
   } catch (error) {
     toast.error(error?.message || 'Something went wrong.')
@@ -110,6 +116,7 @@ async function cancel(event) {
   try {
     const result = await cancelEvent(event.id)
     toast.success(result.message)
+    invalidateCache(eventsCacheKey())
     await loadEvents()
   } catch (error) {
     toast.error(error?.message || 'Something went wrong.')
@@ -127,7 +134,7 @@ async function loadEvents() {
   loading.value = true
 
   try {
-    const rows = await getEvents({ club_id: club.value.id })
+    const rows = await cachedFetch(eventsCacheKey(), () => getEvents({ club_id: club.value.id }))
     events.value = rows.map(row => normalizeEvent(row))
   } catch (error) {
     toast.error(error?.message || 'Something went wrong.')

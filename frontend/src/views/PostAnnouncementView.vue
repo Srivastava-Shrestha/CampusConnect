@@ -9,6 +9,7 @@ import { postAnnouncement } from '../api/announcements'
 import { toast } from '../composables/useToast'
 import { useFormValidation } from '../composables/useFormValidation'
 import { useClubsStore } from '../stores/clubs'
+import { invalidateCache } from '../utils/apiCache'
 
 const router = useRouter()
 const route = useRoute()
@@ -117,6 +118,11 @@ async function handlePostAnnouncement() {
         ? 'Announcement posted and pinned successfully.'
         : 'Announcement posted successfully.'
     )
+
+    // The leader feed and the student feed both cache this club's announcements -
+    // both would otherwise miss the one just posted until their TTL expires.
+    invalidateCache(`leader-announcements-${clubId.value}`)
+    invalidateCache('student-announcements')
 
     router.push(`/${route.params.slug}/leader/announcements`)
   } catch (error) {
