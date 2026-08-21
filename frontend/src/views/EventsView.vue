@@ -16,6 +16,7 @@ const eventsStore = useEventsStore()
 
 const filterChips = [
   { id: 'all', label: 'All Events' },
+  { id: 'ongoing', label: 'Ongoing' },
   { id: 'upcoming', label: 'Upcoming' },
   { id: 'registered', label: 'My Registrations' },
   { id: 'past', label: 'Past' }
@@ -24,6 +25,11 @@ const filterChips = [
 const eventsList = computed(() => eventsStore.events)
 
 const { activeFilter, filteredItems } = useChipFilter(eventsList, function matchesStatus(event, filter) {
+  // A live event the member registered for now reads as 'ongoing', not
+  // 'registered', so My Registrations matches the flag rather than the status
+  // - otherwise registering for an event would make it vanish from the tab
+  // the moment it started.
+  if (filter === 'registered') return event.is_registered && event.status !== 'past'
   return event.status === filter
 })
 

@@ -9,6 +9,7 @@ const emit = defineEmits(['open'])
 
 const statusLabels = {
   upcoming: 'Upcoming',
+  ongoing: 'Ongoing',
   registered: 'Registered',
   past: 'Past'
 }
@@ -47,8 +48,8 @@ function countText(event) {
       <div class="event-card-footer">
         <span
           class="event-status"
-          :class="event.isOngoing ? 'ongoing' : event.status"
-        >{{ event.isOngoing ? 'Ongoing' : statusLabels[event.status] }}</span>
+          :class="event.status"
+        >{{ statusLabels[event.status] }}</span>
         <span class="club-card-members"><Users /> {{ countText(event) }}</span>
       </div>
     </div>

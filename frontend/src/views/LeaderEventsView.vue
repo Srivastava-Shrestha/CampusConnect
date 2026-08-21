@@ -42,7 +42,7 @@ const visibleEvents = computed(function filterEvents() {
   return events.value.filter(function matchesFilter(event) {
     if (activeFilter.value === 'all') return true
     if (activeFilter.value === 'upcoming') {
-      return event.status === 'upcoming' || event.status === 'registered'
+      return event.status === 'upcoming' || event.status === 'registered' || event.status === 'ongoing'
     }
     return event.status === activeFilter.value
   })

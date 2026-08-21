@@ -202,10 +202,19 @@ export function formatDateLong(date) {
   return `${WEEKDAYS[ist.getUTCDay()]}, ${ist.getUTCDate()} ${MONTHS_LONG[ist.getUTCMonth()]} ${ist.getUTCFullYear()}`
 }
 
+// "ongoing" is a first-class status rather than a flag alongside the status,
+// so a live event can never read as 'upcoming' and 'ongoing' at the same time
+// - the badge and the filter chips now agree because they read one field.
+// Order matters: ended wins over started, and both win over registration,
+// which is why consumers that care about registration read is_registered
+// instead of leaning on this returning 'registered'.
 export function deriveStatus(event, registeredEventIds = new Set()) {
+  const now = new Date()
+
   if (event.status === 'CANCELLED') return 'cancelled'
   if (event.status === 'DRAFT') return 'draft'
-  if (new Date(event.ends_at) < new Date()) return 'past'
+  if (new Date(event.ends_at) < now) return 'past'
+  if (new Date(event.starts_at) <= now) return 'ongoing'
   if (event.is_registered || registeredEventIds.has(event.id)) return 'registered'
   return 'upcoming'
 }
@@ -213,16 +222,11 @@ export function deriveStatus(event, registeredEventIds = new Set()) {
 export function normalizeEvent(event, registeredEventIds = new Set()) {
   const startsAt = new Date(event.starts_at)
   const endsAt = new Date(event.ends_at)
-  const now = new Date()
+  const status = deriveStatus(event, registeredEventIds)
 
-  // deriveStatus() only distinguishes "past" (ended) from everything else,
-  // so an event that has started but not yet ended still fell under
-  // "upcoming" - correct for filtering (it belongs in that tab), but a
-  // misleading badge to show someone while the event is literally
-  // happening. This is checked separately so it doesn't disturb status
-  // filtering elsewhere.
-  const isOngoing = event.status !== 'CANCELLED' && event.status !== 'DRAFT'
-    && startsAt <= now && now <= endsAt
+  // Kept for LeaderEventsView, which still reads the flag. Derived from the
+  // status instead of recomputing the window so the two cannot drift apart.
+  const isOngoing = status === 'ongoing'
 
   return {
     id: event.id,
@@ -243,7 +247,7 @@ export function normalizeEvent(event, registeredEventIds = new Set()) {
     seats_left: event.seats_left,
     image_url: event.image_url,
     lifecycle: event.status,
-    status: deriveStatus(event, registeredEventIds),
+    status,
     isOngoing,
     accent: accentForClub(event.club_id),
     is_registered: event.is_registered === true || registeredEventIds.has(event.id),
