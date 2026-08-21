@@ -16,6 +16,16 @@ const statusLabels = {
 function openEvent() {
   emit('open')
 }
+
+// Unlimited-capacity events have capacity=null, which the template used to
+// render as a bare "X /" with nothing after the slash - this matches
+// LeaderEventsView's own countText() helper for the same field.
+function countText(event) {
+  if (event.capacity === null || event.capacity === undefined) {
+    return `${event.registered} registered`
+  }
+  return `${event.registered} / ${event.capacity}`
+}
 </script>
 
 <template>
@@ -39,7 +49,7 @@ function openEvent() {
           class="event-status"
           :class="event.isOngoing ? 'ongoing' : event.status"
         >{{ event.isOngoing ? 'Ongoing' : statusLabels[event.status] }}</span>
-        <span class="club-card-members"><Users /> {{ event.registered }} / {{ event.capacity }}</span>
+        <span class="club-card-members"><Users /> {{ countText(event) }}</span>
       </div>
     </div>
   </div>
