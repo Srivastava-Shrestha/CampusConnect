@@ -125,9 +125,8 @@ onMounted(async function loadResultsPage() {
           automatically recorded as a participant when you publish.
         </p>
         <p v-if="alreadyDeclared" class="text-note">
-          Results have already been published for this event. You can still
-          change the winner and runner-up below - certificates update
-          automatically when you republish.
+          Results have already been published for this event. Attendance and
+          results are frozen once declared.
         </p>
       </div>
 
@@ -148,6 +147,7 @@ onMounted(async function loadResultsPage() {
               type="button"
               class="btn-secondary-sm result-pick-btn"
               :class="{ 'result-pick-winner': winnerId === attendee.registration_id }"
+              :disabled="alreadyDeclared"
               @click="pickWinner(attendee.registration_id)"
             >
               <Crown /> Winner
@@ -156,6 +156,7 @@ onMounted(async function loadResultsPage() {
               type="button"
               class="btn-secondary-sm result-pick-btn"
               :class="{ 'result-pick-runner-up': runnerUpId === attendee.registration_id }"
+              :disabled="alreadyDeclared"
               @click="pickRunnerUp(attendee.registration_id)"
             >
               <Medal /> Runner-up
@@ -172,12 +173,12 @@ onMounted(async function loadResultsPage() {
         <p class="text-note">Students see their result on the event page once published.</p>
         <button
           class="btn-primary"
-          :disabled="saving || !canPublish"
+          :disabled="saving || !canPublish || alreadyDeclared"
           @click="publishResults"
         >
           <span v-if="saving" class="btn-spinner"></span>
           <template v-else>
-            <Award /> {{ alreadyDeclared ? 'Update Results' : 'Publish Results' }}
+            <Award /> {{ alreadyDeclared ? 'Results Published' : 'Publish Results' }}
           </template>
         </button>
       </div>
