@@ -49,8 +49,13 @@ const visibleEvents = computed(function filterEvents() {
 })
 
 function statusPillClass(event) {
+  if (event.isOngoing) return 'ongoing'
   if (event.status === 'registered') return 'upcoming'
   return event.status
+}
+
+function statusPillLabel(event) {
+  return event.isOngoing ? 'Ongoing' : statusLabels[event.status]
 }
 
 function countText(event) {
@@ -70,7 +75,7 @@ function canTakeAttendance(event) {
 }
 
 function canSetResults(event) {
-  return event.lifecycle === 'PUBLISHED' && hasStarted(event)
+  return event.lifecycle === 'PUBLISHED' && event.status === 'past'
 }
 
 function goToAttendance(event) {
@@ -209,7 +214,7 @@ onMounted(async () => {
               </div>
             </div>
             <div class="event-card-footer">
-              <span class="event-status" :class="statusPillClass(event)">{{ statusLabels[event.status] }}</span>
+              <span class="event-status" :class="statusPillClass(event)">{{ statusPillLabel(event) }}</span>
               <span class="club-card-members"><Users /> {{ countText(event) }}</span>
             </div>
 

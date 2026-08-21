@@ -35,7 +35,10 @@ function openEvent() {
         </div>
       </div>
       <div class="event-card-footer">
-        <span class="event-status" :class="event.status">{{ statusLabels[event.status] }}</span>
+        <span
+          class="event-status"
+          :class="event.isOngoing ? 'ongoing' : event.status"
+        >{{ event.isOngoing ? 'Ongoing' : statusLabels[event.status] }}</span>
         <span class="club-card-members"><Users /> {{ event.registered }} / {{ event.capacity }}</span>
       </div>
     </div>

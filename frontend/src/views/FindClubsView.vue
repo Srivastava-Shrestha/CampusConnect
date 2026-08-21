@@ -7,6 +7,7 @@ import Topbar from '../components/layout/Topbar.vue'
 import ClubCard from '../components/ui/ClubCard.vue'
 import EventCard from '../components/ui/EventCard.vue'
 import { askAssistant } from '../api/ai'
+import { normalizeEvent } from '../api/events'
 import { toast } from '../composables/useToast'
 import { renderMarkdown, stripMarkdown } from '../utils/markdown'
 import { useNarrator } from '../composables/useNarrator'
@@ -118,8 +119,16 @@ function turnClubs(turn) {
   return (turn.items || []).filter((item) => item.entity_kind !== 'event')
 }
 
+// The AI module sends raw event rows (starts_at, venue, club_name...) since
+// that's what the backend service layer returns - never run through
+// normalizeEvent() the way every other event list in the app already is.
+// EventCard expects the normalized shape (.day, .time, .club, .status,
+// .registered, .capacity), so without this every AI-surfaced event card
+// rendered with blank date/time/venue/member-count fields.
 function turnEvents(turn) {
-  return (turn.items || []).filter((item) => item.entity_kind === 'event')
+  return (turn.items || [])
+    .filter((item) => item.entity_kind === 'event')
+    .map((item) => normalizeEvent(item))
 }
 
 function renderTurnMessage(turn) {
@@ -270,7 +279,7 @@ function openClub(clubId) {
 }
 
 function openEvent(eventId) {
-  router.push('/events/' + eventId)
+  router.push(`/${route.params.slug}/events/${eventId}`)
 }
 </script>
 

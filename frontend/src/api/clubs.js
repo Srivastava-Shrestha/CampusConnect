@@ -64,6 +64,12 @@ export async function requestToJoinClub(clubId) {
   })
 }
 
+export async function leaveClub(clubId) {
+  return apiRequest(`/clubs/${clubId}/join`, {
+    method: "DELETE"
+  })
+}
+
 // Club create/update take multipart/form-data, not JSON: the backend reads the
 // body as a JSON string in a `data` field with an optional `image` file beside
 // it. Content-Type is left unset on purpose so the browser adds its own

@@ -3349,6 +3349,13 @@ button, .btn {
   cursor: default;
 }
 
+.btn-join.leave {
+  background-color: var(--color-surface-alt);
+  color: var(--color-red-text, #dc2626);
+  box-shadow: none;
+  border: var(--border-subtle);
+}
+
 /* General utility */
 .hidden {
   display: none;
@@ -4175,6 +4182,10 @@ button, .btn {
 .event-status.past {
   background-color: var(--color-surface-alt);
   color: var(--color-ink-light);
+}
+.event-status.ongoing {
+  background-color: var(--color-orange-tint);
+  color: var(--color-orange-text);
 }
 
 /* Event detail hero */

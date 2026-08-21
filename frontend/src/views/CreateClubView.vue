@@ -138,7 +138,10 @@ async function handleSubmit() {
       ]
     })
 
-    auth.setClubLeader(true)
+    // Not auth.setClubLeader(true) here - this form only ever creates an
+    // OFFICIAL club, which always starts PENDING (see ClubService.create()).
+    // There's nothing to manage until an admin approves it, so the nav item
+    // should stay hidden until then, not unlock on submission.
 
     await clubsStore.refreshClubs()
 

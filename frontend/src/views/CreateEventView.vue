@@ -66,24 +66,34 @@ function goBackToEvents() {
   router.push(`/${route.params.slug}/leader/events`)
 }
 
-// <input type="date"> and <input type="time"> give local wall-clock values; the API
-// wants one ISO instant per boundary.
+// <input type="date"> and <input type="time"> give wall-clock values with no
+// timezone attached. Campus Connect is India-only, so those values are
+// always meant as IST - relying on `new Date("...T...")` here would instead
+// interpret them in whatever timezone the browser itself happens to be set
+// to, which silently produces the wrong stored instant on any machine not
+// already set to IST (common on dev/CI machines, VMs, non-Indian devices).
+// Appending the explicit +05:30 offset makes the parse timezone-independent.
 function toIsoInstant(date, time) {
-  return new Date(`${date}T${time}`).toISOString()
+  return new Date(`${date}T${time}:00+05:30`).toISOString()
 }
 
-// The reverse, for prefilling the form when editing: an ISO instant back into
-// the local date/time strings the <input> elements expect.
+// The reverse, for prefilling the form when editing: an ISO instant back
+// into the IST date/time strings the <input> elements expect. Shifting the
+// UTC epoch by IST's fixed +5:30 offset and reading it back with the UTC
+// getters yields the IST wall-clock components regardless of the browser's
+// own local timezone - the same reasoning as toIsoInstant above, in reverse.
+const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000
+
 function toLocalDateInput(isoInstant) {
-  const d = new Date(isoInstant)
+  const d = new Date(new Date(isoInstant).getTime() + IST_OFFSET_MS)
   const pad = (n) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`
 }
 
 function toLocalTimeInput(isoInstant) {
-  const d = new Date(isoInstant)
+  const d = new Date(new Date(isoInstant).getTime() + IST_OFFSET_MS)
   const pad = (n) => String(n).padStart(2, '0')
-  return `${pad(d.getHours())}:${pad(d.getMinutes())}`
+  return `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`
 }
 
 function buildPayload() {
