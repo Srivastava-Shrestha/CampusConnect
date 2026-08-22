@@ -244,7 +244,7 @@ info:
     |---|---|---|
     | **2.1** Browse the club directory | Student browses a searchable list of active clubs | `GET /clubs` |
     | **2.2** View a club profile | Student opens a club's full profile before committing | `GET /clubs/{club_id}`, `GET /clubs/{club_id}/members` |
-    | **2.3** Request to join a club | Student sends a formal join request in one action | `POST /clubs/{club_id}/join`, `GET /clubs/me?role=MEMBER` |
+    | **2.3** Request to join a club | Student sends a formal join request in one action | `POST /clubs/{club_id}/join`, `GET /clubs/me?role=MEMBER`, `DELETE /clubs/{club_id}/join` |
     | **2.4** Manage join requests | Leader reviews and approves or rejects requests from a dashboard | `GET /clubs/{club_id}/requests`, `PATCH /clubs/{club_id}/requests/{membership_id}`, `DELETE /clubs/{club_id}/members/{student_id}` |
     | **2.5** Create a club and request approval | Leader registers a club and tracks its approval status | `POST /clubs`, `GET /clubs/me?role=LEADER`, `PUT /clubs/{club_id}`, `DELETE /clubs/{club_id}` |
     | **2.6** Approve or reject club registration | Campus admin decides pending club registrations | `GET /clubs?status=PENDING`, `PATCH /clubs/{club_id}/approve`, `PATCH /clubs/{club_id}/reject` |
@@ -2000,7 +2000,7 @@ paths:
               properties:
                 data:
                   type: string
-                  description: JSON-encoded UpdateClubRequest (description, category, links)
+                  description: JSON-encoded UpdateClubRequest (description, category, links, image_url)
                 image:
                   type: string
                   format: binary
@@ -2568,6 +2568,126 @@ paths:
           description: The request body, query string or path parameters failed schema validation. Produced
             by the framework before the handler runs, so it uses the `detail` key rather than the `message`
             envelope.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '500':
+          description: Unhandled server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                server_error:
+                  summary: Something went wrong
+                  value:
+                    message: Something went wrong
+      security:
+      - HTTPBearer: []
+    delete:
+      tags:
+      - Clubs
+      summary: Leave a club
+      description: |-
+        **User story 2.3 - Request to Join a Club** (Epic 2 - Club Discovery and Membership)
+
+        > As a student, I want to send a formal join request to a club with one action on the platform, so that my request reaches the club leader immediately without needing to DM anyone or follow up manually.
+
+        Cancels the caller's own membership of a club, in one action and without involving the leader. The self-service counterpart to `DELETE /clubs/{club_id}/members/{student_id}`, which only a leader can call and only against someone else.
+
+        The membership row is deleted outright rather than marked `REJECTED`, exactly as a leader-initiated removal is. The student drops out of `GET /clubs/me`, stops receiving this club's announcements and can no longer register for its events - and, because no row is left behind, is free to request to join again later through `POST /clubs/{club_id}/join`.
+
+        **Access.** `STUDENT` token **and** an `APPROVED` membership on this club.
+
+        **Notes.**
+
+        * The club is addressed by `club_id` alone. The membership is resolved from the token, so this endpoint can only ever act on the caller's own membership.
+        * Only an `APPROVED` membership can be left. A request still `PENDING` returns `404 Membership request not found`; there is no endpoint for withdrawing a pending request, which is decided by the leader through `PATCH /clubs/{club_id}/requests/{membership_id}`.
+        * A leader cannot leave their own club, since that would leave it headless: `403 The club leader cannot leave their own club`. A leader who wants out archives the club with `DELETE /clubs/{club_id}`.
+        * The club's status is not checked, so a member can still leave a club that is no longer `ACTIVE`.
+        * No notification is written. Like a leader-initiated removal, leaving is silent - the leader is not told.
+        * The response echoes the id of the membership that was deleted, so a client can reconcile its cached club list.
+      operationId: leave_club_clubs__club_id__join_delete
+      x-epic: Epic 2 - Club Discovery and Membership
+      x-user-story: '2.3'
+      x-user-story-title: Request to Join a Club
+      x-required-role:
+      - STUDENT
+      x-required-club-role: none
+      parameters:
+      - name: club_id
+        in: path
+        required: true
+        description: Id of a club the caller is an approved member of, taken from `GET /clubs/me`.
+        schema:
+          type: integer
+          title: Club Id
+      responses:
+        '200':
+          description: The membership was cancelled. Returns the deleted membership's id together with the
+            student and club it linked.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RemoveMemberResponse'
+        '401':
+          description: |-
+            The bearer token is present but unusable, or the account role is not permitted here.
+
+            * `Invalid token` - The token is malformed, expired, not an `access` token, or its `role` is not permitted on this endpoint.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalid_token:
+                  summary: Invalid token
+                  value:
+                    message: Invalid token
+        '403':
+          description: |-
+            The caller is authenticated but not permitted, or the resource state blocks the action.
+
+            * **Missing credentials** - the `Authorization` header is absent or is not a bearer token. This case is produced by the security scheme before application code runs and is the one error that uses the `detail` key: `{"detail": "Not authenticated"}`.
+            * `The club leader cannot leave their own club` - The caller holds the `LEADER` membership on this club.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                - $ref: '#/components/schemas/NotAuthenticated'
+                - $ref: '#/components/schemas/Error'
+              examples:
+                missing_credentials:
+                  summary: No Authorization header
+                  value:
+                    detail: Not authenticated
+                leader_cannot_leave:
+                  summary: The club leader cannot leave their own club
+                  value:
+                    message: The club leader cannot leave their own club
+        '404':
+          description: |-
+            The record does not exist, belongs to another college, or is not visible to the caller.
+
+            * `Student profile not found` - The token is valid but the account has no student profile attached.
+            * `Membership request not found` - The caller has no membership of this club, or the membership exists but is not `APPROVED`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                student_profile_missing:
+                  summary: Student profile not found
+                  value:
+                    message: Student profile not found
+                membership_not_found:
+                  summary: Membership request not found
+                  value:
+                    message: Membership request not found
+        '422':
+          description: The path parameters failed schema validation. Produced by the framework before the
+            handler runs, so it uses the `detail` key rather than the `message` envelope.
           content:
             application/json:
               schema:
@@ -7644,6 +7764,13 @@ components:
           type: string
           format: date-time
           title: Issued At
+        pdf_url:
+          type: string
+          title: Pdf Url
+          description: Direct link to the rendered certificate PDF, so a verifier can see the document
+            and not just its metadata. Either a signed object-storage URL valid for 3600 seconds, or a
+            link to `GET /certificates/{serial}/file` when the PDF fell back to database storage. Neither
+            form requires a token, so the link can be opened straight from the public verification page.
       type: object
       required:
       - valid
@@ -7655,11 +7782,14 @@ components:
       - club_name
       - college_name
       - issued_at
+      - pdf_url
       title: CertificateVerification
       description: |-
         The record behind an authentic serial, returned to anyone who asks - this is the only response in the API that is not scoped to a college.
 
-        `valid` is always `true` here; an unknown serial is a `404` rather than a `200` carrying `valid: false`. The student's name is included because confirming who the certificate belongs to is the purpose of verification; nothing else about the account is exposed, and the PDF itself is not linked.
+        `valid` is always `true` here; an unknown serial is a `404` rather than a `200` carrying `valid: false`. The student's name is included because confirming who the certificate belongs to is the purpose of verification; nothing else about the account is exposed.
+
+        `pdf_url` links the rendered document itself. The serial is already the unguessable credential, so the same trust model that makes this endpoint public covers the file behind it - unlike `GET /certificates/{serial}/download`, which serves the owner and does require a token.
     ChatMessage:
       properties:
         role:
@@ -7815,6 +7945,11 @@ components:
           type: string
           format: date-time
           title: Created At
+        links:
+          items:
+            $ref: '#/components/schemas/ClubLinkSchema'
+          type: array
+          title: Links
       type: object
       required:
       - id
@@ -7827,8 +7962,10 @@ components:
       - member_count
       - head_name
       - created_at
+      - links
       title: ClubListItem
-      description: One club in the directory listing, with its live member count and leader name.
+      description: One club in the directory listing, with its live member count, leader name and external
+        links. A club with no links returns `[]`, never `null`.
     ClubStatus:
       type: string
       enum:
@@ -8296,6 +8433,9 @@ components:
         title:
           type: string
           title: Title
+        description:
+          type: string
+          title: Description
         venue:
           type: string
           title: Venue
@@ -8337,6 +8477,7 @@ components:
       - club_id
       - club_name
       - title
+      - description
       - venue
       - starts_at
       - ends_at
@@ -8864,6 +9005,11 @@ components:
           type: string
           format: date-time
           title: Created At
+        links:
+          items:
+            $ref: '#/components/schemas/ClubLinkSchema'
+          type: array
+          title: Links
         membership_id:
           type: integer
           title: Membership Id
@@ -8887,6 +9033,7 @@ components:
       - member_count
       - head_name
       - created_at
+      - links
       - membership_id
       - membership_role
       - membership_status
@@ -9734,6 +9881,14 @@ components:
             type: array
           - type: 'null'
           title: Links
+        image_url:
+          anyOf:
+          - type: string
+            maxLength: 500
+          - type: 'null'
+          title: Image Url
+          description: Sets the banner by URL instead of uploading a file. Ignored when an `image` part
+            is also sent, which always wins. Setting either one deletes the previously uploaded image.
       type: object
       title: UpdateClubRequest
       description: Editable club fields. Every field is optional and only the ones supplied are changed.
