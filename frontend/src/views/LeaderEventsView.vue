@@ -78,6 +78,18 @@ function canSetResults(event) {
   return event.lifecycle === 'PUBLISHED' && event.status === 'past'
 }
 
+// Both buttons stay clickable either way - a leader can still open either
+// page once the event is done, just to look rather than change anything (a
+// leader can no longer edit attendance/results at that point anyway). The
+// label swap is what keeps that from reading as an offer to make changes.
+function attendanceButtonLabel(event) {
+  return event.status === 'past' ? 'View Attendance' : 'Take Attendance'
+}
+
+function resultsButtonLabel(event) {
+  return event.results_declared ? 'View Results' : 'Set Results'
+}
+
 function goToAttendance(event) {
   router.push(`/${route.params.slug}/leader/events/${event.id}/attend`)
 }
@@ -232,14 +244,14 @@ onMounted(async () => {
                 class="btn-secondary-sm"
                 @click="goToAttendance(event)"
               >
-                <ClipboardCheck /> Take Attendance
+                <ClipboardCheck /> {{ attendanceButtonLabel(event) }}
               </button>
               <button
                 v-if="canSetResults(event)"
                 class="btn-secondary-sm"
                 @click="goToResults(event)"
               >
-                <Trophy /> Set Results
+                <Trophy /> {{ resultsButtonLabel(event) }}
               </button>
               <button
                 v-if="event.lifecycle !== 'CANCELLED'"
