@@ -389,6 +389,7 @@ def _event_list_item(event: dict) -> EventListItem:
         status=EventStatus.PUBLISHED,
         image_url=None,
         created_at=_days(-30),
+        results_declared=event.get("results_declared", False),
     )
 
 

@@ -8471,6 +8471,9 @@ components:
           type: string
           format: date-time
           title: Created At
+        results_declared:
+          type: boolean
+          title: Results Declared
       type: object
       required:
       - id
@@ -8487,9 +8490,12 @@ components:
       - status
       - image_url
       - created_at
+      - results_declared
       title: EventListItem
       description: One event in a listing. `seats_left` is `null` when the event is uncapped, otherwise
-        `capacity` minus the current registration count, floored at zero.
+        `capacity` minus the current registration count, floored at zero. `results_declared` is true
+        once a winner or runner up has been set for the event, which lets a club leader's listing tell
+        "set results" from "view results" without a request per event.
     EventStatus:
       type: string
       enum:

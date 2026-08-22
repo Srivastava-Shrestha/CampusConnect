@@ -144,13 +144,13 @@ Team 003 (Nexmind), BSCS3001 Software Engineering Project, May 2026.
 
 | Member | Role | Commits | PRs (merged) | Branches |
 |---|---|---|---|---|
-| **Shrestha** | Backend and System Architect | 243 | 32 (27) | 21 |
+| **Shrestha** | Backend and System Architect | 248 | 32 (27) | 21 |
 | **Shrishti** | Frontend | 10 | 12 (10) | 10 |
-| **Atharv** | Product Manager | 70 | 12 (12) | 7 |
+| **Atharv** | Product Manager | 71 | 13 (13) | 7 |
 | **Pawan** | Testing | 46 | 14 (13) | 13 |
 | **Kavisha** | Scrum Master | 4 | 0 | 0 |
-| `github-actions[bot]` | CI automation | 88 | 0 | 0 |
-| | **Total** | **461** | **70 (62)** | **51** |
+| `github-actions[bot]` | CI automation | 92 | 0 | 0 |
+| | **Total** | **471** | **71 (63)** | **51** |
 
 
 ## 6. Documentation
