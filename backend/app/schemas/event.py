@@ -78,6 +78,7 @@ class EventListItem(BaseModel):
     status: EventStatus
     image_url: str | None
     created_at: datetime
+    results_declared: bool
 
 
 class EventDetailResponse(BaseModel):

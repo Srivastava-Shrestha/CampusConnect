@@ -84,8 +84,9 @@ class EventService:
                 status=event.status,
                 image_url=event.image_url,
                 created_at=event.created_at,
+                results_declared=results_declared,
             )
-            for event, club_name, count in rows
+            for event, club_name, count, results_declared in rows
         ]
 
     async def get(self, payload: dict, event_id: int) -> EventDetailResponse:

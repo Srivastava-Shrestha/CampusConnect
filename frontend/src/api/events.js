@@ -251,7 +251,8 @@ export function normalizeEvent(event, registeredEventIds = new Set()) {
     isOngoing,
     accent: accentForClub(event.club_id),
     is_registered: event.is_registered === true || registeredEventIds.has(event.id),
-    my_registration_id: event.my_registration_id ?? null
+    my_registration_id: event.my_registration_id ?? null,
+    results_declared: event.results_declared === true
   }
 }
 

@@ -1,5 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.models import Event, EventStatus, EventRegistration, Club
+from app.models import Event, EventStatus, EventRegistration, Club, RegistrationResult
 from sqlalchemy import select, func, or_
 from sqlalchemy.orm import selectinload
 from datetime import datetime
@@ -42,7 +42,7 @@ class EventRepository:
 
     async def list_by_college(self, college_id: int, status: EventStatus | None = None,
                               club_id: int | None = None, search: str | None = None,
-                              upcoming_only: bool = False) -> list[tuple[Event, str, int]]:
+                              upcoming_only: bool = False) -> list[tuple[Event, str, int, bool]]:
         conditions = [Club.college_id == college_id]
         if status is not None:
             conditions.append(Event.status == status)
@@ -58,14 +58,28 @@ class EventRepository:
             )
 
         result = await self.db.execute(
-            select(Event, Club.name, func.count(EventRegistration.id))
+            select(
+                Event, Club.name, func.count(EventRegistration.id),
+                # bool_or across the outer-joined registrations in the same
+                # grouped query - avoids an N+1 "is this event's result
+                # declared" check per row for what the leader events list
+                # needs to tell "Set Results" from "View Results".
+                func.bool_or(
+                    EventRegistration.result.in_(
+                        (RegistrationResult.WINNER, RegistrationResult.RUNNER_UP)
+                    )
+                ),
+            )
             .join(Club, Club.id == Event.club_id)
             .outerjoin(EventRegistration, EventRegistration.event_id == Event.id)
             .where(*conditions)
             .group_by(Event.id, Club.name)
             .order_by(Event.starts_at.asc())
         )
-        return result.all()
+        return [
+            (event, club_name, count, bool(declared))
+            for event, club_name, count, declared in result.all()
+        ]
 
     async def count_registrations(self, event_id: int) -> int:
         result = await self.db.execute(

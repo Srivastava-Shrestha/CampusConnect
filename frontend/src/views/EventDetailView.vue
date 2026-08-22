@@ -141,7 +141,9 @@ onMounted(async function loadDetail() {
 
       <div class="title-block">
         <h1 class="page-title">Event Detail</h1>
-        <p class="page-sub">{{ event.club }}</p>
+        <router-link :to="`/${route.params.slug}/clubs/${event.club_id}`" class="page-sub event-detail-club-link">
+          {{ event.club }}
+        </router-link>
       </div>
 
       <div class="topbar-spacer"></div>

@@ -368,6 +368,18 @@ html {
   margin-top: 2px;
 }
 
+.event-detail-club-link {
+  display: inline-block;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.event-detail-club-link:hover {
+  color: var(--color-orange-text);
+  text-decoration: underline;
+}
+
 .topbar-spacer {
   flex: 1;
 }
