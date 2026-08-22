@@ -85,6 +85,11 @@ export const useAuthStore = defineStore('auth', {
       localStorage.removeItem("cc_isClubLeader")
       localStorage.removeItem("cc_remember")
 
+      // The AI Finder's conversation is per-student context (interests,
+      // already-joined clubs it referenced) that has no business surviving
+      // into the next person who signs in on this device/tab.
+      sessionStorage.removeItem("cc_finder_conversation")
+
       // Clubs and events cache themselves with a "loaded" flag that only
       // resets on a hard page reload, so switching accounts in the same tab
       // left the next student looking at the previous account's list - or a
