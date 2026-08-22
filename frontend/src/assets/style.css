@@ -8634,15 +8634,20 @@ html {
   margin-bottom: 12px;
 }
 
-/* Cards in a grid are equal height, so push the reply block to the bottom
-   rather than leaving a gap under short text. */
-.issue-card {
+/* Cards in the .issue-feed grid (student issues page) are equal height, so
+   push the reply block to the bottom rather than leaving a gap under short
+   text. Scoped to .issue-feed on purpose - .issue-card is reused on the
+   leader issues page too, which stacks cards in a plain list rather than an
+   equal-height grid, and an earlier unscoped version of this rule leaked
+   height:100% + margin-top:auto onto that page, opening a large blank gap
+   above the tag row on any card whose content wasn't the tallest around. */
+.issue-feed .issue-card {
   display: flex;
   flex-direction: column;
   height: 100%;
 }
 
-.issue-card .issue-footer {
+.issue-feed .issue-card .issue-footer {
   margin-top: auto;
 }
 
