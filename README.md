@@ -149,7 +149,8 @@ Team 003 (Nexmind), BSCS3001 Software Engineering Project, May 2026.
 | **Atharv** | Product Manager | 70 | 12 (12) | 7 |
 | **Pawan** | Testing | 46 | 14 (13) | 13 |
 | **Kavisha** | Scrum Master | 4 | 0 | 0 |
-| | **Total** | **373** | **70 (62)** | **51** |
+| `github-actions[bot]` | CI automation | 88 | 0 | 0 |
+| | **Total** | **461** | **70 (62)** | **51** |
 
 
 ## 6. Documentation
