@@ -44,6 +44,7 @@ from app.agent.grounding import AllowList, redact_for_model
 from app.exceptions import AppException
 from app.models import ClubType
 from app.services import AnnouncementService, ClubService, EventService, StudentService
+from app.agent import intent
 from app.agent import recommender as R
 
 # Fields the model is allowed to see. Anything a service adds to its response
@@ -276,14 +277,31 @@ async def _get_announcements(payload: dict, services: Services, allow_list: Allo
     }
 
 
+def _in_date_range(starts_at, day_from, day_to) -> bool:
+    """Does this event fall inside the campus-local window the student named?
+
+    Compared in campus-local days, not UTC days - see intent.to_college_date
+    for why those differ for evening events."""
+    if not day_from and not day_to:
+        return True
+    day = intent.to_college_date(starts_at)
+    if day is None:
+        return False
+    if day_from and day < day_from:
+        return False
+    if day_to and day > day_to:
+        return False
+    return True
+
+
 async def _recommend_clubs(payload: dict, services: Services, allow_list: AllowList, **kwargs) -> dict:
     """
     The deterministic recommender, exposed as a tool.
 
-    This is the architectural hinge of v2. Ranking authority stays in
-    select_recommendations(), which is pure, offline-testable and already
-    covered by the v1 suite. What the model gains is the judgement of *when*
-    ranking is the right move - not the power to rank.
+    Ranking authority stays in select_recommendations(). intent.extract_interest_signal
+    reads the student's sentence first and hands over clean keywords, a real
+    category, and a date window, and also decides the turn's shape:
+    off_topic (scope gate), events, or no_match.
     """
     interest_text = (kwargs.get("interest_text") or "").strip()
     if not interest_text:
@@ -330,6 +348,9 @@ async def _recommend_clubs(payload: dict, services: Services, allow_list: AllowL
             ),
             "activity_score": club.member_count,
             "leader_name": club.head_name,
+            # Passengers for ClubCard.vue - not read by score_club.
+            "image_url": club.image_url,
+            "member_count": club.member_count,
         }
         for club in clubs
     ]
@@ -342,13 +363,7 @@ async def _recommend_clubs(payload: dict, services: Services, allow_list: AllowL
             "description": event.description,
             "club_name": event.club_name,
             "leader_name": "",
-            # select_recommendations/score_event only ever reads title and
-            # description to score a match - everything below is a passenger,
-            # carried along so the event survives into a UI card intact.
-            # Without these, an AI-surfaced event card had no starts_at/
-            # ends_at/venue at all and rendered NaN date/time and a blank
-            # venue/member-count, even though the same event displays
-            # correctly everywhere else in the app.
+            # Passengers for the UI card - not read by score_event.
             "venue": event.venue,
             "starts_at": event.starts_at,
             "ends_at": event.ends_at,
@@ -361,21 +376,71 @@ async def _recommend_clubs(payload: dict, services: Services, allow_list: AllowL
         for event in events
     ]
 
+    categories = sorted({c.category for c in clubs if c.category})
+    signal = await intent.extract_interest_signal(
+        interest_text, categories, kwargs.get("previous_text") or ""
+    )
+
+    # The scope gate.
+    if not signal["on_topic"]:
+        return {"kind": "off_topic", "count": 0, "items": [], "note": "", "signal": signal}
+
+    keywords = signal["keywords"]
+    interest_parts = keywords or [interest_text]
+
+    # A stated topic wins outright over the saved profile; the profile only
+    # fills in when there is no topic to go on.
+    stated_topic = bool(keywords)
     profile = {
-        "interests": [interest_text] + saved["interests"],
+        "interests": interest_parts if stated_topic else interest_parts + saved["interests"],
         "hobbies": [],
-        "reason": interest_text,
-        "branch": saved["branch"],
+        "reason": " ".join(interest_parts),
+        "branch": "" if stated_topic else saved["branch"],
         "year": saved["year"],
+        "category_hint": signal["category"],
     }
 
-    outcome = R.select_recommendations(profile, scored_clubs, scored_events)
+    day_from = signal["date_range"]["from"]
+    day_to = signal["date_range"]["to"]
 
-    items = outcome.get("items", [])[:3]
-    kind = outcome.get("kind", "clubs")
+    if signal["wants_events"]:
+        in_window = [
+            e for e in scored_events
+            if _in_date_range(e.get("starts_at"), day_from, day_to)
+        ]
+        ranked = sorted(
+            ({**e, "_score": R.score_event(profile, e)} for e in in_window),
+            key=lambda e: e["_score"], reverse=True,
+        )
+        matched = [e for e in ranked if e["_score"] > 0] if keywords else ranked
+        if matched:
+            items, kind = matched[:3], "events"
+            note = "" if keywords else (
+                "No topic could be resolved from the message, so these are "
+                "simply this college's upcoming events, not matches for any "
+                "particular subject. If the student was asking about a specific "
+                "club or topic and none of these belong to it, say so rather "
+                "than presenting these as answers."
+            )
+        else:
+            items, kind = [], "no_match"
+            note = "No events matched what the student asked about."
+    else:
+        outcome = R.select_recommendations(profile, scored_clubs, scored_events)
+        # More than the three shown, since the caller splits into new vs.
+        # already-joined and caps after that split.
+        items = outcome.get("items", [])[:8]
+        kind = outcome.get("kind", "clubs")
+        note = outcome.get("message", "")
+
+        # Popularity fallback only stands when no topic was named at all.
+        if kind == "popularity" and keywords:
+            items, kind, note = [], "no_match", (
+                "Nothing in this college's clubs matched what the student asked about."
+            )
 
     # Register whatever the ranker chose, so the model may name it.
-    if kind == "event_fallback":
+    if kind in ("event_fallback", "events"):
         allow_list.add_many("event", items, "id", "title")
     else:
         allow_list.add_many("club", items, "id", "name")
@@ -387,7 +452,8 @@ async def _recommend_clubs(payload: dict, services: Services, allow_list: AllowL
         "kind": kind,
         "count": len(cleaned),
         "items": cleaned,
-        "note": outcome.get("message", ""),
+        "note": note,
+        "signal": signal,
     }
 
 
@@ -418,6 +484,13 @@ _register(
                 "interest_text": {
                     "type": "string",
                     "description": "The student's interests in their own words.",
+                },
+                "previous_text": {
+                    "type": "string",
+                    "description": (
+                        "The student's previous message, used only to resolve a "
+                        "follow-up that names no topic of its own."
+                    ),
                 },
             },
             "required": ["interest_text"],

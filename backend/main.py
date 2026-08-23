@@ -1,3 +1,6 @@
+import asyncio
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request
 from app.exceptions import AppException
 from fastapi.responses import JSONResponse
@@ -8,8 +11,21 @@ from app.api import (
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    """Warm the LLM connection before the first student question arrives."""
+    from app.agent import providers
+
+    task = asyncio.create_task(providers.warm_up())
+    try:
+        yield
+    finally:
+        task.cancel()
+
+
 app = FastAPI(title="CampusConnect",
-    description="Backend APIs for campusconnect.itshrestha.dev"
+    description="Backend APIs for campusconnect.itshrestha.dev",
+    lifespan=lifespan,
     )
 
 app.add_middleware(
