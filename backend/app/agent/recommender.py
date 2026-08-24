@@ -29,6 +29,16 @@ _STOP = {
     "the", "and", "for", "with", "this", "that", "club", "clubs", "like",
     "love", "want", "interested", "interest", "hobby", "hobbies", "join",
     "campus", "college", "student", "students", "really", "very",
+    # Question and request framing.
+    "any", "anything", "some", "something", "someone", "there", "have", "has",
+    "had", "does", "doe", "did", "are", "was", "were", "can", "could", "would",
+    "should", "will", "you", "your", "our", "ours", "not", "but", "how", "what",
+    "which", "who", "whom", "whose", "where", "why", "here",
+    "find", "show", "tell", "give", "get", "know", "need", "looking", "look",
+    "suggest", "suggestion", "suggestions", "recommend", "recommendation",
+    "recommendations", "please", "about", "into", "from", "out", "also", "just",
+    "good", "great", "best", "nice", "cool", "help", "available", "option",
+    "options", "thing", "things", "one", "ones", "something",
 }
 
 # interest keyword -> canonical club category (lowercase)
@@ -161,11 +171,25 @@ def _matches_token(token: str, item_tokens: set[str]) -> bool:
 _SIGNAL_CAP = 4
 
 
+# What a shared-prefix match is worth next to an exact one. Half credit, not
+# full, so a lone stem coincidence cannot qualify an item by itself.
+_FUZZY_CREDIT = 0.5
+
+
+def _match_credit(token: str, item_tokens: set[str]) -> float:
+    """How strongly one student token matches the item's text. In [0, 1]."""
+    if token in item_tokens:
+        return 1.0
+    if any(_same_family(token, other) for other in item_tokens):
+        return _FUZZY_CREDIT
+    return 0.0
+
+
 def _overlap(a: set[str], b: set[str]) -> float:
     """Fraction of the student's signals that the item matches. In [0, 1]."""
     if not a or not b:
         return 0.0
-    matched = sum(1 for token in a if _matches_token(token, b))
+    matched = sum(_match_credit(token, b) for token in a)
     return min(matched / min(len(a), _SIGNAL_CAP), 1.0)
 
 
@@ -216,7 +240,12 @@ def score_club(profile: dict, club: dict, max_activity: int, cfg: ScoreConfig = 
 
 def score_event(profile: dict, event: dict, cfg: ScoreConfig = DEFAULT_CFG) -> float:
     p = profile_tokens(profile)
-    text = _item_tokens(event.get("title", ""), event.get("description", ""))
+    # club_name counts as part of an event's own text - the hosting club's
+    # own word for itself, the same text score_club already reads.
+    text = _item_tokens(
+        event.get("title", ""), event.get("description", ""),
+        event.get("club_name", ""),
+    )
     return round(_overlap(p, text), 4)
 
 
@@ -345,10 +374,11 @@ def _collapse_repeated_names(text: str, allowed_map: dict) -> str:
     for name in set(allowed_map.values()):
         if not name:
             continue
-        # Same name twice in a row, separated only by spaces or punctuation
-        # the model might have put between them.
+        # Same name twice, separated by nothing more than a short bridge of
+        # punctuation/quoting, optionally with a determiner.
+        bridge = r"[\s,\-–—:;\"'“”‘’()]*(?:the|a|an)?[\s,\-–—:;\"'“”‘’()]*"
         pattern = re.compile(
-            r"\b" + re.escape(name) + r"\b(\s*[,\-–—:]?\s*)\b" + re.escape(name) + r"\b",
+            r"\b" + re.escape(name) + r"\b" + bridge + re.escape(name) + r"\b[\"'“”]*",
             re.IGNORECASE,
         )
         text = pattern.sub(name, text)
@@ -360,17 +390,27 @@ def scrub_emails(text: str) -> str:
     return _EMAIL_RE.sub("[hidden]", text)
 
 
-_LISTING_LINE_RE = re.compile(r"^\s*(?:[A-Z ]+:|-\s)")
+# A leading list marker: "- ", "* ", "• ", "1. ", "2) ", or a bare marker on
+# its own line. Indented/nested bullets are covered by the leading \s*.
+_LIST_MARKER_RE = re.compile(r"^\s*(?:[-*•–—]|\d{1,2}[.)])(?:\s+|$)")
+
+# An internal-format heading label at the start of a line ("MATCHED CLUBS:",
+# "CANDIDATE EVENTS:"). >=3 chars so a short acronym in prose is not eaten,
+# and it only ever removes the LABEL, never the line.
+_LEAK_HEADING_RE = re.compile(r"^\s*[A-Z][A-Z ]{2,}:\s*")
 
 
 def strip_echoed_listing(text: str) -> str:
-    """Defense-in-depth for build_conversational_message_prompt: even with an
-    explicit "don't repeat the list" instruction, a model can still echo the
-    CANDIDATES/MATCHED CLUBS block back verbatim. Drop any line that looks
-    like a heading (ALL CAPS:) or a "- Name (category)" bullet, since the
-    cards already render that information - the reply should be prose only."""
-    lines = [line for line in text.splitlines() if not _LISTING_LINE_RE.match(line)]
-    return "\n".join(lines).strip()
+    """Stop the model echoing the internal candidate block back as prose.
+    Normalises rather than deletes: only a line that is nothing but a marker
+    or a bare label is dropped, so real content is never lost."""
+    out: list[str] = []
+    for line in text.splitlines():
+        cleaned = _LEAK_HEADING_RE.sub("", _LIST_MARKER_RE.sub("", line)).strip()
+        if not cleaned and line.strip():
+            continue  # marker/label only - nothing lost
+        out.append(cleaned)
+    return "\n".join(out).strip()
 
 
 # ---------------------------------------------------------------------------

@@ -43,9 +43,19 @@ class Settings(BaseSettings):
     # --- Google OAuth ------------------------------------------------------
     GOOGLE_CLIENT_ID: str = ""
 
+    # --- LLM provider selection -------------------------------------------
+    AI_PROVIDER: str = "auto"
+
     # --- Claude ----------------------------------------------------------
     ANTHROPIC_API_KEY: str = ""
     ANTHROPIC_MODEL: str = "claude-haiku-4-5-20251001"
+
+    # --- OpenAI-compatible ------------------------------------------------
+    OPENAI_API_KEY: str = ""
+    OPENAI_MODEL: str = "gpt-4.1-nano"
+    OPENAI_BASE_URL: str = ""
+
+    COLLEGE_TIMEZONE: str = "Asia/Kolkata"
 
     # --- Sarvam AI (voice) ------------------------------------------------
     SARVAM_API_KEY: str = ""
@@ -87,6 +97,7 @@ class Settings(BaseSettings):
 
     class Config:
         env_file = ".env"
+        extra = "ignore"
 
 
 settings = Settings()
